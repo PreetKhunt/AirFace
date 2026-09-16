@@ -1,0 +1,19 @@
+.\docker-compose.yml:72:NEXT_PUBLIC_API_URL: http://localhost:8000/api/v1
+.\backend\reset_demo.py:14:API_BASE = "http://127.0.0.1:8000/api/v1"
+.\backend\reset_demo.py:69:"reference_source": "MOCK_BASELINE",
+.\backend\app\config.py:16:DATABASE_URL: str = "postgresql://mospi_admin:mospi_secure_password_2026@localhost:5432/sih_airfare"
+.\backend\app\config.py:19:REDIS_URL: str = "redis://localhost:6379/0"
+.\backend\app\config.py:22:API_BASE_URL: str = "http://localhost:8000"
+.\backend\app\config.py:23:CORS_ORIGINS: List[str] = ["http://localhost:3000", "http://127.0.0.1:3000"]
+.\backend\app\core\enums.py:9:- SYNTHETIC: Generated mock observations for demonstration and fallback testing.
+.\backend\app\services\data_quality.py:5:derived strictly from empirical observation and pipeline evidence (no hardcoded placeholders).
+.\frontend\package-lock.json:1262:"jest-mock": "30.5.1"
+.\frontend\package-lock.json:1279:"jest-mock": "30.5.1",
+.\frontend\package-lock.json:1334:"jest-mock": "30.5.1",
+.\frontend\package-lock.json:1361:"jest-mock": "30.5.1"
+.\frontend\package-lock.json:5310:"jest-mock": "30.5.1",
+.\frontend\package-lock.json:7011:"jest-mock": "30.5.1",
+.\frontend\package-lock.json:7225:"node_modules/jest-mock": {
+.\frontend\package-lock.json:7227:"resolved": "https://registry.npmjs.org/jest-mock/-/jest-mock-30.5.1.tgz",
+.\frontend\package-lock.json:7341:"jest-mock": "30.5.1",
+.\frontend\src\lib\api.ts:15:const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000/api/v1';

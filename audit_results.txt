@@ -1,0 +1,1658 @@
+.\API.md:13:| `POST` | `/api/v1/ingestion/fixtures/synthetic` | Ingest synthetic fixture dataset (90 rows) |
+.\API.md:38:curl -X POST "http://localhost:8000/api/v1/normalization/run" -H "Accept: application/json"
+.\API.md:43:curl -X GET "http://localhost:8000/api/v1/normalized-observations?route_id=DEL-BOM&booking_horizon=T%2B7" -H "Accept: application/json"
+.\API.md:48:curl -X GET "http://localhost:8000/api/v1/quality/score" -H "Accept: application/json"
+.\DATABASE.md:15:* `raw_airfare_observations`: Raw DOM HTML text, collection timestamps, source URLs, and data mode (`LIVE`, `HISTORICAL`, `SYNTHETIC`).
+.\DEMO_GUIDE.md:15:* **Action:** Open `http://localhost:3000` in the browser.
+.\DEMO_GUIDE.md:65:* **Highlight:** Explain to judges: *"If live target portals implement network blocks during a presentation, our application never dies. It gracefully serves verified historical scraped data, transparently informing judges via UI badges instead of pretending mock data is live."*
+.\DEPLOYMENT.md:24:* **Next.js Web Dashboard:** `http://localhost:3000`
+.\DEPLOYMENT.md:25:* **FastAPI Backend API:** `http://localhost:8000`
+.\DEPLOYMENT.md:26:* **PostgreSQL / TimescaleDB:** `localhost:5432`
+.\DEPLOYMENT.md:27:* **Redis Cache:** `localhost:6379`
+.\README.md:39:- **SYNTHETIC**: Mathematically manufactured data specifically for testing extreme edge-cases.
+.\README.md:66:This drops the SQLite database, migrates the schema, ingests synthetic/historical fixtures, runs normalization, computes indices, and runs backtests.
+.\SCRAPING.md:41:- ixture_synthetic: Ingests 90-row synthetic demo CSV.
+.\SETUP.md:68:* **Backend OpenAPI Docs:** `http://localhost:8000/docs`
+.\SETUP.md:69:* **Frontend Web Dashboard:** `http://localhost:3000`
+.\TESTING.md:24:- **Phase B (Data Engine & Adapters):** Fixture loading (450 historical rows, 90 synthetic rows), live adapter safety floor, channel-separated duplicate identity, transaction savepoint isolation, SHA-256 provenance trail.
+.\TESTING.md:42:- Complete data isolation protecting testing metrics against Synthetic dataset pollution.
+.\backend\reset_demo.py:14:API_BASE = "http://127.0.0.1:8000/api/v1"
+.\backend\reset_demo.py:22:response = httpx.post(f"{API_BASE}{url}", params=params, timeout=30.0)
+.\backend\reset_demo.py:24:response = httpx.get(f"{API_BASE}{url}", params=params, timeout=30.0)
+.\backend\reset_demo.py:49:run_step("Ingest Synthetic", "/ingestion/fixtures/synthetic")
+.\backend\reset_demo.py:56:run_step("Calculate Index (SYNTHETIC)", "/index/calculate", params={"calculation_date": CALC_DATE, "base_date": BASE_DATE, "data_mode": "SYNTHETIC"})
+.\backend\reset_demo.py:60:# Provide a tiny synthetic reference dataset for the backtest to run against
+.\backend\reset_demo.py:69:"reference_source": "MOCK_BASELINE",
+.\backend\reset_demo.py:72:"data_mode": "SYNTHETIC"
+.\backend\reset_demo.py:80:response = httpx.post(f"{API_BASE}{url}", json=payload, timeout=30.0)
+.\backend\reset_demo.py:86:run_step_json("Backtest Validation (SYNTHETIC)", "/backtest/run", backtest_payload_sync)
+.\backend\alembic\env.py:17:config.set_main_option("sqlalchemy.url", settings.DATABASE_URL)
+.\backend\alembic\versions\001_initial_schema.py:42:sa.Column('collection_mode', sa.Enum('LIVE', 'HISTORICAL', 'SYNTHETIC', name='datamode'), nullable=False),
+.\backend\alembic\versions\001_initial_schema.py:136:sa.Column('synthetic_share', sa.Numeric(precision=5, scale=4), nullable=False),
+.\backend\alembic\versions\006_phase_d_index_engine.py:21:op.add_column('elementary_route_indices', sa.Column('data_mode', sa.Enum('LIVE', 'HISTORICAL', 'SYNTHETIC', name='datamode'), nullable=False, server_default='LIVE'))
+.\backend\alembic\versions\006_phase_d_index_engine.py:35:op.add_column('national_aggregate_indices', sa.Column('data_mode', sa.Enum('LIVE', 'HISTORICAL', 'SYNTHETIC', name='datamode'), nullable=False, server_default='LIVE'))
+.\backend\alembic\versions\007_phase_e_backtest_runs.py:27:sa.Column('data_mode', sa.Enum('LIVE', 'HISTORICAL', 'SYNTHETIC', name='datamode'), nullable=False),
+.\backend\app\config.py:16:DATABASE_URL: str = "postgresql://mospi_admin:mospi_secure_password_2026@localhost:5432/sih_airfare"
+.\backend\app\config.py:19:REDIS_URL: str = "redis://localhost:6379/0"
+.\backend\app\config.py:22:API_BASE_URL: str = "http://localhost:8000"
+.\backend\app\config.py:23:CORS_ORIGINS: List[str] = ["http://localhost:3000", "http://127.0.0.1:3000"]
+.\backend\app\api\v1\ingestion.py:35:"/fixtures/synthetic",
+.\backend\app\api\v1\ingestion.py:38:summary="Ingest Synthetic Fixture Dataset",
+.\backend\app\api\v1\ingestion.py:39:description="Loads 90 synthetic demo observations from data/fixtures/synthetic/airfare_synthetic.csv",
+.\backend\app\api\v1\ingestion.py:41:def ingest_synthetic_fixture(db: Session = Depends(get_db)):
+.\backend\app\api\v1\ingestion.py:43:adapter = FixtureAdapter(data_mode=DataMode.SYNTHETIC)
+.\backend\app\api\v1\ingestion.py:49:detail=f"Synthetic fixture ingestion failed: {str(e)}"
+.\backend\app\core\celery_app.py:7:broker=settings.REDIS_URL,
+.\backend\app\core\celery_app.py:8:backend=settings.REDIS_URL
+.\backend\app\core\celery_app.py:28:"broker": settings.REDIS_URL
+.\backend\app\core\enums.py:9:- SYNTHETIC: Generated mock observations for demonstration and fallback testing.
+.\backend\app\core\enums.py:13:SYNTHETIC = "SYNTHETIC"
+.\backend\app\database\session.py:6:settings.DATABASE_URL,
+.\backend\app\models\log.py:31:synthetic_share = Column(Numeric(5, 4), nullable=False)
+.\backend\app\schemas\data_quality.py:26:synthetic_share: Decimal
+.\backend\app\schemas\data_quality.py:45:synthetic_share: Decimal
+.\backend\app\scrapers\base.py:12:- MUST NOT silently convert DataMode (e.g. SYNTHETIC -> LIVE).
+.\backend\app\scrapers\fixture_adapter.py:4:Reads fixture CSV files (historical or synthetic) and returns RawObservationRecord list.
+.\backend\app\scrapers\fixture_adapter.py:25:DataMode.SYNTHETIC:  Path("data/fixtures/synthetic/airfare_synthetic.csv"),
+.\backend\app\scrapers\fixture_adapter.py:54:Reads data/fixtures/{historical|synthetic}/airfare_*.csv and returns
+.\backend\app\scrapers\fixture_adapter.py:70:"Use HISTORICAL or SYNTHETIC."
+.\backend\app\services\data_quality.py:5:derived strictly from empirical observation and pipeline evidence (no hardcoded placeholders).
+.\backend\app\services\data_quality.py:98:synthetic_share=Decimal("0.00"),
+.\backend\app\services\data_quality.py:176:# 9. Synthetic Share: Measured from RawAirfareObservation.collection_mode
+.\backend\app\services\data_quality.py:177:synthetic_share = 0.0
+.\backend\app\services\data_quality.py:187:synth_count = sum(1 for (m,) in mode_rows if m == DataMode.SYNTHETIC)
+.\backend\app\services\data_quality.py:188:synthetic_share = synth_count / len(mode_rows)
+.\backend\app\services\data_quality.py:227:synthetic_share=Decimal(f"{synthetic_share:.4f}"),
+.\backend\app\tasks\ingestion_tasks.py:19:Background Celery task to execute fixture ingestion (HISTORICAL or SYNTHETIC).
+.\backend\scripts\reset_demo_sync.py:28:print("1. Ingesting fixtures (SYNTHETIC)...")
+.\backend\scripts\reset_demo_sync.py:29:IngestionEngine(db).ingest_fixture_data(data_mode=DataMode.SYNTHETIC)
+.\backend\scripts\reset_demo_sync.py:33:print("2. Running Normalization (SYNTHETIC)...")
+.\backend\scripts\reset_demo_sync.py:36:print("3. Calculating Indices (SYNTHETIC)...")
+.\backend\scripts\reset_demo_sync.py:37:IndexEngine(db).calculate_elementary_route_indices(calc_date, base_date, DataMode.SYNTHETIC)
+.\backend\scripts\reset_demo_sync.py:38:IndexEngine(db).calculate_national_aggregate_indices(calc_date, base_date, "JEVONS", DataMode.SYNTHETIC)
+.\backend\scripts\reset_demo_sync.py:39:IndexEngine(db).calculate_national_aggregate_indices(calc_date, base_date, "YOUNG_MODIFIED_LASPEYRES", DataMode.SYNTHETIC)
+.\backend\scripts\reset_demo_sync.py:46:print("4. Running Backtest (SYNTHETIC)...")
+.\backend\scripts\reset_demo_sync.py:48:BacktestEngine(db).execute_30_day_backtest(calc_date, DataMode.SYNTHETIC)
+.\backend\tests\conftest.py:10:SQLALCHEMY_DATABASE_URL = "sqlite:///:memory:"
+.\backend\tests\conftest.py:13:SQLALCHEMY_DATABASE_URL,
+.\backend\tests\test_adapters.py:28:def test_fixture_adapter_synthetic_loading():
+.\backend\tests\test_adapters.py:29:adapter = FixtureAdapter(data_mode=DataMode.SYNTHETIC)
+.\backend\tests\test_adapters.py:30:assert adapter.name == "fixture_synthetic"
+.\backend\tests\test_adapters.py:31:assert adapter.mode == DataMode.SYNTHETIC
+.\backend\tests\test_adapters.py:36:assert r.collection_mode == DataMode.SYNTHETIC
+.\backend\tests\test_config.py:7:assert settings.DATA_MODE in [DataMode.LIVE, DataMode.HISTORICAL, DataMode.SYNTHETIC]
+.\backend\tests\test_hardening_gate.py:8:5. Data-mode isolation (Synthetic never converted to Live)
+.\backend\tests\test_hardening_gate.py:15:from unittest.mock import MagicMock
+.\backend\tests\test_hardening_gate.py:27:class MockBatchAdapter(BaseScraperAdapter):
+.\backend\tests\test_hardening_gate.py:28:"""Custom mock adapter for testing exact batch record sequences."""
+.\backend\tests\test_hardening_gate.py:96:adapter1 = MockBatchAdapter("source_a", DataMode.HISTORICAL, [rec1])
+.\backend\tests\test_hardening_gate.py:111:adapter1 = MockBatchAdapter("direct_indigo", DataMode.HISTORICAL, [rec_src1])
+.\backend\tests\test_hardening_gate.py:112:adapter2 = MockBatchAdapter("makemytrip_ota", DataMode.HISTORICAL, [rec_src2])
+.\backend\tests\test_hardening_gate.py:128:adapter = MockBatchAdapter("source_a", DataMode.HISTORICAL, [rec_saver, rec_flex])
+.\backend\tests\test_hardening_gate.py:139:adapter = MockBatchAdapter("source_a", DataMode.HISTORICAL, [rec_t1, rec_t7])
+.\backend\tests\test_hardening_gate.py:147:rec_synth = _create_sample_record(mode=DataMode.SYNTHETIC)
+.\backend\tests\test_hardening_gate.py:149:adapter_hist = MockBatchAdapter("src_test", DataMode.HISTORICAL, [rec_hist])
+.\backend\tests\test_hardening_gate.py:150:adapter_synth = MockBatchAdapter("src_test", DataMode.SYNTHETIC, [rec_synth])
+.\backend\tests\test_hardening_gate.py:174:res = client.post("/api/v1/ingestion/fixtures/synthetic")
+.\backend\tests\test_hardening_gate.py:195:adapter = MockBatchAdapter("partial_source", DataMode.HISTORICAL, [rec_a, rec_b, rec_c, rec_d])
+.\backend\tests\test_hardening_gate.py:260:def test_synthetic_data_never_silently_converted_to_live(db_session):
+.\backend\tests\test_hardening_gate.py:261:adapter = FixtureAdapter(data_mode=DataMode.SYNTHETIC)
+.\backend\tests\test_hardening_gate.py:263:assert result.collection_mode == DataMode.SYNTHETIC
+.\backend\tests\test_hardening_gate.py:267:assert DataMode.SYNTHETIC in raw_modes
+.\backend\tests\test_hardening_gate.py:309:adapter_ok = MockBatchAdapter("health_src", DataMode.HISTORICAL, [rec1])
+.\backend\tests\test_hardening_gate.py:319:adapter_part = MockBatchAdapter("health_src", DataMode.HISTORICAL, [rec2, rec3_bad])
+.\backend\tests\test_hardening_gate.py:326:adapter_broken = MockBatchAdapter("health_src", DataMode.HISTORICAL, [])
+.\backend\tests\test_hardening_gate.py:327:adapter_broken.collect = MagicMock(side_effect=RuntimeError("Network timeout"))
+.\backend\tests\test_ingestion_api.py:44:def test_synthetic_fixture_endpoint(client):
+.\backend\tests\test_ingestion_api.py:45:res = client.post("/api/v1/ingestion/fixtures/synthetic")
+.\backend\tests\test_ingestion_api.py:48:assert data["source_name"] == "fixture_synthetic"
+.\backend\tests\test_ingestion_api.py:49:assert data["collection_mode"] == "SYNTHETIC"
+.\backend\tests\test_ingestion_service.py:55:def test_synthetic_ingestion_data_mode_isolation(db_session):
+.\backend\tests\test_ingestion_service.py:56:adapter = FixtureAdapter(data_mode=DataMode.SYNTHETIC)
+.\backend\tests\test_ingestion_service.py:60:assert result.collection_mode == DataMode.SYNTHETIC
+.\backend\tests\test_ingestion_service.py:66:assert r.collection_mode == DataMode.SYNTHETIC
+.\backend\tests\test_phase_b_celery.py:1:﻿from unittest.mock import patch, MagicMock
+.\backend\tests\test_phase_b_celery.py:8:def test_ingest_fixture_celery_task(mock_run_ingestion):
+.\backend\tests\test_phase_b_celery.py:9:mock_run_ingestion.return_value = IngestionResult(
+.\backend\tests\test_phase_b_celery.py:24:def test_collect_live_source_celery_task(mock_run_ingestion):
+.\backend\tests\test_phase_b_celery.py:25:mock_run_ingestion.return_value = IngestionResult(
+.\backend\tests\test_phase_c_api.py:4:from unittest.mock import patch
+.\backend\tests\test_phase_c_api.py:11:# 1. Ingest synthetic fixture
+.\backend\tests\test_phase_c_api.py:12:ingest_res = client.post("/api/v1/ingestion/fixtures/synthetic")
+.\backend\tests\test_phase_c_api.py:56:def test_normalization_celery_task(mock_run_norm):
+.\backend\tests\test_phase_c_api.py:57:mock_run_norm.return_value = PhaseCNormalizationResponse(
+.\backend\tests\test_phase_c_corrections.py:15:12. DQ synthetic share computed from collection mode
+.\backend\tests\test_phase_c_corrections.py:226:raw2 = RawAirfareObservation(raw_id=uuid.uuid4(), collection_timestamp=now, source_name="src2", source_url="url2", raw_displayed_price_text="5000", collection_mode=DataMode.SYNTHETIC)
+.\backend\tests\test_phase_c_corrections.py:250:assert dq.synthetic_share == Decimal("0.5000")  # 1 of 2 is synthetic
+.\backend\tests\test_phase_c_final_gate.py:179:not a hardcoded constant of 45.
+.\backend\tests\test_phase_d_index_engine.py:176:# Synthetic data
+.\backend\tests\test_phase_d_index_engine.py:177:_create_obs(db_session, "DEL-BOM", "6E-200", d_base, Decimal("1000"), data_mode=DataMode.SYNTHETIC)
+.\backend\tests\test_phase_d_index_engine.py:178:_create_obs(db_session, "DEL-BOM", "6E-200", d_calc, Decimal("2000"), data_mode=DataMode.SYNTHETIC)
+.\backend\tests\test_phase_d_index_engine.py:182:syn_results = engine.calculate_elementary_route_indices(d_calc, d_base, data_mode=DataMode.SYNTHETIC)
+.\backend\tests\test_phase_e_backtest.py:131:_create_index(db_session, d, 200.0, data_mode=DataMode.SYNTHETIC)
+.\backend\tests\test_phase_e_backtest.py:136:run_syn = engine.run_backtest(start, end, ref_data, "Ref", "JEVONS", "T+1", data_mode=DataMode.SYNTHETIC)
+.\docs\architecture\API_SPECIFICATION.md:10:* **Base URL:** `http://localhost:8000/api/v1`
+.\docs\architecture\API_SPECIFICATION.md:27:| `POST`| `/admin/mode` | Toggles active data ingestion mode (`LIVE`, `HISTORICAL`, `SYNTHETIC`) | Admin |
+.\docs\architecture\DATABASE_SCHEMA.md:67:collection_mode VARCHAR(16) NOT NULL CHECK (collection_mode IN ('LIVE', 'HISTORICAL', 'SYNTHETIC')),
+.\docs\architecture\DATABASE_SCHEMA.md:147:synthetic_share DECIMAL(5, 4) NOT NULL,
+.\docs\architecture\DATA_ARCHITECTURE.md:53:[ MODE: LIVE ]          [ MODE: HISTORICAL ]     [ MODE: SYNTHETIC ]
+.\docs\architecture\DATA_ARCHITECTURE.md:54:Real-time scraped DOM   Stored 30-day scraped    Calibrated test mock
+.\docs\architecture\DATA_ARCHITECTURE.md:58:* **Storage Tag:** Every observation record contains mandatory column `collection_mode VARCHAR(16) CHECK (collection_mode IN ('LIVE', 'HISTORICAL', 'SYNTHETIC'))`.
+.\docs\architecture\DATA_ARCHITECTURE.md:59:* **API Isolation:** API endpoints filter by `collection_mode`. Synthetic data is NEVER mixed into live calculations and carries explicit UI warning badges.
+.\docs\architecture\DEPLOYMENT.md:62:DATABASE_URL: postgresql://mospi_admin:mospi_secure_password_2026@db:5432/sih_airfare
+.\docs\architecture\DEPLOYMENT.md:63:REDIS_URL: redis://redis:6379/0
+.\docs\architecture\DEPLOYMENT.md:77:NEXT_PUBLIC_API_URL: http://localhost:8000/api/v1
+.\docs\architecture\FRONTEND_ARCHITECTURE.md:10:### 1.1 Wireframe Layout (Matching Official Competition Mockup)
+.\docs\architecture\FRONTEND_ARCHITECTURE.md:42:* **Data Mode Badge:** Prominent top-right badge (`[LIVE DATA]`, `[HISTORICAL DEMO]`, or `[SYNTHETIC MOCK]`).
+.\docs\architecture\SECURITY.md:28:* **Data Mode Guardrails:** Synthetic test data is tagged `collection_mode = 'SYNTHETIC'` at database constraint level, preventing corrupt data from entering production index calculations.
+.\docs\architecture\SYSTEM_ARCHITECTURE.md:91:* **Components:** 8-Factor Data Quality Calculator ($DQ \in [0, 100]$), Cryptographic Payload Audit Trail (SHA-256), Data Mode Router (`LIVE`, `HISTORICAL`, `SYNTHETIC`).
+.\docs\demo\FAILURE_RECOVERY.md:15:1. Ensure the frontend is querying `http://localhost:8000`.
+.\docs\demo\FAILURE_RECOVERY.md:16:2. Check `frontend/.env.local` or `frontend/src/lib/api.ts` to confirm `NEXT_PUBLIC_API_URL`.
+.\docs\demo\GOLDEN_DEMO_CHECKLIST.md:18:- [ ] Navigated to `http://localhost:8000/api/v1/health`.
+.\docs\demo\GOLDEN_DEMO_CHECKLIST.md:23:- [ ] Navigated to `http://localhost:3000`.
+.\docs\demo\GOLDEN_DEMO_CHECKLIST.md:25:- [ ] **DataModeBadge** correctly displays `[SYNTHETIC]` or `[HISTORICAL]` and does not say `[LIVE]`.
+.\docs\demo\GOLDEN_DEMO_SCRIPT.md:10:4. Open `http://localhost:3000`.
+.\docs\demo\GOLDEN_DEMO_SCRIPT.md:18:- Point out the **Data Mode Badge** (DEMO MODE — SYNTHETIC DATA), emphasizing data isolation.
+.\docs\implementation\FINAL_SCOPE_AUDIT.md:18:- **Data Mode Isolation**: Strict separation of `LIVE`, `HISTORICAL`, and `SYNTHETIC` namespaces to prevent demo data from poisoning official calculations.
+.\docs\implementation\IMPLEMENTATION_PLAN.md:21:LIVE           HISTORICAL       SYNTHETIC
+.\docs\implementation\IMPLEMENTATION_PLAN.md:23:Scraper         Archive Database   Mock Data
+.\docs\implementation\IMPLEMENTATION_PLAN.md:36:> If target airline/OTA portals implement bot blocks during live competition evaluation, the system switches smoothly to `HISTORICAL` or `SYNTHETIC` mode. The UI explicitly badges the active mode (`[HISTORICAL DEMO DATA]`), ensuring presentation uptime without misrepresentation.
+.\docs\implementation\IMPLEMENTATION_PLAN.md:48:* Historical/Synthetic Data Fallback Engine (`LIVE`, `HISTORICAL`, `SYNTHETIC`)
+.\docs\implementation\IMPLEMENTATION_PLAN.md:74:* Static historical fixture loader & multi-mode data router (`LIVE`, `HISTORICAL`, `SYNTHETIC`).
+.\docs\implementation\IMPLEMENTATION_PLAN.md:94:* Next.js dark-theme UI matching official competition layout mockup.
+.\docs\implementation\PHASE_B_HARDENING_REPORT.md:27:- *Resolution:* Proved SYNTHETIC, HISTORICAL, and LIVE cannot silently transform into one another.
+.\docs\implementation\PHASE_B_HARDENING_REPORT.md:75:11. 	est_synthetic_data_never_silently_converted_to_live
+.\docs\implementation\PHASE_B_REPORT.md:22:- **Synthetic Demo Dataset (data/fixtures/synthetic/airfare_synthetic.csv):**
+.\docs\implementation\PHASE_B_REPORT.md:49:- Strict DataMode isolation: HISTORICAL, SYNTHETIC, and LIVE modes are never silently converted.
+.\docs\implementation\PHASE_B_REPORT.md:54:- POST /api/v1/ingestion/fixtures/synthetic -- Ingest 90 synthetic rows
+.\docs\implementation\PHASE_B_REPORT.md:76:1. 	est_adapters.py: Fixture historical loading (450 rows), synthetic loading (90 rows), live safety guards.
+.\docs\implementation\PHASE_C_CORRECTION_REPORT.md:36:- **Problem:** Hardcoded placeholder constants (`95.0`, `100.0`, `0.0`) existed in `data_quality.py`.
+.\docs\implementation\PHASE_C_CORRECTION_REPORT.md:46:- **Synthetic Share:** Measured from `RawAirfareObservation.collection_mode == SYNTHETIC`.
+.\docs\implementation\PHASE_C_FINAL_GATE_REPORT.md:71:**Problem:** Completeness was hardcoded as `unique_cells / 45.0`, ignoring actual
+.\docs\implementation\PHASE_C_REPORT.md:88:Calculates multi-dimensional Data Quality score in $[0.00, 100.00]$ derived from empirical data without hardcoded placeholders:
+.\docs\implementation\PHASE_D_REPORT.md:23:- The `base_date` (reference period) is configurable per execution. Missing reference fares result in skipped calculations rather than synthetic fabrication.
+.\docs\implementation\PHASE_D_REPORT.md:35:- The `data_mode` (`LIVE`, `HISTORICAL`, `SYNTHETIC`) is propagated from Phase C and fully isolates indices. Synthetic outputs are distinctly labeled in the database.
+.\docs\implementation\PHASE_E_REPORT.md:8:- **Data Modes**: Fully isolates `LIVE`, `HISTORICAL`, and `SYNTHETIC` datasets to guarantee non-contamination.
+.\docs\implementation\PHASE_F_FINAL_GATE_REPORT.md:33:- **Synthetic/Historical Mode**: `DataModeBadge` clearly reflects backend state. Switching to synthetic strictly outputs `DEMO MODE — SYNTHETIC DATA`. No silent leakage occurs.
+.\docs\implementation\PHASE_F_REPORT.md:30:- **Data Mode Transparency**: The `DataModeBadge` prominently displays LIVE, HISTORICAL, or SYNTHETIC on every page.
+.\docs\implementation\PHASE_G_FINAL_PROTOTYPE_REPORT.md:8:- **Ingestion**: Ingests the 450-row historical fixture and 90-row synthetic fixture.
+.\docs\implementation\PHASE_G_FINAL_PROTOTYPE_REPORT.md:11:- **Validation**: Executes the 30-day temporal backtest against mock baseline benchmarks.
+.\docs\implementation\PHASE_G_FINAL_PROTOTYPE_REPORT.md:15:- `SYNTHETIC` strictly loads from the `-synthetic.json` file. The frontend correctly badges all routes with "DEMO MODE — SYNTHETIC DATA".
+.\docs\methodology\01-data-observation-model.md:48:| `collection_mode` | Enum | NO | `[PROPOSED METHODOLOGY]` | Values: `LIVE`, `HISTORICAL`, `SYNTHETIC` |
+.\docs\methodology\05-index-construction.md:78:> **NO HARDCODED OFFICIAL BASELINE:**
+.\docs\methodology\08-data-quality.md:17:$$DQ = \sum_{k=1}^{7} w_k \cdot M_k - \text{Penalty}_{Synthetic}$$
+.\docs\methodology\08-data-quality.md:32:| **Synthetic Penalty** | $S$ | Penalty proportional to fraction of synthetic mock data present | **-1.00** (Full Penalty) |
+.\docs\methodology\08-data-quality.md:64:# Heavy penalty for synthetic mock data intrusion
+.\docs\methodology\08-data-quality.md:65:synthetic_penalty = batch_metrics.synthetic_fraction * 100.0
+.\docs\methodology\08-data-quality.md:66:final_score = max(0.0, min(100.0, score - synthetic_penalty))
+.\docs\methodology\09-provenance-and-data-modes.md:14:[ MODE: LIVE ]             [ MODE: HISTORICAL ]        [ MODE: SYNTHETIC ]
+.\docs\methodology\09-provenance-and-data-modes.md:15:Scraped real-time from     Stored historical scraped   Calibrated test mock data
+.\docs\methodology\09-provenance-and-data-modes.md:25:| **`SYNTHETIC`** | Programmatically generated test records | Demonstration fallback & load tests | `[SYNTHETIC MOCK]` (Amber Alert) | **NEVER PRESENTED AS LIVE DATA** |
+.\docs\methodology\09-provenance-and-data-modes.md:33:> 1. Synthetic or simulated mock data MUST NEVER be badged, labeled, or passed off as "Live Scraped Data".
+.\docs\methodology\09-provenance-and-data-modes.md:34:> 2. Presenting synthetic data as live data during SIH judge evaluation is grounds for immediate disqualification.
+.\docs\methodology\09-provenance-and-data-modes.md:35:> 3. If live network access fails during judging, the system MUST be explicitly toggled to `[MODE: HISTORICAL]` or `[MODE: SYNTHETIC]` with full UI badge visibility.
+.\docs\methodology\METHODOLOGY_FREEZE.md:46:*   **Multi-Mode Engine:** Structural isolation of `LIVE`, `HISTORICAL`, and `SYNTHETIC` data modes.
+.\docs\methodology\METHODOLOGY_FREEZE.md:94:*   `collection_mode`: Enum (`LIVE`, `HISTORICAL`, `SYNTHETIC`)
+.\docs\methodology\METHODOLOGY_FREEZE.md:145:*   `LIVE`, `HISTORICAL`, and `SYNTHETIC` modes are strictly isolated.
+.\docs\methodology\METHODOLOGY_FREEZE.md:163:## 16. Decisions Developers MUST NOT Change (Hardcoded Standards)
+.\docs\methodology\METHODOLOGY_FREEZE.md:167:3.  **Synthetic Data Labeling:** Synthetic data MUST NEVER be badged or presented as live data.
+.\docs\methodology\METHODOLOGY_FREEZE.md:203:| **Base Period** | Configurable reference date $t_0$ ($I^{t_0} = 100.0$) in `config/index_settings.yaml`. | `[DERIVED ENG REQ]` | Avoids hardcoded unsupported baseline month |
+.\docs\methodology\METHODOLOGY_FREEZE.md:208:| **Synthetic Data** | Isolated `SYNTHETIC` mode; explicitly badged on UI; NEVER presented as live data. | `[PROPOSED METHODOLOGY]` | Strict judging ethics guarantee |
+.\docs\prd\ACCEPTANCE_CRITERIA.md:30:| **CHK-JDG-06** | Data Mode Labeling | UI explicitly displays `[MODE: LIVE]`, `[MODE: HISTORICAL]`, or `[MODE: SYNTHETIC]`. | Audit dashboard top bar badge in all 3 operational modes. |
+.\docs\prd\ACCEPTANCE_CRITERIA.md:43:| **CHK-MOS-04** | Automated Data Quality Halting | System halts publication if $DQ < 60.0$ and raises Red Alert. | Inject mock corrupt batch and verify publication halt. |
+.\docs\prd\FEATURE_SPECIFICATION.md:117:#### F5.1: Multi-Mode Data Router (`LIVE`, `HISTORICAL`, `SYNTHETIC`)
+.\docs\prd\FEATURE_SPECIFICATION.md:121:* Toggle system ingestion mode between Live scraped, Historical database, and Synthetic mock data.
+.\docs\prd\FEATURE_SPECIFICATION.md:122:* Enforce mandatory UI badge labeling on all views (`[LIVE DATA]`, `[HISTORICAL DATA]`, `[SYNTHETIC MOCK]`).
+.\docs\prd\FUNCTIONAL_REQUIREMENTS.md:51:| **FR-021** | Multi-Mode Data Router | System MUST enforce strict structural isolation between `LIVE`, `HISTORICAL`, and `SYNTHETIC` data modes. | **MUST** | `[PROPOSED METHODOLOGY]` | Methodology 09 / Data Modes |
+.\docs\prd\FUNCTIONAL_REQUIREMENTS.md:52:| **FR-022** | Synthetic Data Badge Labeling | System MUST explicitly display prominent UI warning badge `[MODE: SYNTHETIC]` whenever synthetic mock data is present. | **MUST** | `[PROPOSED METHODOLOGY]` | Methodology 09 / Judging Ethics |
+.\docs\prd\MVP_SCOPE.md:26:| **Multi-Mode Engine** | Strict isolation between `LIVE`, `HISTORICAL`, and `SYNTHETIC` data modes with UI badge labeling | 100% demo resilience toggle | `[PROPOSED METHODOLOGY]` |
+.\docs\prd\PRD.md:33:6. **Multi-Mode Demo Resilience:** Enforce strict structural isolation between `LIVE`, `HISTORICAL`, and `SYNTHETIC` data modes to guarantee 100% demo uptime.
+.\docs\prd\USER_FLOWS.md:29:4. **Data Quality Verification:** Inspects the Data Quality Score widget ($DQ = 92.4$, Green Band), confirming $<5\%$ imputation rate and $0\%$ synthetic data intrusion.
+.\docs\research\01-official-requirements.md:37:| **REQ-DER-01** | Ethical scraping, robots.txt compliance, and rate limiting | DERIVED ENG REQ | YES | IT Act 2000 / Web Scraping Best Practices [7][8] | Necessary to prevent server overload, IP blocking, and illegal server access. | Implement polite request pacing (delay >= 2s), User-Agent header rotation, robots.txt parser, and fallback to mock static fixtures when blocked. | **HIGH** |
+.\docs\research\01-official-requirements.md:45:| **REQ-INN-02** | Multi-Mode Data Engine (Live / Historical / Synthetic) | OPTIONAL INNOVATION | NO | Robust Demo Engineering | Guarantees live demonstration stability during judge evaluation regardless of Wi-Fi or live site downtime. | Engine toggle between Live Scraped, Stored Historical, and Calibrated Synthetic data with explicit UI badge labeling. | **HIGH** |
+.\docs\research\05-airfare-data-model.md:38:| `collection_mode` | Enum | OPTIONAL | `LIVE`, `HISTORICAL`, `SYNTHETIC` | Strict synthetic isolation flag |
+.\docs\research\05-airfare-data-model.md:76:"collection_mode": { "type": "string", "enum": ["LIVE", "HISTORICAL", "SYNTHETIC"] }
+.\docs\research\13-live-historical-synthetic-data.md:14:[ MODE: LIVE ]          [ MODE: HISTORICAL ]     [ MODE: SYNTHETIC ]
+.\docs\research\13-live-historical-synthetic-data.md:25:| **`SYNTHETIC`** | Programmatically generated fare records calibrated to real historical price distributions | Demonstration stability & load testing | `[SYNTHETIC MOCK]` (Amber Alert) | **NEVER PRESENTED AS LIVE DATA TO JUDGES** |
+.\docs\research\13-live-historical-synthetic-data.md:29:## 2. Ethical Rules Regarding Synthetic Data
+.\docs\research\13-live-historical-synthetic-data.md:33:> Representing synthetic or simulated data as "live scraped data" to SIH judges constitutes immediate disqualification. The dashboard UI and API responses MUST explicitly badge all synthetic outputs with a prominent warning label `[MODE: SYNTHETIC]`.
+.\docs\research\15-risk-register.md:16:| **RSK-DAT-02** | Data Risk | Target portal redesigns DOM structure, breaking CSS selectors | HIGH | MEDIUM | **HIGH** | Build resilient parsing selectors (XPath/regex fallback) and automated DOM drift alerts; fallback to mock fixture. |
+.\docs\research\15-risk-register.md:24:| **RSK-JDG-01** | Judging Risk | Presenting synthetic or mock data as "live scraped data" to SIH judges | LOW | CRITICAL | **CRITICAL** | Enforce explicit UI badge labeling (`[MODE: LIVE]`, `[MODE: HISTORICAL]`, `[MODE: SYNTHETIC]`) with 100% data mode isolation. |
+.\docs\research\data_provenance_strategy.md:3:*See full research document at [13-live-historical-synthetic-data.md](file:///c:/Users/kenil/OneDrive/Desktop/Anti/SIH/docs/research/13-live-historical-synthetic-data.md)*
+.\docs\research\data_provenance_strategy.md:7:1. **Strict Partitioning:** Data modes `LIVE`, `HISTORICAL`, and `SYNTHETIC` are explicitly isolated.
+.\docs\research\data_provenance_strategy.md:8:2. **Provenance Badges:** Every UI view and API output badges the active mode (`[LIVE]`, `[HISTORICAL]`, `[SYNTHETIC]`).
+.\docs\research\data_provenance_strategy.md:9:3. **No Synthetic Misrepresentation:** Synthetic data is never passed off as live scraped data.
+.\docs\research\RESEARCH_AUDIT.md:70:1.  The system must include a **Multi-Mode Data Engine** supporting `LIVE`, `HISTORICAL`, and `SYNTHETIC` data modes to guarantee 100% presentation uptime.
+.\docs\research\RESEARCH_SUMMARY.md:38:*   Multi-mode data ingestion pipeline (`LIVE`, `HISTORICAL`, `SYNTHETIC`).
+.\docs\research\RESEARCH_SUMMARY.md:48:3.  **DO NOT** present synthetic data as live scraped data. (Always display explicit UI badges).
+.\frontend\package-lock.json:1262:"jest-mock": "30.5.1"
+.\frontend\package-lock.json:1279:"jest-mock": "30.5.1",
+.\frontend\package-lock.json:1334:"jest-mock": "30.5.1",
+.\frontend\package-lock.json:1361:"jest-mock": "30.5.1"
+.\frontend\package-lock.json:5310:"jest-mock": "30.5.1",
+.\frontend\package-lock.json:7011:"jest-mock": "30.5.1",
+.\frontend\package-lock.json:7225:"node_modules/jest-mock": {
+.\frontend\package-lock.json:7227:"resolved": "https://registry.npmjs.org/jest-mock/-/jest-mock-30.5.1.tgz",
+.\frontend\package-lock.json:7341:"jest-mock": "30.5.1",
+.\frontend\src\app\methodology\page.tsx:52:<li>Strict isolation between LIVE, HISTORICAL, and SYNTHETIC data modes.</li>
+.\frontend\src\components\DataModeBadge.tsx:14:{mode === 'SYNTHETIC' && <span className="ml-2 text-xs opacity-75">(DEMO MODE — SYNTHETIC DATA)</span>}
+.\frontend\src\lib\api.ts:15:const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000/api/v1';
+.\frontend\src\lib\api.ts:18:const res = await fetch(`${API_BASE_URL}${endpoint}`, { cache: 'no-store', ...options });
+.\frontend\src\types\index.ts:1:export type DataMode = 'LIVE' | 'HISTORICAL' | 'SYNTHETIC';
+.\frontend\__tests__\Dashboard.test.tsx:12:// Mock recharts to avoid rendering issues in JSDOM
+.\frontend\__tests__\Dashboard.test.tsx:13:jest.mock('recharts', () => {
+.\frontend\__tests__\Dashboard.test.tsx:18:LineChart: () => <div>LineChart Mock</div>,
+.\frontend\__tests__\Dashboard.test.tsx:19:BarChart: () => <div>BarChart Mock</div>,
+.\venv\Lib\site-packages\typing_extensions.py:3457:# TODO: Use inspect.VALUE here, and make the annotations lazily evaluated
+.\venv\Lib\site-packages\alembic\command.py:70:# left as os.access() to suit unit test mocking
+.\venv\Lib\site-packages\alembic\command.py:137:# left as open() to suit unit test mocking
+.\venv\Lib\site-packages\alembic\command.py:170:# left as open() to suit unit test mocking
+.\venv\Lib\site-packages\alembic\command.py:397::param rev_id: hardcoded revision identifier instead of generating a new
+.\venv\Lib\site-packages\alembic\config.py:747:help="Specify a hardcoded revision id instead of "
+.\venv\Lib\site-packages\alembic\autogenerate\render.py:814:# TODO: for non-ascii colname, assign a "key"
+.\venv\Lib\site-packages\alembic\autogenerate\compare\constraints.py:405:# TODO: for plugins, let's do is_index_sig / is_uq_sig
+.\venv\Lib\site-packages\alembic\ddl\mssql.py:153:# TODO: see why these two alter_columns can't be called
+.\venv\Lib\site-packages\alembic\ddl\mssql.py:389:# TODO: there can also be a named constraint
+.\venv\Lib\site-packages\alembic\ddl\mysql.py:268:# TODO: this is not really covered anymore ?
+.\venv\Lib\site-packages\alembic\ddl\mysql.py:332:# TODO: if SQLA 1.0, make use of "duplicates_index"
+.\venv\Lib\site-packages\alembic\ddl\postgresql.py:146:# TODO: this seems quite a bad idea for a default that's a SQL
+.\venv\Lib\site-packages\alembic\operations\base.py:541:In a SQL script context, this value is ``None``. [TODO: verify this]
+.\venv\Lib\site-packages\alembic\operations\batch.py:292:# TODO: we are skipping unnamed reflected CheckConstraint
+.\venv\Lib\site-packages\alembic\operations\batch.py:758:raise NotImplementedError("TODO")
+.\venv\Lib\site-packages\alembic\operations\ops.py:1823:# TODO: make this a little simpler
+.\venv\Lib\site-packages\alembic\operations\schemaobj.py:135:# TODO: need event tests to ensure the event
+.\venv\Lib\site-packages\alembic\runtime\migration.py:23:from sqlalchemy.engine.strategies import MockEngineStrategy
+.\venv\Lib\site-packages\alembic\runtime\migration.py:36:from sqlalchemy.engine.mock import MockConnection
+.\venv\Lib\site-packages\alembic\runtime\migration.py:663:) -> MockConnection:
+.\venv\Lib\site-packages\alembic\runtime\migration.py:667:return MockEngineStrategy.MockConnection(self.dialect, dump)
+.\venv\Lib\site-packages\alembic\runtime\migration.py:683:this bind will be a "mock" connection handler that cannot
+.\venv\Lib\site-packages\alembic\runtime\migration.py:1306:# TODO: we probably need to look for self.to_ inside of heads,
+.\venv\Lib\site-packages\alembic\script\base.py:507:todo_heads = [head.revision for head in filtered_heads]
+.\venv\Lib\site-packages\alembic\script\base.py:509:todo_heads,
+.\venv\Lib\site-packages\alembic\script\base.py:520:todo_heads = [head.revision for head in filtered_heads]
+.\venv\Lib\site-packages\alembic\script\base.py:522:todo_heads,
+.\venv\Lib\site-packages\alembic\script\revision.py:880:todo: Deque[Revision] = collections.deque()
+.\venv\Lib\site-packages\alembic\script\revision.py:883:todo.append(target)
+.\venv\Lib\site-packages\alembic\script\revision.py:887:while todo:
+.\venv\Lib\site-packages\alembic\script\revision.py:888:rev = todo.pop()
+.\venv\Lib\site-packages\alembic\script\revision.py:903:todo.append(next_rev)
+.\venv\Lib\site-packages\alembic\script\revision.py:939:todo = {d.revision for d in revisions}
+.\venv\Lib\site-packages\alembic\script\revision.py:946:{d.revision for d in heads if d.revision in todo},
+.\venv\Lib\site-packages\alembic\script\revision.py:971:if candidate in todo:
+.\venv\Lib\site-packages\alembic\script\revision.py:973:todo.remove(candidate)
+.\venv\Lib\site-packages\alembic\script\revision.py:983:if r in todo and r not in current_heads
+.\venv\Lib\site-packages\alembic\script\revision.py:1020:assert not todo
+.\venv\Lib\site-packages\alembic\testing\fixtures.py:15:from sqlalchemy import create_mock_engine
+.\venv\Lib\site-packages\alembic\testing\fixtures.py:23:from sqlalchemy.testing import mock
+.\venv\Lib\site-packages\alembic\testing\fixtures.py:149:engine = create_mock_engine(dialect, dump)
+.\venv\Lib\site-packages\alembic\testing\fixtures.py:186:with mock.patch.object(EnvironmentContext, "configure", configure):
+.\venv\Lib\site-packages\alembic\testing\fixtures.py:214:with mock.patch.object(EnvironmentContext, "configure", configure):
+.\venv\Lib\site-packages\alembic\testing\fixtures.py:257:# TODO: make this more flexible about
+.\venv\Lib\site-packages\alembic\testing\fixtures.py:292:connection = mock.Mock(dialect=ctx_dialect, execute=execute)
+.\venv\Lib\site-packages\alembic\testing\fixtures.py:350:# TODO: conditional comment support
+.\venv\Lib\site-packages\alembic\testing\schemacompare.py:25:# TODO: compare constraints, indexes
+.\venv\Lib\site-packages\alembic\testing\schemacompare.py:40:# TODO: datatypes etc
+.\venv\Lib\site-packages\alembic\testing\util.py:97:# TODO:
+.\venv\Lib\site-packages\alembic\testing\__init__.py:5:from sqlalchemy.testing import mock
+.\venv\Lib\site-packages\alembic\testing\suite\test_autogen_comments.py:9:from ...testing import mock
+.\venv\Lib\site-packages\alembic\testing\suite\test_autogen_comments.py:153:"existing_type": mock.ANY,
+.\venv\Lib\site-packages\alembic\testing\suite\test_autogen_comments.py:193:"existing_type": mock.ANY,
+.\venv\Lib\site-packages\alembic\testing\suite\test_autogen_comments.py:234:"existing_type": mock.ANY,
+.\venv\Lib\site-packages\alembic\testing\suite\test_autogen_computed.py:16:from ...testing import mock
+.\venv\Lib\site-packages\alembic\testing\suite\test_autogen_computed.py:113:with mock.patch("alembic.util.warn") as mock_warn, self._fixture_ctx():
+.\venv\Lib\site-packages\alembic\testing\suite\test_autogen_computed.py:117:mock_warn.mock_calls,
+.\venv\Lib\site-packages\alembic\testing\suite\test_autogen_computed.py:118:[mock.call("Computed default on user.foo cannot be modified")],
+.\venv\Lib\site-packages\alembic\testing\suite\test_autogen_computed.py:153:with mock.patch("alembic.util.warn") as mock_warn, self._fixture_ctx():
+.\venv\Lib\site-packages\alembic\testing\suite\test_autogen_computed.py:155:eq_(mock_warn.mock_calls, [])
+.\venv\Lib\site-packages\alembic\testing\suite\test_autogen_fks.py:12:from ...testing import mock
+.\venv\Lib\site-packages\alembic\testing\suite\test_autogen_fks.py:925:ondelete=mock.ANY,  # MySQL reports None, PG reports RESTRICT
+.\venv\Lib\site-packages\alembic\testing\suite\test_autogen_fks.py:956:onupdate=mock.ANY,  # MySQL reports None, PG reports RESTRICT
+.\venv\Lib\site-packages\alembic\util\pyfiles.py:60:# TODO: there seem to be zero tests for the package resource codepath
+.\venv\Lib\site-packages\alembic\util\sqla_compat.py:160:# catch for MockConnection, None
+.\venv\Lib\site-packages\alembic\util\sqla_compat.py:206:# catch for MockConnection
+.\venv\Lib\site-packages\amqp\abstract_channel.py:74:# TODO temp: callback should be after write_method ... ;)
+.\venv\Lib\site-packages\amqp\connection.py:83:a 'host[:port]', such as 'localhost', or '1.2.3.4:5672'
+.\venv\Lib\site-packages\amqp\connection.py:84:(defaults to 'localhost', if a port is not specified then
+.\venv\Lib\site-packages\amqp\connection.py:191:def __init__(self, host='localhost:5672', userid='guest', password='guest',
+.\venv\Lib\site-packages\anyio\pytest_plugin.py:373:addr = "::1" if fam == socket.AF_INET6 else "127.0.0.1"
+.\venv\Lib\site-packages\billiard\connection.py:86:return ('localhost', 0)
+.\venv\Lib\site-packages\celery\canvas.py:815:return dict(self)  # TODO: Potential bug of being a shallow copy
+.\venv\Lib\site-packages\celery\canvas.py:1092:# TODO figure out why we are always cloning before freeze
+.\venv\Lib\site-packages\celery\canvas.py:1205:# TODO why isn't this asserting is_last_task == False?
+.\venv\Lib\site-packages\celery\canvas.py:1589:# TODO: Not sure if this is still used anywhere (besides its own tests). Consider removing.
+.\venv\Lib\site-packages\celery\app\utils.py:87:os.environ.get('CELERY_BROKER_READ_URL') or
+.\venv\Lib\site-packages\celery\app\utils.py:95:os.environ.get('CELERY_BROKER_WRITE_URL') or
+.\venv\Lib\site-packages\celery\app\utils.py:103:os.environ.get('CELERY_BROKER_URL') or
+.\venv\Lib\site-packages\celery\app\utils.py:198:# TODO: Remove this method in Celery 6.0
+.\venv\Lib\site-packages\celery\apps\worker.py:149:# TODO: Remove the following code in Celery 6.0
+.\venv\Lib\site-packages\celery\backends\arangodb.py:41:host = '127.0.0.1'
+.\venv\Lib\site-packages\celery\backends\consul.py:46:# also convenient for mocking in the unit tests.
+.\venv\Lib\site-packages\celery\backends\couchbase.py:32:host = 'localhost'
+.\venv\Lib\site-packages\celery\backends\couchdb.py:31:host = 'localhost'
+.\venv\Lib\site-packages\celery\backends\dynamodb.py:100:if region == 'localhost' or DynamoDBBackend._is_valid_ip(region):
+.\venv\Lib\site-packages\celery\backends\elasticsearch.py:41:host = 'localhost'
+.\venv\Lib\site-packages\celery\backends\filesystem.py:63:if url.startswith('file://localhost/'):
+.\venv\Lib\site-packages\celery\backends\mongodb.py:45:host = 'localhost'
+.\venv\Lib\site-packages\celery\backends\mongodb.py:126:url += 'localhost'
+.\venv\Lib\site-packages\celery\backends\redis.py:223:'host': _get('redis_host') or 'localhost',
+.\venv\Lib\site-packages\celery\backends\redis.py:242:# TODO: Include this in connparams' definition once we drop
+.\venv\Lib\site-packages\celery\backends\database\session.py:15:# TODO: Remove this once we drop support for SQLAlchemy < 1.4.
+.\venv\Lib\site-packages\celery\backends\database\__init__.py:95:self.url = url or dburi or conf.database_url
+.\venv\Lib\site-packages\celery\backends\database\__init__.py:120:' database_url setting set to a real value?')
+.\venv\Lib\site-packages\celery\bin\beat.py:56:# TODO: Improve the error messages
+.\venv\Lib\site-packages\celery\bin\celery.py:127:os.environ['CELERY_BROKER_URL'] = broker
+.\venv\Lib\site-packages\celery\bin\events.py:47:# TODO: Improve this error message
+.\venv\Lib\site-packages\celery\bin\list.py:23:# TODO: Consider using a table formatter for this command.
+.\venv\Lib\site-packages\celery\bin\migrate.py:56:# TODO: Use a progress bar
+.\venv\Lib\site-packages\celery\bin\result.py:29:# TODO: Prettify result
+.\venv\Lib\site-packages\celery\bin\upgrade.py:20:# TODO: Handle case when file does not exist
+.\venv\Lib\site-packages\celery\bin\worker.py:332:# TODO: Improve the error messages
+.\venv\Lib\site-packages\celery\concurrency\asynpool.py:1027:# TODO: Rewrite this as a dictionary comprehension once we drop support for Python 3.7
+.\venv\Lib\site-packages\celery\concurrency\prefork.py:126:self.flush = getattr(P, 'flush', None)  # FIXME add to billiard
+.\venv\Lib\site-packages\celery\contrib\abortable.py:124:# TODO: store_result requires all four arguments to be set,
+.\venv\Lib\site-packages\celery\contrib\rdb.py:31:Hostname to bind to.  Default is '127.0.0.1' (only accessible from
+.\venv\Lib\site-packages\celery\contrib\rdb.py:32:localhost).
+.\venv\Lib\site-packages\celery\contrib\rdb.py:58:CELERY_RDB_HOST = os.environ.get('CELERY_RDB_HOST') or '127.0.0.1'
+.\venv\Lib\site-packages\celery\contrib\sphinx.py:25:With the extension installed `autodoc` will automatically find
+.\venv\Lib\site-packages\celery\contrib\sphinx.py:36:Sphinx 9.0 introduced a rewritten autodoc implementation. The Celery
+.\venv\Lib\site-packages\celery\contrib\sphinx.py:37:extension requires the legacy class-based autodoc mode to function
+.\venv\Lib\site-packages\celery\contrib\sphinx.py:43:autodoc_use_legacy_class_based = True
+.\venv\Lib\site-packages\celery\contrib\sphinx.py:53:from sphinx.ext.autodoc import FunctionDocumenter
+.\venv\Lib\site-packages\celery\contrib\sphinx.py:98:def autodoc_skip_member_handler(app, what, name, obj, skip, options):
+.\venv\Lib\site-packages\celery\contrib\sphinx.py:99:"""Handler for autodoc-skip-member event."""
+.\venv\Lib\site-packages\celery\contrib\sphinx.py:102:# trips up the logic in sphinx.ext.autodoc that is supposed to
+.\venv\Lib\site-packages\celery\contrib\sphinx.py:115:app.setup_extension('sphinx.ext.autodoc')
+.\venv\Lib\site-packages\celery\contrib\sphinx.py:117:# Sphinx 9.0+ rewrote autodoc; TaskDocumenter requires legacy mode.
+.\venv\Lib\site-packages\celery\contrib\sphinx.py:118:# See: https://www.sphinx-doc.org/en/master/usage/extensions/autodoc.html
+.\venv\Lib\site-packages\celery\contrib\sphinx.py:121:if not getattr(app.config, 'autodoc_use_legacy_class_based', False):
+.\venv\Lib\site-packages\celery\contrib\sphinx.py:124:"'autodoc_use_legacy_class_based = True' in conf.py. "
+.\venv\Lib\site-packages\celery\contrib\sphinx.py:129:app.config.autodoc_use_legacy_class_based = True
+.\venv\Lib\site-packages\celery\contrib\sphinx.py:131:app.add_autodocumenter(TaskDocumenter)
+.\venv\Lib\site-packages\celery\contrib\sphinx.py:135:app.connect('autodoc-skip-member', autodoc_skip_member_handler)
+.\venv\Lib\site-packages\celery\contrib\testing\app.py:31:# Workaround to allow unittest.mock to patch this object
+.\venv\Lib\site-packages\celery\contrib\testing\mocks.py:1:"""Useful mocks for unit testing."""
+.\venv\Lib\site-packages\celery\contrib\testing\mocks.py:5:from unittest.mock import Mock
+.\venv\Lib\site-packages\celery\contrib\testing\mocks.py:30:message = Mock(name=f'TaskMessage-{id}')
+.\venv\Lib\site-packages\celery\contrib\testing\mocks.py:62:message = Mock(name=f'TaskMessage-{id}')
+.\venv\Lib\site-packages\celery\contrib\testing\mocks.py:114:class _ContextMock(Mock):
+.\venv\Lib\site-packages\celery\contrib\testing\mocks.py:128:def ContextMock(*args, **kwargs):
+.\venv\Lib\site-packages\celery\contrib\testing\mocks.py:129:"""Mock that mocks :keyword:`with` statement contexts."""
+.\venv\Lib\site-packages\celery\contrib\testing\mocks.py:130:obj = _ContextMock(*args, **kwargs)
+.\venv\Lib\site-packages\celery\contrib\testing\mocks.py:131:obj.attach_mock(_ContextMock(), '__enter__')
+.\venv\Lib\site-packages\celery\contrib\testing\mocks.py:132:obj.attach_mock(_ContextMock(), '__exit__')
+.\venv\Lib\site-packages\celery\worker\loops.py:79:# FIXME: Use loop.run_forever
+.\venv\Lib\site-packages\celery\worker\consumer\consumer.py:505:# TODO: Rely only on broker_connection_retry_on_startup to determine whether connection retries are disabled.
+.\venv\Lib\site-packages\click\testing.py:408:This also rebinds some internals in Click to be mocked (like the
+.\venv\Lib\site-packages\colorama\winterm.py:193:# Can get TypeError in testsuite where 'fd' is a Mock()
+.\venv\Lib\site-packages\colorama\tests\ansitowin32_test.py:11:from unittest.mock import MagicMock, Mock, patch
+.\venv\Lib\site-packages\colorama\tests\ansitowin32_test.py:13:from mock import MagicMock, Mock, patch
+.\venv\Lib\site-packages\colorama\tests\ansitowin32_test.py:23:mockStream = Mock()
+.\venv\Lib\site-packages\colorama\tests\ansitowin32_test.py:24:wrapper = StreamWrapper(mockStream, None)
+.\venv\Lib\site-packages\colorama\tests\ansitowin32_test.py:25:self.assertTrue( wrapper.random_attr is mockStream.random_attr )
+.\venv\Lib\site-packages\colorama\tests\ansitowin32_test.py:28:mockStream = Mock()
+.\venv\Lib\site-packages\colorama\tests\ansitowin32_test.py:29:mockConverter = Mock()
+.\venv\Lib\site-packages\colorama\tests\ansitowin32_test.py:30:wrapper = StreamWrapper(mockStream, mockConverter)
+.\venv\Lib\site-packages\colorama\tests\ansitowin32_test.py:32:self.assertTrue(mockConverter.write.call_args, (('hello',), {}))
+.\venv\Lib\site-packages\colorama\tests\ansitowin32_test.py:35:mockConverter = Mock()
+.\venv\Lib\site-packages\colorama\tests\ansitowin32_test.py:37:with StreamWrapper(s, mockConverter) as fp:
+.\venv\Lib\site-packages\colorama\tests\ansitowin32_test.py:42:mockStream = MagicMock()
+.\venv\Lib\site-packages\colorama\tests\ansitowin32_test.py:43:mockStream.__enter__.side_effect = AttributeError()
+.\venv\Lib\site-packages\colorama\tests\ansitowin32_test.py:44:mockConverter = Mock()
+.\venv\Lib\site-packages\colorama\tests\ansitowin32_test.py:46:with StreamWrapper(mockStream, mockConverter) as wrapper:
+.\venv\Lib\site-packages\colorama\tests\ansitowin32_test.py:64:mockStdout = Mock()
+.\venv\Lib\site-packages\colorama\tests\ansitowin32_test.py:65:auto = Mock()
+.\venv\Lib\site-packages\colorama\tests\ansitowin32_test.py:66:stream = AnsiToWin32(mockStdout, autoreset=auto)
+.\venv\Lib\site-packages\colorama\tests\ansitowin32_test.py:67:self.assertEqual(stream.wrapped, mockStdout)
+.\venv\Lib\site-packages\colorama\tests\ansitowin32_test.py:74:mockStdout = Mock()
+.\venv\Lib\site-packages\colorama\tests\ansitowin32_test.py:75:stream = AnsiToWin32(mockStdout)
+.\venv\Lib\site-packages\colorama\tests\ansitowin32_test.py:80:mockStdout = Mock(closed=False)
+.\venv\Lib\site-packages\colorama\tests\ansitowin32_test.py:81:stream = AnsiToWin32(mockStdout)
+.\venv\Lib\site-packages\colorama\tests\ansitowin32_test.py:85:mockStdout = Mock()
+.\venv\Lib\site-packages\colorama\tests\ansitowin32_test.py:86:stream = AnsiToWin32(mockStdout)
+.\venv\Lib\site-packages\colorama\tests\ansitowin32_test.py:87:stream.wrapped = Mock()
+.\venv\Lib\site-packages\colorama\tests\ansitowin32_test.py:88:stream.write_and_convert = Mock()
+.\venv\Lib\site-packages\colorama\tests\ansitowin32_test.py:97:mockStdout = Mock()
+.\venv\Lib\site-packages\colorama\tests\ansitowin32_test.py:98:stream = AnsiToWin32(mockStdout)
+.\venv\Lib\site-packages\colorama\tests\ansitowin32_test.py:99:stream.wrapped = Mock()
+.\venv\Lib\site-packages\colorama\tests\ansitowin32_test.py:100:stream.write_and_convert = Mock()
+.\venv\Lib\site-packages\colorama\tests\ansitowin32_test.py:110:stream = AnsiToWin32(Mock())
+.\venv\Lib\site-packages\colorama\tests\ansitowin32_test.py:112:stream.reset_all = Mock()
+.\venv\Lib\site-packages\colorama\tests\ansitowin32_test.py:114:stream.winterm = Mock()
+.\venv\Lib\site-packages\colorama\tests\ansitowin32_test.py:127:stream = AnsiToWin32(Mock())
+.\venv\Lib\site-packages\colorama\tests\ansitowin32_test.py:132:stream = AnsiToWin32(Mock())
+.\venv\Lib\site-packages\colorama\tests\ansitowin32_test.py:133:stream.call_win32 = Mock()
+.\venv\Lib\site-packages\colorama\tests\ansitowin32_test.py:150:stream.wrapped.write.reset_mock()
+.\venv\Lib\site-packages\colorama\tests\ansitowin32_test.py:158:stream = AnsiToWin32(Mock())
+.\venv\Lib\site-packages\colorama\tests\ansitowin32_test.py:159:stream.call_win32 = Mock()
+.\venv\Lib\site-packages\colorama\tests\ansitowin32_test.py:164:stream = AnsiToWin32(Mock())
+.\venv\Lib\site-packages\colorama\tests\ansitowin32_test.py:166:stream.call_win32 = Mock()
+.\venv\Lib\site-packages\colorama\tests\ansitowin32_test.py:167:stream.extract_params = Mock(return_value='params')
+.\venv\Lib\site-packages\colorama\tests\ansitowin32_test.py:176:stream.call_win32.reset_mock()
+.\venv\Lib\site-packages\colorama\tests\ansitowin32_test.py:206:stream = AnsiToWin32(Mock())
+.\venv\Lib\site-packages\colorama\tests\ansitowin32_test.py:220:listener = Mock()
+.\venv\Lib\site-packages\colorama\tests\ansitowin32_test.py:233:mockStdout = Mock()
+.\venv\Lib\site-packages\colorama\tests\ansitowin32_test.py:234:stream = AnsiToWin32(mockStdout, convert=True)
+.\venv\Lib\site-packages\colorama\tests\ansitowin32_test.py:259:# Pretend that our mock stream has native ANSI support
+.\venv\Lib\site-packages\colorama\tests\ansitowin32_test.py:264:SetConsoleMode = Mock()
+.\venv\Lib\site-packages\colorama\tests\ansitowin32_test.py:267:stdout = Mock()
+.\venv\Lib\site-packages\colorama\tests\ansitowin32_test.py:283:SetConsoleMode = Mock()
+.\venv\Lib\site-packages\colorama\tests\initialise_test.py:6:from unittest.mock import patch, Mock
+.\venv\Lib\site-packages\colorama\tests\initialise_test.py:8:from mock import patch, Mock
+.\venv\Lib\site-packages\colorama\tests\initialise_test.py:85:def testAutoResetPassedOn(self, mockATW32, _):
+.\venv\Lib\site-packages\colorama\tests\initialise_test.py:88:self.assertEqual(len(mockATW32.call_args_list), 2)
+.\venv\Lib\site-packages\colorama\tests\initialise_test.py:89:self.assertEqual(mockATW32.call_args_list[1][1]['autoreset'], True)
+.\venv\Lib\site-packages\colorama\tests\initialise_test.py:90:self.assertEqual(mockATW32.call_args_list[0][1]['autoreset'], True)
+.\venv\Lib\site-packages\colorama\tests\initialise_test.py:93:def testAutoResetChangeable(self, mockATW32):
+.\venv\Lib\site-packages\colorama\tests\initialise_test.py:98:self.assertEqual(len(mockATW32.call_args_list), 4)
+.\venv\Lib\site-packages\colorama\tests\initialise_test.py:99:self.assertEqual(mockATW32.call_args_list[2][1]['autoreset'], True)
+.\venv\Lib\site-packages\colorama\tests\initialise_test.py:100:self.assertEqual(mockATW32.call_args_list[3][1]['autoreset'], True)
+.\venv\Lib\site-packages\colorama\tests\initialise_test.py:103:self.assertEqual(len(mockATW32.call_args_list), 6)
+.\venv\Lib\site-packages\colorama\tests\initialise_test.py:105:mockATW32.call_args_list[4][1]['autoreset'], False)
+.\venv\Lib\site-packages\colorama\tests\initialise_test.py:107:mockATW32.call_args_list[5][1]['autoreset'], False)
+.\venv\Lib\site-packages\colorama\tests\initialise_test.py:111:def testAtexitRegisteredOnlyOnce(self, mockRegister):
+.\venv\Lib\site-packages\colorama\tests\initialise_test.py:113:self.assertTrue(mockRegister.called)
+.\venv\Lib\site-packages\colorama\tests\initialise_test.py:114:mockRegister.reset_mock()
+.\venv\Lib\site-packages\colorama\tests\initialise_test.py:116:self.assertFalse(mockRegister.called)
+.\venv\Lib\site-packages\colorama\tests\initialise_test.py:139:stdout = Mock()
+.\venv\Lib\site-packages\colorama\tests\initialise_test.py:145:stderr = Mock()
+.\venv\Lib\site-packages\colorama\tests\winterm_test.py:6:from unittest.mock import Mock, patch
+.\venv\Lib\site-packages\colorama\tests\winterm_test.py:8:from mock import Mock, patch
+.\venv\Lib\site-packages\colorama\tests\winterm_test.py:16:def testInit(self, mockWin32):
+.\venv\Lib\site-packages\colorama\tests\winterm_test.py:17:mockAttr = Mock()
+.\venv\Lib\site-packages\colorama\tests\winterm_test.py:18:mockAttr.wAttributes = 7 + 6 * 16 + 8
+.\venv\Lib\site-packages\colorama\tests\winterm_test.py:19:mockWin32.GetConsoleScreenBufferInfo.return_value = mockAttr
+.\venv\Lib\site-packages\colorama\tests\winterm_test.py:48:def testResetAll(self, mockWin32):
+.\venv\Lib\site-packages\colorama\tests\winterm_test.py:49:mockAttr = Mock()
+.\venv\Lib\site-packages\colorama\tests\winterm_test.py:50:mockAttr.wAttributes = 1 + 2 * 16 + 8
+.\venv\Lib\site-packages\colorama\tests\winterm_test.py:51:mockWin32.GetConsoleScreenBufferInfo.return_value = mockAttr
+.\venv\Lib\site-packages\colorama\tests\winterm_test.py:54:term.set_console = Mock()
+.\venv\Lib\site-packages\colorama\tests\winterm_test.py:69:term.set_console = Mock()
+.\venv\Lib\site-packages\colorama\tests\winterm_test.py:80:term.set_console = Mock()
+.\venv\Lib\site-packages\colorama\tests\winterm_test.py:91:term.set_console = Mock()
+.\venv\Lib\site-packages\colorama\tests\winterm_test.py:100:def testSetConsole(self, mockWin32):
+.\venv\Lib\site-packages\colorama\tests\winterm_test.py:101:mockAttr = Mock()
+.\venv\Lib\site-packages\colorama\tests\winterm_test.py:102:mockAttr.wAttributes = 0
+.\venv\Lib\site-packages\colorama\tests\winterm_test.py:103:mockWin32.GetConsoleScreenBufferInfo.return_value = mockAttr
+.\venv\Lib\site-packages\colorama\tests\winterm_test.py:105:term.windll = Mock()
+.\venv\Lib\site-packages\colorama\tests\winterm_test.py:110:mockWin32.SetConsoleTextAttribute.call_args,
+.\venv\Lib\site-packages\colorama\tests\winterm_test.py:111:((mockWin32.STDOUT, term.get_attrs()), {})
+.\venv\Lib\site-packages\colorama\tests\winterm_test.py:115:def testSetConsoleOnStderr(self, mockWin32):
+.\venv\Lib\site-packages\colorama\tests\winterm_test.py:116:mockAttr = Mock()
+.\venv\Lib\site-packages\colorama\tests\winterm_test.py:117:mockAttr.wAttributes = 0
+.\venv\Lib\site-packages\colorama\tests\winterm_test.py:118:mockWin32.GetConsoleScreenBufferInfo.return_value = mockAttr
+.\venv\Lib\site-packages\colorama\tests\winterm_test.py:120:term.windll = Mock()
+.\venv\Lib\site-packages\colorama\tests\winterm_test.py:125:mockWin32.SetConsoleTextAttribute.call_args,
+.\venv\Lib\site-packages\colorama\tests\winterm_test.py:126:((mockWin32.STDERR, term.get_attrs()), {})
+.\venv\Lib\site-packages\dateutil\rrule.py:1182:# TODO: Check -numweeks for next year.
+.\venv\Lib\site-packages\dateutil\parser\_parser.py:55:# TODO: pandas.core.tools.datetimes imports this explicitly.  Might be worth
+.\venv\Lib\site-packages\dateutil\parser\_parser.py:265:("Tue", "Tuesday"),     # TODO: "Tues"
+.\venv\Lib\site-packages\dateutil\parser\_parser.py:267:("Thu", "Thursday"),    # TODO: "Thurs"
+.\venv\Lib\site-packages\dateutil\parser\_parser.py:272:("Feb", "February"),      # TODO: "Febr"
+.\venv\Lib\site-packages\dateutil\parser\_parser.py:291:# TODO: ERA = ["AD", "BC", "CE", "BCE", "Stardate",
+.\venv\Lib\site-packages\dateutil\parser\_parser.py:777:# TODO: not hit in tests
+.\venv\Lib\site-packages\dateutil\parser\_parser.py:815:# TODO: check that l[i + 1] is integer?
+.\venv\Lib\site-packages\dateutil\parser\_parser.py:823:min_offset = int(l[i + 3])  # TODO: Check that l[i+3] is minute-like?
+.\venv\Lib\site-packages\dateutil\parser\_parser.py:910:# TODO: Check if res attributes already set.
+.\venv\Lib\site-packages\dateutil\parser\_parser.py:934:# TODO: checking that hour/minute/second are not
+.\venv\Lib\site-packages\dateutil\parser\_parser.py:941:value = self._to_decimal(tokens[idx + 2])  # TODO: try/except for this?
+.\venv\Lib\site-packages\dateutil\parser\_parser.py:1032:# TODO: Are we sure this is the right condition here?
+.\venv\Lib\site-packages\dateutil\parser\_parser.py:1100:# TODO: Every usage of this function sets res.second to the return
+.\venv\Lib\site-packages\dateutil\parser\_parser.py:1112:# TODO: Is this going to admit a lot of false-positives for when we
+.\venv\Lib\site-packages\dateutil\zoneinfo\__init__.py:25:except IOError as e:  # TODO  switch to FileNotFoundError?
+.\venv\Lib\site-packages\dateutil\zoneinfo\__init__.py:76:# TODO: Remove after deprecation period.
+.\venv\Lib\site-packages\fastapi\applications.py:852:applicable for apps that need to be run locally (in localhost).
+.\venv\Lib\site-packages\fastapi\applications.py:929:# TODO: remove when discarding the openapi_prefix parameter
+.\venv\Lib\site-packages\fastapi\encoders.py:58:# TODO: pv2 should this return strings instead?
+.\venv\Lib\site-packages\fastapi\routing.py:1227:# TODO: Replace or deprecate this no-scope hook so included-route
+.\venv\Lib\site-packages\fastapi\routing.py:2212:# TODO: probably move this out of the Route / Route Group, same in APIRoute
+.\venv\Lib\site-packages\fastapi\routing.py:2508:applicable for apps that need to be run locally (in localhost).
+.\venv\Lib\site-packages\fastapi\routing.py:2546:# TODO: deprecate this once the lifespan (or alternative) interface is improved
+.\venv\Lib\site-packages\fastapi\routing.py:6363:# TODO: remove this once the lifespan (or alternative) interface is improved
+.\venv\Lib\site-packages\fastapi\routing.py:6379:# TODO: remove this once the lifespan (or alternative) interface is improved
+.\venv\Lib\site-packages\fastapi\routing.py:6395:# TODO: remove this once the lifespan (or alternative) interface is improved
+.\venv\Lib\site-packages\fastapi\.agents\skills\fastapi\SKILL.md:23:Run the development server on localhost with reload:
+.\venv\Lib\site-packages\fastapi\dependencies\utils.py:107:# Import an attribute that can be mocked/deleted in testing
+.\venv\Lib\site-packages\fastapi\dependencies\utils.py:111:# __version__ is available in both multiparts, and can be mocked
+.\venv\Lib\site-packages\fastapi\dependencies\utils.py:595:# TODO: remove this parameter later, no longer used, not removing it yet as some
+.\venv\Lib\site-packages\fastapi\openapi\utils.py:409:# TODO: probably make status_code a default class attribute for all
+.\venv\Lib\site-packages\fastapi\_compat\shared.py:187:# TODO: remove this function once the required version of Pydantic fully
+.\venv\Lib\site-packages\fastapi\_compat\shared.py:199:# TODO: remove this function once the required version of Pydantic fully
+.\venv\Lib\site-packages\fastapi\_compat\v2.py:58:# TODO: remove when this is merged (or equivalent): https://github.com/pydantic/pydantic/pull/12841
+.\venv\Lib\site-packages\fastapi\_compat\v2.py:73:# TODO: remove when dropping support for Pydantic < v2.12.3
+.\venv\Lib\site-packages\fastapi\_compat\v2.py:99:# TODO: remove when dropping support for Pydantic < v2.12.3
+.\venv\Lib\site-packages\fastapi\_compat\v2.py:153:# TODO: remove after setting the min Pydantic to v2.12.3
+.\venv\Lib\site-packages\fastapi\_compat\v2.py:277:# TODO remove when deprecating Pydantic v1
+.\venv\Lib\site-packages\greenlet\tests\leakcheck.py:37:# found, it creates a ``unittest.mock.MagicMock`` object and annotates
+.\venv\Lib\site-packages\greenlet\tests\leakcheck.py:53:# MagicMock         8        +1
+.\venv\Lib\site-packages\greenlet\tests\leakcheck.py:56:# principle it could leak, but we don't use mocks in greenlet, so it
+.\venv\Lib\site-packages\greenlet\tests\leakcheck.py:57:# doesn't leak from us. However, a further issue is that ``MagicMock``
+.\venv\Lib\site-packages\greenlet\tests\leakcheck.py:59:# those create new mocks of their own too. So we'd have to filter them
+.\venv\Lib\site-packages\greenlet\tests\leakcheck.py:128:class _MockGC(object):
+.\venv\Lib\site-packages\greenlet\tests\leakcheck.py:133:objgraph.gc = _MockGC()
+.\venv\Lib\site-packages\greenlet\tests\leakcheck.py:194:# to the explosion of mock objects. We don't want that, so we implement
+.\venv\Lib\site-packages\greenlet\tests\leakcheck.py:209:# Similarly, we need to check identity in our __dict__ to avoid mock explosions.
+.\venv\Lib\site-packages\greenlet\tests\test_greenlet.py:28:# TODO: Refactor into separate test files. For example,
+.\venv\Lib\site-packages\greenlet\tests\test_greenlet.py:296:# TODO: FIXME Make that work.
+.\venv\Lib\site-packages\greenlet\tests\test_greenlet.py:812:# XXX: FIXME: Is there a better way?
+.\venv\Lib\site-packages\greenlet\tests\test_greenlet_trash.py:65:# deallocations have occurred. TODO: I wish we had a better way to do
+.\venv\Lib\site-packages\greenlet\tests\test_leaks.py:246:# TODO: Figure out how to make this work!
+.\venv\Lib\site-packages\greenlet\tests\__init__.py:91:# TODO: We could add an API that calls us back when a particular main greenlet is deleted?
+.\venv\Lib\site-packages\h11\_events.py:310:# XX FIXME: "A recipient MUST ignore (or consider as an error) any fields that
+.\venv\Lib\site-packages\h11\_readers.py:186:# XX FIXME: we discard chunk extensions. Does anyone care?
+.\venv\Lib\site-packages\h11\_writers.py:54:# XX FIXME: could at least make an effort to pull out the status message
+.\venv\Lib\site-packages\httpcore\_models.py:209:at `http://localhost:8080`...
+.\venv\Lib\site-packages\httpcore\_models.py:216:host=b'localhost',
+.\venv\Lib\site-packages\httpcore\__init__.py:18:from ._backends.mock import AsyncMockBackend, AsyncMockStream, MockBackend, MockStream
+.\venv\Lib\site-packages\httpcore\__init__.py:103:# network backends, mock implementations
+.\venv\Lib\site-packages\httpcore\__init__.py:104:"AsyncMockBackend",
+.\venv\Lib\site-packages\httpcore\__init__.py:105:"AsyncMockStream",
+.\venv\Lib\site-packages\httpcore\__init__.py:106:"MockBackend",
+.\venv\Lib\site-packages\httpcore\__init__.py:107:"MockStream",
+.\venv\Lib\site-packages\httpcore\_async\http_proxy.py:82:For example `"http://127.0.0.1:8080/"`.
+.\venv\Lib\site-packages\httpcore\_async\socks_proxy.py:128:For example `"http://127.0.0.1:8080/"`.
+.\venv\Lib\site-packages\httpcore\_backends\mock.py:16:class MockSSLObject:
+.\venv\Lib\site-packages\httpcore\_backends\mock.py:24:class MockStream(NetworkStream):
+.\venv\Lib\site-packages\httpcore\_backends\mock.py:52:return MockSSLObject(http2=self._http2) if info == "ssl_object" else None
+.\venv\Lib\site-packages\httpcore\_backends\mock.py:55:return "<httpcore.MockStream>"
+.\venv\Lib\site-packages\httpcore\_backends\mock.py:58:class MockBackend(NetworkBackend):
+.\venv\Lib\site-packages\httpcore\_backends\mock.py:71:return MockStream(list(self._buffer), http2=self._http2)
+.\venv\Lib\site-packages\httpcore\_backends\mock.py:79:return MockStream(list(self._buffer), http2=self._http2)
+.\venv\Lib\site-packages\httpcore\_backends\mock.py:85:class AsyncMockStream(AsyncNetworkStream):
+.\venv\Lib\site-packages\httpcore\_backends\mock.py:113:return MockSSLObject(http2=self._http2) if info == "ssl_object" else None
+.\venv\Lib\site-packages\httpcore\_backends\mock.py:116:return "<httpcore.AsyncMockStream>"
+.\venv\Lib\site-packages\httpcore\_backends\mock.py:119:class AsyncMockBackend(AsyncNetworkBackend):
+.\venv\Lib\site-packages\httpcore\_backends\mock.py:132:return AsyncMockStream(list(self._buffer), http2=self._http2)
+.\venv\Lib\site-packages\httpcore\_backends\mock.py:140:return AsyncMockStream(list(self._buffer), http2=self._http2)
+.\venv\Lib\site-packages\httpcore\_sync\http_proxy.py:82:For example `"http://127.0.0.1:8080/"`.
+.\venv\Lib\site-packages\httpcore\_sync\socks_proxy.py:128:For example `"http://127.0.0.1:8080/"`.
+.\venv\Lib\site-packages\httpx\_auth.py:267:# TODO: implement auth-int
+.\venv\Lib\site-packages\httpx\_utils.py:63:# NO_PROXY can include domains, IPv6, IPv4 addresses and "localhost"
+.\venv\Lib\site-packages\httpx\_utils.py:64:#   NO_PROXY=example.com,::1,localhost,192.168.0.0/16
+.\venv\Lib\site-packages\httpx\_utils.py:71:elif hostname.lower() == "localhost":
+.\venv\Lib\site-packages\httpx\__init__.py:63:"MockTransport",
+.\venv\Lib\site-packages\httpx\_transports\asgi.py:92:client: tuple[str, int] = ("127.0.0.1", 123),
+.\venv\Lib\site-packages\httpx\_transports\mock.py:12:__all__ = ["MockTransport"]
+.\venv\Lib\site-packages\httpx\_transports\mock.py:15:class MockTransport(AsyncBaseTransport, BaseTransport):
+.\venv\Lib\site-packages\httpx\_transports\wsgi.py:82:remote_addr: str = "127.0.0.1",
+.\venv\Lib\site-packages\httpx\_transports\__init__.py:4:from .mock import *
+.\venv\Lib\site-packages\httpx\_transports\__init__.py:13:"MockTransport",
+.\venv\Lib\site-packages\iniconfig\__init__.py:64:# TODO: investigate possible mypy bug wrt matching the passed over data
+.\venv\Lib\site-packages\kombu\connection.py:68:>>> Connection('amqp://guest:guest@localhost:5672//')
+.\venv\Lib\site-packages\kombu\connection.py:169:def __init__(self, hostname='localhost', userid=None,
+.\venv\Lib\site-packages\kombu\connection.py:196:# e.g. sqla+mysql://root:masterkey@localhost/
+.\venv\Lib\site-packages\kombu\connection.py:714:hostname = self.hostname or 'localhost'
+.\venv\Lib\site-packages\kombu\asynchronous\hub.py:268:# Complete remaining todo before Hub close
+.\venv\Lib\site-packages\kombu\asynchronous\hub.py:273:todos = self._pop_ready()
+.\venv\Lib\site-packages\kombu\asynchronous\hub.py:274:for item in todos:
+.\venv\Lib\site-packages\kombu\asynchronous\hub.py:306:todo = self._pop_ready()
+.\venv\Lib\site-packages\kombu\asynchronous\hub.py:308:for item in todo:
+.\venv\Lib\site-packages\kombu\asynchronous\aws\sqs\connection.py:284:# TODO Does not support owner_acct_id argument
+.\venv\Lib\site-packages\kombu\asynchronous\http\base.py:32:# TODO: This is just a regular dict and will not perform normalization
+.\venv\Lib\site-packages\kombu\transport\consul.py:54:DEFAULT_HOST = 'localhost'
+.\venv\Lib\site-packages\kombu\transport\etcd.py:50:DEFAULT_HOST = 'localhost'
+.\venv\Lib\site-packages\kombu\transport\librabbitmq.py:188:'hostname': 'localhost',
+.\venv\Lib\site-packages\kombu\transport\mongodb.py:127:default_hostname = '127.0.0.1'
+.\venv\Lib\site-packages\kombu\transport\pyamqp.py:183:if conninfo.hostname == 'localhost':
+.\venv\Lib\site-packages\kombu\transport\pyamqp.py:184:conninfo.hostname = '127.0.0.1'
+.\venv\Lib\site-packages\kombu\transport\pyamqp.py:237:'hostname': 'localhost',
+.\venv\Lib\site-packages\kombu\transport\pyro.py:23:pyro://localhost/kombu.broker
+.\venv\Lib\site-packages\kombu\transport\pyro.py:118:# TODO: To be checked whether state can be per-Transport
+.\venv\Lib\site-packages\kombu\transport\qpid.py:148:This is done using a function so that tests can mock this
+.\venv\Lib\site-packages\kombu\transport\qpid.py:1736:'hostname': 'localhost',
+.\venv\Lib\site-packages\kombu\transport\redis.py:366:# TODO: Remove this once we solely on Redis-py 3.0.0+
+.\venv\Lib\site-packages\kombu\transport\redis.py:1172:'host': conninfo.hostname or '127.0.0.1',
+.\venv\Lib\site-packages\kombu\transport\SQS.py:740:#     except AttributeError as exc:  # FIXME ???
+.\venv\Lib\site-packages\kombu\transport\sqlalchemy\models.py:15:# TODO: Remove this once we drop support for SQLAlchemy < 1.4.
+.\venv\Lib\site-packages\kombu\transport\sqlalchemy\__init__.py:29:sqla+postgresql://scott:tiger@localhost/mydatabase
+.\venv\Lib\site-packages\kombu\transport\sqlalchemy\__init__.py:32:sqla+postgresql+psycopg2://scott:tiger@localhost/mydatabase
+.\venv\Lib\site-packages\kombu\transport\sqlalchemy\__init__.py:35:sqla+postgresql+pg8000://scott:tiger@localhost/mydatabase
+.\venv\Lib\site-packages\kombu\transport\sqlalchemy\__init__.py:38:sqla+mysql://scott:tiger@localhost/foo
+.\venv\Lib\site-packages\kombu\transport\sqlalchemy\__init__.py:41:sqla+mysql+mysqldb://scott:tiger@localhost/foo
+.\venv\Lib\site-packages\kombu\transport\sqlalchemy\__init__.py:44:sqla+mysql+pymysql://scott:tiger@localhost/foo
+.\venv\Lib\site-packages\kombu\transport\virtual\base.py:590:# TODO: the complexity of this operation is O(number of bindings).
+.\venv\Lib\site-packages\kombu\transport\virtual\base.py:1039:return {'port': self.default_port, 'hostname': 'localhost'}
+.\venv\Lib\site-packages\kombu\utils\amq_manager.py:18:host = get('hostname', hostname, 'localhost')
+.\venv\Lib\site-packages\kombu\utils\objects.py:12:# TODO: Remove this fallback once we drop support for Python < 3.8
+.\venv\Lib\site-packages\kombu\utils\objects.py:37:# TODO: Remove this after we drop support for Python<3.8
+.\venv\Lib\site-packages\mako\codegen.py:949:# TODO: we can put namespace-specific checks here, such
+.\venv\Lib\site-packages\mako\codegen.py:991:# TODO: figure out best way to specify
+.\venv\Lib\site-packages\mako\lexer.py:268:# TODO: no coverage here
+.\venv\Lib\site-packages\mako\parsetree.py:204:# TODO: make the "filter" shortcut list configurable at parse/gen time
+.\venv\Lib\site-packages\mako\pygen.py:118:# TODO: no coverage here
+.\venv\Lib\site-packages\mako\testing\helpers.py:7:from unittest import mock
+.\venv\Lib\site-packages\mako\testing\helpers.py:67:with mock.patch("mako.codegen.time") as codegen_time:
+.\venv\Lib\site-packages\packaging\metadata.py:220:# TODO: The spec doesn't say anything about if the keys should be
+.\venv\Lib\site-packages\packaging\metadata.py:945:description: _Validator[str | None] = _Validator()  # TODO 2.1: can be in body
+.\venv\Lib\site-packages\packaging\ranges.py:133:# straddle a synthetic boundary; merge across an empty gap to
+.\venv\Lib\site-packages\packaging\ranges.py:259:boundary; the engine's emptiness check has already dropped the synthetic
+.\venv\Lib\site-packages\packaging\ranges.py:331:# synthetic ``.dev0``, so the recovered range has an empty opt-in region),
+.\venv\Lib\site-packages\packaging\ranges.py:352:synthetic ``.dev0``. Recovering that spelling gives the range an empty opt-in
+.\venv\Lib\site-packages\packaging\ranges.py:456:recovers a spelling with no synthetic ``.dev0`` when one exists:
+.\venv\Lib\site-packages\packaging\ranges.py:474:# the prerelease-free mode, recover a spelling with no synthetic ``.dev0``
+.\venv\Lib\site-packages\packaging\ranges.py:480:# (e.g. ``>=1.0,!=1.0,!=1.0.post0.dev0``), carrying no synthetic
+.\venv\Lib\site-packages\packaging\ranges.py:520:builds; otherwise the synthetic ``.dev0`` is kept so the range opts its
+.\venv\Lib\site-packages\packaging\ranges.py:1807:# keeping the synthetic ``.dev0`` markers. Which spelling reproduces
+.\venv\Lib\site-packages\packaging\requirements.py:75:# TODO: Can we test whether something is contained within a requirement?
+.\venv\Lib\site-packages\packaging\requirements.py:78:# TODO: Can we normalize the name and extra name?
+.\venv\Lib\site-packages\packaging\tags.py:664:# TODO: Need to care about 32-bit PPC for ppc64 through 10.2?
+.\venv\Lib\site-packages\packaging\version.py:434:# TODO: remove "no cover" when Python 3.9 is dropped.
+.\venv\Lib\site-packages\pip\_internal\build_env.py:312:# TODO: hash-checking should be extended to build deps, but that is
+.\venv\Lib\site-packages\pip\_internal\build_env.py:559:# FIXME: Consider direct URL?
+.\venv\Lib\site-packages\pip\_internal\cache.py:280:# TODO: use DirectUrl.equivalent when
+.\venv\Lib\site-packages\pip\_internal\cli\base_command.py:218:# TODO: Try to get these passing down from the command?
+.\venv\Lib\site-packages\pip\_internal\commands\inspect.py:60:# TODO tags? scheme?
+.\venv\Lib\site-packages\pip\_internal\index\collector.py:338:# TODO: In the future, it would be nice if pip supported PEP 691
+.\venv\Lib\site-packages\pip\_internal\locations\base.py:16:# FIXME doesn't account for venv linked to global site-packages
+.\venv\Lib\site-packages\pip\_internal\locations\base.py:60:# FIXME: keep src in cwd for now (it is not a temporary folder)
+.\venv\Lib\site-packages\pip\_internal\metadata\base.py:32:from pip._internal.utils.compat import stdlib_pkgs  # TODO: Move definition here.
+.\venv\Lib\site-packages\pip\_internal\metadata\base.py:162:# TODO: this property is relatively costly to compute, memoize it ?
+.\venv\Lib\site-packages\pip\_internal\metadata\base.py:172:# TODO: get project location from second line of egg_link file
+.\venv\Lib\site-packages\pip\_internal\models\installation_report.py:51:# TODO: currently, the resolver uses the default environment to evaluate
+.\venv\Lib\site-packages\pip\_internal\models\link.py:592:# According to RFC 8089, an empty host in file: means localhost.
+.\venv\Lib\site-packages\pip\_internal\models\link.py:594:netloc = "localhost"
+.\venv\Lib\site-packages\pip\_internal\network\download.py:285:synthetic_request = PreparedRequest()
+.\venv\Lib\site-packages\pip\_internal\network\download.py:286:synthetic_request.prepare(method="GET", url=url, headers={})
+.\venv\Lib\site-packages\pip\_internal\network\download.py:288:synthetic_response_headers = HTTPHeaderDict()
+.\venv\Lib\site-packages\pip\_internal\network\download.py:291:synthetic_response_headers[key] = value
+.\venv\Lib\site-packages\pip\_internal\network\download.py:292:synthetic_response_headers["content-length"] = str(download.size)
+.\venv\Lib\site-packages\pip\_internal\network\download.py:294:synthetic_response = URLlib3Response(
+.\venv\Lib\site-packages\pip\_internal\network\download.py:296:headers=synthetic_response_headers,
+.\venv\Lib\site-packages\pip\_internal\network\download.py:304:synthetic_request, synthetic_response, b""
+.\venv\Lib\site-packages\pip\_internal\network\lazy_wheel.py:179:# TODO: Get range requests to be correctly cached
+.\venv\Lib\site-packages\pip\_internal\network\session.py:70:("*", "localhost", "*"),
+.\venv\Lib\site-packages\pip\_internal\network\session.py:479:# hardcoded list of secure origins, as well as any additional ones
+.\venv\Lib\site-packages\pip\_internal\operations\prepare.py:567:# TODO: separate this part out from RequirementPreparer when the v1
+.\venv\Lib\site-packages\pip\_internal\operations\prepare.py:641:# FIXME: https://github.com/pypa/pip/issues/11943
+.\venv\Lib\site-packages\pip\_internal\req\constructors.py:323:# TODO: The is_installable_dir test here might not be necessary
+.\venv\Lib\site-packages\pip\_internal\req\constructors.py:601:# TODO: validate file size
+.\venv\Lib\site-packages\pip\_internal\req\req_file.py:246:# FIXME: it would be nice to keep track of the source
+.\venv\Lib\site-packages\pip\_internal\req\req_file.py:522:# TODO: handle space after '\'.
+.\venv\Lib\site-packages\pip\_internal\req\req_install.py:360:# FIXME: Is there a better place to create the build_dir? (hg and bzr
+.\venv\Lib\site-packages\pip\_internal\req\req_set.py:74:TODO remove this property together with the legacy resolver, since the new
+.\venv\Lib\site-packages\pip\_internal\req\req_uninstall.py:483:# FIXME: need a test for this elif block
+.\venv\Lib\site-packages\pip\_internal\resolution\resolvelib\candidates.py:237:# TODO performance: this means we iterate the dependencies at least twice,
+.\venv\Lib\site-packages\pip\_internal\resolution\resolvelib\candidates.py:382:# TODO: Supply reason based on force_reinstall and upgrade_strategy.
+.\venv\Lib\site-packages\pip\_internal\resolution\resolvelib\factory.py:196:# TODO: Check already installed candidate, and use it if the link and
+.\venv\Lib\site-packages\pip\_internal\resolution\resolvelib\factory.py:672:# TODO: Are there more cases this needs to return True? Editable?
+.\venv\Lib\site-packages\pip\_internal\utils\pylock.py:240:# TODO: refactor - this is similar to req_file.get_file_content
+.\venv\Lib\site-packages\pip\_internal\utils\urls.py:29:if not netloc or netloc == "localhost":
+.\venv\Lib\site-packages\pip\_internal\vcs\subversion.py:60:# FIXME: should we warn?
+.\venv\Lib\site-packages\pip\_vendor\cachecontrol\controller.py:227:# TODO: There is an assumption that the result will be a
+.\venv\Lib\site-packages\pip\_vendor\cachecontrol\filewrapper.py:68:# TODO: Add some logging here...
+.\venv\Lib\site-packages\pip\_vendor\distlib\resources.py:190:todo = [resource]
+.\venv\Lib\site-packages\pip\_vendor\distlib\resources.py:191:while todo:
+.\venv\Lib\site-packages\pip\_vendor\distlib\resources.py:192:resource = todo.pop(0)
+.\venv\Lib\site-packages\pip\_vendor\distlib\resources.py:203:todo.append(child)
+.\venv\Lib\site-packages\pip\_vendor\distlib\util.py:401:# TODO check k, v for valid values
+.\venv\Lib\site-packages\pip\_vendor\distlib\util.py:1131:todo = []
+.\venv\Lib\site-packages\pip\_vendor\distlib\util.py:1133:todo.append(final)
+.\venv\Lib\site-packages\pip\_vendor\distlib\util.py:1134:while todo:
+.\venv\Lib\site-packages\pip\_vendor\distlib\util.py:1135:step = todo.pop(0)
+.\venv\Lib\site-packages\pip\_vendor\distlib\util.py:1149:todo.extend(preds)
+.\venv\Lib\site-packages\pip\_vendor\msgpack\fallback.py:499:# TODO should we eliminate the recursion?
+.\venv\Lib\site-packages\pip\_vendor\msgpack\fallback.py:503:# TODO check whether we need to call `list_hook`
+.\venv\Lib\site-packages\pip\_vendor\msgpack\fallback.py:511:# TODO is the interaction between `list_hook` and `use_list` ok?
+.\venv\Lib\site-packages\pip\_vendor\msgpack\fallback.py:516:# TODO check whether we need to call hooks
+.\venv\Lib\site-packages\pip\_vendor\packaging\metadata.py:205:# TODO: The spec doesn't say anything about if the keys should be
+.\venv\Lib\site-packages\pip\_vendor\packaging\metadata.py:869:description: _Validator[str | None] = _Validator()  # TODO 2.1: can be in body
+.\venv\Lib\site-packages\pip\_vendor\packaging\requirements.py:48:# TODO: Can we test whether something is contained within a requirement?
+.\venv\Lib\site-packages\pip\_vendor\packaging\requirements.py:51:# TODO: Can we normalize the name and extra name?
+.\venv\Lib\site-packages\pip\_vendor\packaging\tags.py:559:# TODO: Need to care about 32-bit PPC for ppc64 through 10.2?
+.\venv\Lib\site-packages\pip\_vendor\packaging\version.py:423:# TODO: remove "no cover" when Python 3.9 is dropped.
+.\venv\Lib\site-packages\pip\_vendor\pkg_resources\__init__.py:1:# TODO: Add Generic type annotations to initialized collections.
+.\venv\Lib\site-packages\pip\_vendor\pkg_resources\__init__.py:122:_ResourceStream = Any  # TODO / Incomplete: A readable file-like object
+.\venv\Lib\site-packages\pip\_vendor\pkg_resources\__init__.py:2031:# FIXME: 'ZipProvider._extract_resource' is too complex (12)
+.\venv\Lib\site-packages\pip\_vendor\pkg_resources\__init__.py:3201:# FIXME: 'Distribution.insert_on' is too complex (13)
+.\venv\Lib\site-packages\pip\_vendor\pkg_resources\__init__.py:3308:# TODO: remove this except clause when python/cpython#103632 is fixed.
+.\venv\Lib\site-packages\pip\_vendor\pkg_resources\__init__.py:3598:# TODO: Add a deadline?
+.\venv\Lib\site-packages\pip\_vendor\pygments\lexer.py:863:TODO: clean up the code here.
+.\venv\Lib\site-packages\pip\_vendor\pygments\filters\__init__.py:72:highlight ``XXX``, ``TODO``, ``FIXME``, ``BUG`` and ``NOTE``.
+.\venv\Lib\site-packages\pip\_vendor\pygments\filters\__init__.py:75:Now recognizes ``FIXME`` by default.
+.\venv\Lib\site-packages\pip\_vendor\pygments\filters\__init__.py:81:['XXX', 'TODO', 'FIXME', 'BUG', 'NOTE'])
+.\venv\Lib\site-packages\pip\_vendor\pygments\lexers\python.py:715:# different tokens.  TODO: DelegatingLexer should support this
+.\venv\Lib\site-packages\pip\_vendor\pygments\lexers\_mapping.py:535:'TodotxtLexer': ('pip._vendor.pygments.lexers.textfmts', 'Todotxt', ('todotxt',), ('todo.txt', '*.todotxt'), ('text/x-todo',)),
+.\venv\Lib\site-packages\pip\_vendor\requests\adapters.py:664:# TODO: Remove this in 3.0.0: see #2811
+.\venv\Lib\site-packages\pip\_vendor\requests\cookies.py:23:class MockRequest:
+.\venv\Lib\site-packages\pip\_vendor\requests\cookies.py:103:class MockResponse:
+.\venv\Lib\site-packages\pip\_vendor\requests\cookies.py:111:"""Make a MockResponse for `cookiejar` to read.
+.\venv\Lib\site-packages\pip\_vendor\requests\cookies.py:134:req = MockRequest(request)
+.\venv\Lib\site-packages\pip\_vendor\requests\cookies.py:135:# pull out the HTTPMessage with the headers and put it in the mock:
+.\venv\Lib\site-packages\pip\_vendor\requests\cookies.py:136:res = MockResponse(response._original_response.msg)
+.\venv\Lib\site-packages\pip\_vendor\requests\cookies.py:146:r = MockRequest(request)
+.\venv\Lib\site-packages\pip\_vendor\requests\hooks.py:20:# TODO: response is the only one
+.\venv\Lib\site-packages\pip\_vendor\requests\utils.py:97:# '<local>' string by the localhost entry and the corresponding
+.\venv\Lib\site-packages\pip\_vendor\rich\logging.py:256:log.info("Listening on http://127.0.0.1:8080")
+.\venv\Lib\site-packages\pip\_vendor\rich\text.py:562:# TODO: This is a little inefficient, it is only used by full justify
+.\venv\Lib\site-packages\pip\_vendor\truststore\_macos.py:558:# TODO: Not sure if we need the SecTrustResultType for anything?
+.\venv\Lib\site-packages\pip\_vendor\urllib3\connection.py:336:# TODO: Fix tunnel so it doesn't depend on self.sock state.
+.\venv\Lib\site-packages\pip\_vendor\urllib3\connection.py:442:# object later. TODO: Remove this in favor of a real
+.\venv\Lib\site-packages\pip\_vendor\urllib3\connection.py:567:# TODO should we implement it everywhere?
+.\venv\Lib\site-packages\pip\_vendor\urllib3\connectionpool.py:125:Host used for this HTTP Connection (e.g. "localhost"), passed into
+.\venv\Lib\site-packages\pip\_vendor\urllib3\connectionpool.py:578:# TODO: Add optional support for socket.gethostbyname checking.
+.\venv\Lib\site-packages\pip\_vendor\urllib3\connectionpool.py:1095:# TODO revise this, see https://github.com/urllib3/urllib3/issues/2791
+.\venv\Lib\site-packages\pip\_vendor\urllib3\exceptions.py:306:# TODO(t-8ch): Stop inheriting from AssertionError in v2.0.
+.\venv\Lib\site-packages\pip\_vendor\urllib3\exceptions.py:309:# 'localhost' is here because our URL parser parses
+.\venv\Lib\site-packages\pip\_vendor\urllib3\exceptions.py:310:# localhost:8080 -> scheme=localhost, remove if we fix this.
+.\venv\Lib\site-packages\pip\_vendor\urllib3\exceptions.py:311:if scheme == "localhost":
+.\venv\Lib\site-packages\pip\_vendor\urllib3\poolmanager.py:545:proxy = urllib3.ProxyManager("https://localhost:3128/")
+.\venv\Lib\site-packages\pip\_vendor\urllib3\response.py:900:# FIXME: Ideally we'd like to include the url in the ReadTimeoutError but
+.\venv\Lib\site-packages\pip\_vendor\urllib3\response.py:905:# FIXME: Is there a better way to differentiate between SSLErrors?
+.\venv\Lib\site-packages\pip\_vendor\urllib3\response.py:1140:# TODO make sure to initially read enough data to get past the headers
+.\venv\Lib\site-packages\pip\_vendor\urllib3\response.py:1205:# FIXME, this method's type doesn't say returning None is possible
+.\venv\Lib\site-packages\pip\_vendor\urllib3\response.py:1379:# FIXME: Rewrite this method and make it a class with a better structured logic.
+.\venv\Lib\site-packages\pip\_vendor\urllib3\_base_connection.py:20:# TODO: Remove this in favor of a better
+.\venv\Lib\site-packages\pip\_vendor\urllib3\contrib\emscripten\fetch.py:21:(or from localhost) with the two headers below set:
+.\venv\Lib\site-packages\pip\_vendor\urllib3\http2\connection.py:144:# TODO SKIPPABLE_HEADERS from urllib3 are ignored.
+.\venv\Lib\site-packages\pip\_vendor\urllib3\http2\connection.py:234:# TODO: Arbitrary read value.
+.\venv\Lib\site-packages\pip\_vendor\urllib3\http2\connection.py:282:# TODO this is often present from upstream.
+.\venv\Lib\site-packages\pip\_vendor\urllib3\http2\connection.py:325:# TODO: This is a woefully incomplete response object, but works for non-streaming.
+.\venv\Lib\site-packages\pip\_vendor\urllib3\http2\connection.py:332:decode_content: bool = False,  # TODO: support decoding
+.\venv\Lib\site-packages\pip\_vendor\urllib3\http2\__init__.py:38:# TODO: Offer 'http/1.1' as well, but for testing purposes this is handy.
+.\venv\Lib\site-packages\pip\_vendor\urllib3\util\request.py:218:# File-like object, TODO: use seek() and tell() for length?
+.\venv\Lib\site-packages\pip\_vendor\urllib3\util\response.py:99:# FIXME: Can we do this somehow without accessing private httplib _method?
+.\venv\Lib\site-packages\pip\_vendor\urllib3\util\url.py:454:# TODO: Remove this when we break backwards compatibility.
+.\venv\Lib\site-packages\pluggy\_hooks.py:411:# TODO: Document, or make private.
+.\venv\Lib\site-packages\pluggy\_hooks.py:417:# TODO: Document, or make private.
+.\venv\Lib\site-packages\pluggy\_hooks.py:421:# TODO: Document, or make private.
+.\venv\Lib\site-packages\prompt_toolkit\renderer.py:357:# TODO: Move following state flags into `Vt100_Output`, similar to
+.\venv\Lib\site-packages\prompt_toolkit\utils.py:35:# Used to ensure sphinx autodoc does not try to import platform-specific
+.\venv\Lib\site-packages\prompt_toolkit\utils.py:37:SPHINX_AUTODOC_RUNNING = "sphinx.ext.autodoc" in sys.modules
+.\venv\Lib\site-packages\prompt_toolkit\contrib\regular_languages\regex_parser.py:261:# TODO: implement!
+.\venv\Lib\site-packages\prompt_toolkit\contrib\regular_languages\__init__.py:69:TODO: some examples of:
+.\venv\Lib\site-packages\prompt_toolkit\contrib\telnet\server.py:286:host: str = "127.0.0.1",
+.\venv\Lib\site-packages\prompt_toolkit\eventloop\win32.py:9:from ..utils import SPHINX_AUTODOC_RUNNING
+.\venv\Lib\site-packages\prompt_toolkit\eventloop\win32.py:13:if not SPHINX_AUTODOC_RUNNING:
+.\venv\Lib\site-packages\prompt_toolkit\input\win32.py:9:from ..utils import SPHINX_AUTODOC_RUNNING
+.\venv\Lib\site-packages\prompt_toolkit\input\win32.py:15:if not SPHINX_AUTODOC_RUNNING:
+.\venv\Lib\site-packages\prompt_toolkit\key_binding\bindings\emacs.py:191:# TODO:
+.\venv\Lib\site-packages\prompt_toolkit\key_binding\bindings\emacs.py:196:# TODO:
+.\venv\Lib\site-packages\prompt_toolkit\key_binding\bindings\emacs.py:203:# TODO
+.\venv\Lib\site-packages\prompt_toolkit\key_binding\bindings\mouse.py:205:# TODO: Is it possible to add modifiers here?
+.\venv\Lib\site-packages\prompt_toolkit\key_binding\bindings\named_commands.py:582:# TODO: Make the format suitable for the inputrc file.
+.\venv\Lib\site-packages\prompt_toolkit\key_binding\bindings\scroll.py:142:# TODO: not entirely correct yet, in case of line wrapping and many long lines.
+.\venv\Lib\site-packages\prompt_toolkit\key_binding\bindings\vi.py:629:def _change_current_line(event: E) -> None:  # TODO: implement 'arg'
+.\venv\Lib\site-packages\prompt_toolkit\key_binding\bindings\vi.py:1081:# TODO: go to begin of sentence.
+.\venv\Lib\site-packages\prompt_toolkit\key_binding\bindings\vi.py:1087:# TODO: go to end of sentence.
+.\venv\Lib\site-packages\prompt_toolkit\key_binding\bindings\vi.py:1362:# TODO: 'dat', 'dit', (tags (like xml)
+.\venv\Lib\site-packages\prompt_toolkit\key_binding\bindings\vi.py:2083:# TODO
+.\venv\Lib\site-packages\prompt_toolkit\layout\containers.py:2581:# TODO: not entirely correct yet in case of line wrapping and long lines.
+.\venv\Lib\site-packages\prompt_toolkit\layout\scrollable_pane.py:342:# TODO: if the window is only partly visible, then truncate width/height.
+.\venv\Lib\site-packages\prompt_toolkit\layout\utils.py:35:raise NotImplementedError  # TODO
+.\venv\Lib\site-packages\prompt_toolkit\layout\utils.py:37:# TODO: When creating a copy() or [:], return also an _ExplodedList.
+.\venv\Lib\site-packages\prompt_toolkit\lexers\pygments.py:120:# TODO: Add definitions for other languages.
+.\venv\Lib\site-packages\prompt_toolkit\output\win32.py:25:from ..utils import SPHINX_AUTODOC_RUNNING
+.\venv\Lib\site-packages\prompt_toolkit\output\win32.py:31:if not SPHINX_AUTODOC_RUNNING:
+.\venv\Lib\site-packages\psycopg2\tz.py:158:# TODO: pre-generate some interesting time zones?
+.\venv\Lib\site-packages\psycopg2\_range.py:526:# TODO: probably won't work with infs, nans and other tricky cases.
+.\venv\Lib\site-packages\pydantic\alias_generators.py:7:# TODO: in V3, change the argument names to be more descriptive
+.\venv\Lib\site-packages\pydantic\dataclasses.py:14:from ._internal import _config, _decorators, _mock_val_ser, _namespace_utils, _typing_extra
+.\venv\Lib\site-packages\pydantic\dataclasses.py:307:# TODO `parent_namespace` is currently None, but we could do the same thing as Pydantic models:
+.\venv\Lib\site-packages\pydantic\dataclasses.py:370:if attr in cls.__dict__ and not isinstance(getattr(cls, attr), _mock_val_ser.MockValSer):
+.\venv\Lib\site-packages\pydantic\fields.py:53:# TODO PEP 747: use TypeForm:
+.\venv\Lib\site-packages\pydantic\fields.py:99:# TODO PEP 747: use TypeForm:
+.\venv\Lib\site-packages\pydantic\fields.py:151:# TODO PEP 747: use TypeForm:
+.\venv\Lib\site-packages\pydantic\fields.py:361:# TODO check for classvar and error?
+.\venv\Lib\site-packages\pydantic\fields.py:422:# TODO check for classvar and error?
+.\venv\Lib\site-packages\pydantic\fields.py:424:# TODO infer from the default, this can be done in v3 once we treat final fields with
+.\venv\Lib\site-packages\pydantic\fields.py:840:# TODO: properly make use of the protocol (https://rich.readthedocs.io/en/stable/pretty.html#rich-repr-protocol)
+.\venv\Lib\site-packages\pydantic\fields.py:926:default: ellipsis,  # noqa: F821  # TODO: use `_typing_extra.EllipsisType` when we drop Py3.9
+.\venv\Lib\site-packages\pydantic\functional_serializers.py:237:# TODO PEP 747 (grep for 'return_type' on the whole code base):
+.\venv\Lib\site-packages\pydantic\functional_validators.py:217:# TODO if `schema['serialization']` is one of `'include-exclude-dict/sequence',
+.\venv\Lib\site-packages\pydantic\functional_validators.py:879:# TODO: make use of PEP 747
+.\venv\Lib\site-packages\pydantic\json_schema.py:53:_mock_val_ser,
+.\venv\Lib\site-packages\pydantic\json_schema.py:459:TODO: the nested function definitions here seem like bad practice, I'd like to unpack these
+.\venv\Lib\site-packages\pydantic\json_schema.py:527:# TODO: I dislike that we have to wrap these basic dict updates in callables, is there any way around this?
+.\venv\Lib\site-packages\pydantic\json_schema.py:775:# TODO: should we add regex flags to the pattern?
+.\venv\Lib\site-packages\pydantic\json_schema.py:1190:# TODO: improvements along with https://github.com/pydantic/pydantic/issues/8208
+.\venv\Lib\site-packages\pydantic\json_schema.py:1353:# This reflects the v1 behavior; TODO: we should make it possible to exclude OpenAPI stuff from the JSON schema
+.\venv\Lib\site-packages\pydantic\json_schema.py:1394:# TODO: fixme - this is a workaround for the fact that we can't always resolve refs
+.\venv\Lib\site-packages\pydantic\json_schema.py:1433:# TODO: Need to read the default value off of model config or whatever
+.\venv\Lib\site-packages\pydantic\json_schema.py:1434:use_strict = schema.get('strict', False)  # TODO: replace this default False
+.\venv\Lib\site-packages\pydantic\json_schema.py:2556:if isinstance(cls.__pydantic_core_schema__, _mock_val_ser.MockCoreSchema):
+.\venv\Lib\site-packages\pydantic\json_schema.py:2562:assert not isinstance(cls.__pydantic_core_schema__, _mock_val_ser.MockCoreSchema), 'this is a bug! please report it'
+.\venv\Lib\site-packages\pydantic\json_schema.py:2603:if isinstance(cls.__pydantic_core_schema__, _mock_val_ser.MockCoreSchema):
+.\venv\Lib\site-packages\pydantic\main.py:4:# TODO v3 fallback to `dict` when the deprecated `dict` method gets removed.
+.\venv\Lib\site-packages\pydantic\main.py:42:_mock_val_ser,
+.\venv\Lib\site-packages\pydantic\main.py:104:# is initialized, by wrapping the user-defined `model_post_init()`), e.g. if they mock
+.\venv\Lib\site-packages\pydantic\main.py:236:__pydantic_core_schema__ = _mock_val_ser.MockCoreSchema(
+.\venv\Lib\site-packages\pydantic\main.py:240:__pydantic_validator__ = _mock_val_ser.MockValSer(
+.\venv\Lib\site-packages\pydantic\main.py:245:__pydantic_serializer__ = _mock_val_ser.MockValSer(
+.\venv\Lib\site-packages\pydantic\main.py:663:if attr in cls.__dict__ and not isinstance(getattr(cls, attr), _mock_val_ser.MockValSer):
+.\venv\Lib\site-packages\pydantic\main.py:665:# pydantic-core. We do so only if they aren't mock instances, otherwise — as `model_rebuild()`
+.\venv\Lib\site-packages\pydantic\main.py:839:if schema is not None and not isinstance(schema, _mock_val_ser.MockCoreSchema):
+.\venv\Lib\site-packages\pydantic\main.py:1094:# TODO - matching error
+.\venv\Lib\site-packages\pydantic\main.py:1746:# TODO PEP 747: replace `Any` by the TypeForm:
+.\venv\Lib\site-packages\pydantic\mypy.py:550:# TODO: Only do this if the first argument of the decorated function is `cls`
+.\venv\Lib\site-packages\pydantic\mypy.py:659:# TODO: We shouldn't be performing type operations during the main
+.\venv\Lib\site-packages\pydantic\mypy.py:822:# TODO this path should be removed (see https://github.com/pydantic/pydantic/issues/11119)
+.\venv\Lib\site-packages\pydantic\networks.py:735:m = MyDatabaseModel(db='postgres://user:pass@localhost:5432/foobar')
+.\venv\Lib\site-packages\pydantic\networks.py:737:#> postgres://user:pass@localhost:5432/foobar
+.\venv\Lib\site-packages\pydantic\networks.py:740:MyDatabaseModel(db='postgres://user:pass@localhost:5432')
+.\venv\Lib\site-packages\pydantic\networks.py:748:+  where None = PostgresDsn('postgres://user:pass@localhost:5432').path [type=assertion_error, input_value='postgres://user:pass@localhost:5432', input_type=str]
+.\venv\Lib\site-packages\pydantic\networks.py:813:* Host required (e.g., `rediss://:pass@localhost`)
+.\venv\Lib\site-packages\pydantic\networks.py:818:default_host='localhost',
+.\venv\Lib\site-packages\pydantic\networks.py:867:_constraints = UrlConstraints(allowed_schemes=['kafka'], default_host='localhost', default_port=9092)
+.\venv\Lib\site-packages\pydantic\networks.py:880:allowed_schemes=['nats', 'tls', 'ws', 'wss'], default_host='localhost', default_port=4222
+.\venv\Lib\site-packages\pydantic\networks.py:939:default_host='localhost',
+.\venv\Lib\site-packages\pydantic\networks.py:1131:print(IpModel(ip='127.0.0.1'))
+.\venv\Lib\site-packages\pydantic\networks.py:1132:#> ip=IPv4Address('127.0.0.1')
+.\venv\Lib\site-packages\pydantic\type_adapter.py:26:from ._internal import _config, _generate_schema, _mock_val_ser, _namespace_utils, _repr, _typing_extra, _utils
+.\venv\Lib\site-packages\pydantic\type_adapter.py:271:If `force` is set to `False` and `_defer_build` is `True`, the core schema, validator, and serializer will be set to mocks.
+.\venv\Lib\site-packages\pydantic\type_adapter.py:282:_mock_val_ser.set_type_adapter_mocks(self)
+.\venv\Lib\site-packages\pydantic\type_adapter.py:291:# TODO: we don't go through the rebuild logic here directly because we don't want
+.\venv\Lib\site-packages\pydantic\type_adapter.py:295:isinstance(self.core_schema, _mock_val_ser.MockCoreSchema)
+.\venv\Lib\site-packages\pydantic\type_adapter.py:296:or isinstance(self.validator, _mock_val_ser.MockValSer)
+.\venv\Lib\site-packages\pydantic\type_adapter.py:297:or isinstance(self.serializer, _mock_val_ser.MockValSer)
+.\venv\Lib\site-packages\pydantic\type_adapter.py:310:_mock_val_ser.set_type_adapter_mocks(self)
+.\venv\Lib\site-packages\pydantic\type_adapter.py:316:_mock_val_ser.set_type_adapter_mocks(self)
+.\venv\Lib\site-packages\pydantic\type_adapter.py:730:if isinstance(self.core_schema, _mock_val_ser.MockCoreSchema):
+.\venv\Lib\site-packages\pydantic\type_adapter.py:732:assert not isinstance(self.core_schema, _mock_val_ser.MockCoreSchema), 'this is a bug! please report it'
+.\venv\Lib\site-packages\pydantic\type_adapter.py:783:# This is the same pattern we follow for model json schemas - we attempt a core schema rebuild if we detect a mock
+.\venv\Lib\site-packages\pydantic\type_adapter.py:784:if isinstance(adapter.core_schema, _mock_val_ser.MockCoreSchema):
+.\venv\Lib\site-packages\pydantic\type_adapter.py:786:assert not isinstance(adapter.core_schema, _mock_val_ser.MockCoreSchema), (
+.\venv\Lib\site-packages\pydantic\deprecated\json.py:112:# TODO: Add a suggested migration path once there is a way to use custom encoders
+.\venv\Lib\site-packages\pydantic\experimental\pipeline.py:126:# TODO: ultimately, make this public, see https://github.com/pydantic/pydantic/pull/9459#discussion_r1628197626
+.\venv\Lib\site-packages\pydantic\experimental\pipeline.py:153:tp: ellipsis,  # noqa: F821  # TODO: use `_typing_extra.EllipsisType` when we drop Py3.9
+.\venv\Lib\site-packages\pydantic\experimental\pipeline.py:158:# TODO PEP 747: use TypeForm to properly type Annotated aliases (e.g. NewPath, FilePath).
+.\venv\Lib\site-packages\pydantic\v1\networks.py:526:'domain': 'localhost' if not (parts['ipv4'] or parts['ipv6']) else '',
+.\venv\Lib\site-packages\pydantic\v1\networks.py:535:# TODO: Needed to generic "Parts" for "Replica Set", "Sharded Cluster", and other mongodb deployment modes
+.\venv\Lib\site-packages\pydantic\v1\networks.py:549:'domain': 'localhost',
+.\venv\Lib\site-packages\pydantic\v1\utils.py:270:# TODO: replace annotation with actual expected types once #1055 solved
+.\venv\Lib\site-packages\pydantic\_internal\_core_metadata.py:29:TODO: Perhaps we should move this structure to pydantic-core. At the moment, though,
+.\venv\Lib\site-packages\pydantic\_internal\_core_metadata.py:32:TODO: It's unfortunate how functionally oriented JSON schema generation is, especially that which occurs during
+.\venv\Lib\site-packages\pydantic\_internal\_dataclasses.py:30:from ._mock_val_ser import set_dataclass_mocks
+.\venv\Lib\site-packages\pydantic\_internal\_dataclasses.py:117:# and so that the mock validator is used if building was deferred:
+.\venv\Lib\site-packages\pydantic\_internal\_dataclasses.py:131:set_dataclass_mocks(cls)
+.\venv\Lib\site-packages\pydantic\_internal\_dataclasses.py:169:set_dataclass_mocks(cls, f'`{e.name}`')
+.\venv\Lib\site-packages\pydantic\_internal\_dataclasses.py:177:set_dataclass_mocks(cls)
+.\venv\Lib\site-packages\pydantic\_internal\_decorators.py:263:# TODO most likely this branch can be removed when we drop support for Python 3.12:
+.\venv\Lib\site-packages\pydantic\_internal\_docs_extraction.py:103:# TODO remove this implementation when we drop support for Python 3.12:
+.\venv\Lib\site-packages\pydantic\_internal\_fields.py:45:@dataclasses.dataclass(**slots_true)  # TODO: make kw_only when we drop support for 3.9.
+.\venv\Lib\site-packages\pydantic\_internal\_fields.py:47:# TODO: make use of PEP 747:
+.\venv\Lib\site-packages\pydantic\_internal\_fields.py:579:# TODO: We should probably do something with this so that validate_assignment behaves properly
+.\venv\Lib\site-packages\pydantic\_internal\_fields.py:591:# TODO: same note as above re validate_assignment
+.\venv\Lib\site-packages\pydantic\_internal\_fields.py:619:# was already evaluated. TODO: is this method relevant?
+.\venv\Lib\site-packages\pydantic\_internal\_generate_schema.py:110:from ._mock_val_ser import MockCoreSchema
+.\venv\Lib\site-packages\pydantic\_internal\_generate_schema.py:330:# TODO: in theory we should check that the schema accepts a serialization key
+.\venv\Lib\site-packages\pydantic\_internal\_generate_schema.py:434:# TODO this is an ugly hack, how do we trigger an Any schema for serialization?
+.\venv\Lib\site-packages\pydantic\_internal\_generate_schema.py:648:# TODO: note, this is a fairly common pattern, re lax / strict for attempted type coercion,
+.\venv\Lib\site-packages\pydantic\_internal\_generate_schema.py:765:if schema is not None and not isinstance(schema, MockCoreSchema):
+.\venv\Lib\site-packages\pydantic\_internal\_generate_schema.py:994:# TODO: this shouldn't be necessary (probably even this `_get_args_resolving_forward_refs()` function)
+.\venv\Lib\site-packages\pydantic\_internal\_generate_schema.py:1676:# TODO: do we really need to resolve type vars here?
+.\venv\Lib\site-packages\pydantic\_internal\_generate_schema.py:1695:# TODO: something like https://github.com/pydantic/pydantic/issues/5952
+.\venv\Lib\site-packages\pydantic\_internal\_generate_schema.py:1850:if schema is not None and not isinstance(schema, MockCoreSchema):
+.\venv\Lib\site-packages\pydantic\_internal\_generate_schema.py:1960:TODO support functional validators once we support them in Config
+.\venv\Lib\site-packages\pydantic\_internal\_generate_schema.py:2186:# TODO: Should we support exclude_if from annotations?
+.\venv\Lib\site-packages\pydantic\_internal\_generate_schema.py:2559:# TODO V3: this function is only used for deprecated decorators. It should
+.\venv\Lib\site-packages\pydantic\_internal\_generics.py:234:# TODO: This could be unified with `get_standard_typevars_map` if we stored the generic metadata
+.\venv\Lib\site-packages\pydantic\_internal\_generics.py:275:# TODO remove parentheses when we drop support for Python 3.10:
+.\venv\Lib\site-packages\pydantic\_internal\_generics.py:314:# TODO remove type ignore comment when we drop support for Python 3.9 (https://github.com/microsoft/pyright/issues/11241):
+.\venv\Lib\site-packages\pydantic\_internal\_known_annotated_metadata.py:84:# TODO: this is a bit redundant, we could probably avoid some of these
+.\venv\Lib\site-packages\pydantic\_internal\_mock_val_ser.py:21:class MockCoreSchema(Mapping[str, Any]):
+.\venv\Lib\site-packages\pydantic\_internal\_mock_val_ser.py:22:"""Mocker for `pydantic_core.CoreSchema` which optionally attempts to
+.\venv\Lib\site-packages\pydantic\_internal\_mock_val_ser.py:23:rebuild the thing it's mocking when one of its methods is accessed and raises an error if that fails.
+.\venv\Lib\site-packages\pydantic\_internal\_mock_val_ser.py:71:class MockValSer(Generic[ValSer]):
+.\venv\Lib\site-packages\pydantic\_internal\_mock_val_ser.py:72:"""Mocker for `pydantic_core.SchemaValidator` or `pydantic_core.SchemaSerializer` which optionally attempts to
+.\venv\Lib\site-packages\pydantic\_internal\_mock_val_ser.py:73:rebuild the thing it's mocking when one of its methods is accessed and raises an error if that fails.
+.\venv\Lib\site-packages\pydantic\_internal\_mock_val_ser.py:112:def set_type_adapter_mocks(adapter: TypeAdapter) -> None:
+.\venv\Lib\site-packages\pydantic\_internal\_mock_val_ser.py:113:"""Set `core_schema`, `validator` and `serializer` to mock core types on a type adapter instance.
+.\venv\Lib\site-packages\pydantic\_internal\_mock_val_ser.py:116:adapter: The type adapter instance to set the mocks on
+.\venv\Lib\site-packages\pydantic\_internal\_mock_val_ser.py:132:adapter.core_schema = MockCoreSchema(  # pyright: ignore[reportAttributeAccessIssue]
+.\venv\Lib\site-packages\pydantic\_internal\_mock_val_ser.py:137:adapter.validator = MockValSer(  # pyright: ignore[reportAttributeAccessIssue]
+.\venv\Lib\site-packages\pydantic\_internal\_mock_val_ser.py:143:adapter.serializer = MockValSer(  # pyright: ignore[reportAttributeAccessIssue]
+.\venv\Lib\site-packages\pydantic\_internal\_mock_val_ser.py:151:def set_model_mocks(cls: type[BaseModel], undefined_name: str = 'all referenced types') -> None:
+.\venv\Lib\site-packages\pydantic\_internal\_mock_val_ser.py:152:"""Set `__pydantic_core_schema__`, `__pydantic_validator__` and `__pydantic_serializer__` to mock core types on a model.
+.\venv\Lib\site-packages\pydantic\_internal\_mock_val_ser.py:155:cls: The model class to set the mocks on
+.\venv\Lib\site-packages\pydantic\_internal\_mock_val_ser.py:171:cls.__pydantic_core_schema__ = MockCoreSchema(  # pyright: ignore[reportAttributeAccessIssue]
+.\venv\Lib\site-packages\pydantic\_internal\_mock_val_ser.py:176:cls.__pydantic_validator__ = MockValSer(  # pyright: ignore[reportAttributeAccessIssue]
+.\venv\Lib\site-packages\pydantic\_internal\_mock_val_ser.py:182:cls.__pydantic_serializer__ = MockValSer(  # pyright: ignore[reportAttributeAccessIssue]
+.\venv\Lib\site-packages\pydantic\_internal\_mock_val_ser.py:190:def set_dataclass_mocks(cls: type[PydanticDataclass], undefined_name: str = 'all referenced types') -> None:
+.\venv\Lib\site-packages\pydantic\_internal\_mock_val_ser.py:191:"""Set `__pydantic_validator__` and `__pydantic_serializer__` to `MockValSer`s on a dataclass.
+.\venv\Lib\site-packages\pydantic\_internal\_mock_val_ser.py:194:cls: The model class to set the mocks on
+.\venv\Lib\site-packages\pydantic\_internal\_mock_val_ser.py:212:cls.__pydantic_core_schema__ = MockCoreSchema(  # pyright: ignore[reportAttributeAccessIssue]
+.\venv\Lib\site-packages\pydantic\_internal\_mock_val_ser.py:217:cls.__pydantic_validator__ = MockValSer(  # pyright: ignore[reportAttributeAccessIssue]
+.\venv\Lib\site-packages\pydantic\_internal\_mock_val_ser.py:223:cls.__pydantic_serializer__ = MockValSer(  # pyright: ignore[reportAttributeAccessIssue]
+.\venv\Lib\site-packages\pydantic\_internal\_model_construction.py:28:from ._mock_val_ser import set_model_mocks
+.\venv\Lib\site-packages\pydantic\_internal\_model_construction.py:252:set_model_mocks(cls)
+.\venv\Lib\site-packages\pydantic\_internal\_model_construction.py:650:set_model_mocks(cls, f'`{exc.name}`')
+.\venv\Lib\site-packages\pydantic\_internal\_model_construction.py:671:set_model_mocks(cls, f'`{e.name}`')
+.\venv\Lib\site-packages\pydantic\_internal\_model_construction.py:679:set_model_mocks(cls)
+.\venv\Lib\site-packages\pydantic\_internal\_namespace_utils.py:236:# TODO: should we merge the parent namespace here?
+.\venv\Lib\site-packages\pydantic\_internal\_namespace_utils.py:263:# TODO `typ.__type_params__` when we drop support for Python 3.11:
+.\venv\Lib\site-packages\pydantic\_internal\_repr.py:17:# TODO remove type error comments when we drop support for Python 3.9
+.\venv\Lib\site-packages\pydantic\_internal\_schema_gather.py:97:# TODO When we drop 3.9, use a match statement to get better type checking and remove
+.\venv\Lib\site-packages\pydantic\_internal\_schema_gather.py:173:# TODO duplicate schema types for serializers and validators, needs to be deduplicated.
+.\venv\Lib\site-packages\pydantic\_internal\_schema_gather.py:179:# TODO duplicate schema types for serializers and validators, needs to be deduplicated.
+.\venv\Lib\site-packages\pydantic\_internal\_typing_extra.py:144:# TODO implement `is_finalvar_annotation` as Final can be wrapped with other special forms:
+.\venv\Lib\site-packages\pydantic\_internal\_typing_extra.py:191:# TODO In 2.12, delete this export. It is currently defined only to not break
+.\venv\Lib\site-packages\pydantic\_internal\_typing_extra.py:200:# TODO: Ideally, we should avoid relying on the private `typing` constructs:
+.\venv\Lib\site-packages\pydantic\_internal\_typing_extra.py:307:# TODO just do getattr(obj, '__annotations__', {}) when dropping support for Python 3.9:
+.\venv\Lib\site-packages\pydantic\_internal\_typing_extra.py:490:# TODO ideally recursion errors should be checked in `eval_type` above, but `eval_type_backport`
+.\venv\Lib\site-packages\pydantic\_internal\_typing_extra.py:626:# TODO use typing.ForwardRef directly when we stop supporting 3.9:
+.\venv\Lib\site-packages\pydantic\_internal\_utils.py:32:# TODO remove type error comments when we drop support for Python 3.9
+.\venv\Lib\site-packages\pydantic\_internal\_validators.py:45:# TODO: refactor sequence validation to validate with either a list or a tuple
+.\venv\Lib\site-packages\pydantic\_internal\_validators.py:135:# todo strict mode
+.\venv\Lib\site-packages\pydantic_core\core_schema.py:1188:TODO: use of a tzinfo where offset changes based on the datetime is not yet supported
+.\venv\Lib\site-packages\pydantic_core\core_schema.py:4012:print(v.validate_python('redis://localhost,0.0.0.0,127.0.0.1'))
+.\venv\Lib\site-packages\pydantic_core\core_schema.py:4013:#> redis://localhost,0.0.0.0,127.0.0.1
+.\venv\Lib\site-packages\pydantic_settings\main.py:906:Example: `--config '{"host": "localhost", "port": 5432}'`
+.\venv\Lib\site-packages\pydantic_settings\main.py:910:Example: `--config host=localhost --config port=5432`
+.\venv\Lib\site-packages\pydantic_settings\utils.py:41:# TODO remove and replace usage by `isinstance(cls, type) and issubclass(cls, class_or_tuple)`
+.\venv\Lib\site-packages\pydantic_settings\sources\base.py:89:# TODO: we could warn if no sub command was found and one of `field_info`s
+.\venv\Lib\site-packages\pygments\lexer.py:863:TODO: clean up the code here.
+.\venv\Lib\site-packages\pygments\util.py:341:# TODO: Eventually, check that string is a str, and if not, print a
+.\venv\Lib\site-packages\pygments\filters\__init__.py:72:highlight ``XXX``, ``TODO``, ``FIXME``, ``BUG`` and ``NOTE``.
+.\venv\Lib\site-packages\pygments\filters\__init__.py:75:Now recognizes ``FIXME`` by default.
+.\venv\Lib\site-packages\pygments\filters\__init__.py:81:['XXX', 'TODO', 'FIXME', 'BUG', 'NOTE'])
+.\venv\Lib\site-packages\pygments\formatters\img.py:548:# TODO: make sure tab expansion happens earlier in the chain.  It
+.\venv\Lib\site-packages\pygments\formatters\latex.py:334:# TODO: add support for background colors
+.\venv\Lib\site-packages\pygments\formatters\terminal256.py:17:# TODO:
+.\venv\Lib\site-packages\pygments\lexers\ada.py:115:# TODO: use Name.Namespace if appropriate.  This needs
+.\venv\Lib\site-packages\pygments\lexers\css.py:556:# TODO: broken, and prone to infinite loops.
+.\venv\Lib\site-packages\pygments\lexers\css.py:594:# FIXME: It's not currently possible to simply do the following,
+.\venv\Lib\site-packages\pygments\lexers\c_like.py:217:# TODO: "correctly" parse complex code attributes
+.\venv\Lib\site-packages\pygments\lexers\c_like.py:471:'sendDigitalPortPair', 'noListenOnLocalhost', 'readJoystickButton',
+.\venv\Lib\site-packages\pygments\lexers\c_like.py:475:'runAsynchronously', 'getAsynchronously', 'listenOnLocalhost',
+.\venv\Lib\site-packages\pygments\lexers\dalvik.py:60:r'varargs|native|abstract|strictfp|synthetic|constructor|'
+.\venv\Lib\site-packages\pygments\lexers\dns.py:53:# TODO, $GENERATE https://bind9.readthedocs.io/en/v9.18.14/chapter3.html#soa-rr
+.\venv\Lib\site-packages\pygments\lexers\dotnet.py:571:# TODO support multiple languages within the same source file
+.\venv\Lib\site-packages\pygments\lexers\fantom.py:49:# TODO: highlight references in fandocs
+.\venv\Lib\site-packages\pygments\lexers\fantom.py:85:'insideUri': [  # TODO: remove copy/paste str/uri
+.\venv\Lib\site-packages\pygments\lexers\felix.py:53:'requires', 'todo', 'virtual', 'use',
+.\venv\Lib\site-packages\pygments\lexers\gleam.py:33:'panic', 'pub', 'test', 'todo', 'type', 'use',
+.\venv\Lib\site-packages\pygments\lexers\graphics.py:41:# FIXME when e is present, no decimal point needed
+.\venv\Lib\site-packages\pygments\lexers\graphics.py:172:# FIXME when e is present, no decimal point needed
+.\venv\Lib\site-packages\pygments\lexers\haskell.py:364:FIXME: A Cryptol2 lexer based on the lexemes defined in the Haskell 98 Report.
+.\venv\Lib\site-packages\pygments\lexers\haskell.py:446:# TODO: these don't match the comments in docs, remove.
+.\venv\Lib\site-packages\pygments\lexers\inferno.py:24:TODO:
+.\venv\Lib\site-packages\pygments\lexers\inferno.py:85:# TODO:
+.\venv\Lib\site-packages\pygments\lexers\javascript.py:133:# TODO: should this include single-line comments and allow nesting strings?
+.\venv\Lib\site-packages\pygments\lexers\julia.py:195:# FIXME: This escape pattern is not perfect.
+.\venv\Lib\site-packages\pygments\lexers\jvm.py:891:# TODO / should divide keywords/symbols into namespace/rest
+.\venv\Lib\site-packages\pygments\lexers\jvm.py:1351:(r'\S+\s+', Text)   # TODO: make tests pass without \s+
+.\venv\Lib\site-packages\pygments\lexers\jvm.py:1535:rf'synchronized|synthetic|transient|varargs|volatile){_break}',
+.\venv\Lib\site-packages\pygments\lexers\markup.py:674:(r'^(\* )(TODO)( .*)',
+.\venv\Lib\site-packages\pygments\lexers\markup.py:676:(r'^(\*\*+ )(TODO)( .*)',
+.\venv\Lib\site-packages\pygments\lexers\markup.py:682:# Unordered lists items, including TODO items and description items
+.\venv\Lib\site-packages\pygments\lexers\markup.py:698:# TODO: language-dependent syntax highlighting (see Markdown lexer)
+.\venv\Lib\site-packages\pygments\lexers\markup.py:724:(_inline(r'=', r'='), String), # TODO token
+.\venv\Lib\site-packages\pygments\lexers\markup.py:1033:# FIXME: Use ABC lexer in the future
+.\venv\Lib\site-packages\pygments\lexers\matlab.py:1119:"getMockHistory",
+.\venv\Lib\site-packages\pygments\lexers\matlab.py:1583:"matlab.mock.AnyArguments",
+.\venv\Lib\site-packages\pygments\lexers\matlab.py:1584:"matlab.mock.InteractionHistory",
+.\venv\Lib\site-packages\pygments\lexers\matlab.py:1585:"matlab.mock.InteractionHistory.forMock",
+.\venv\Lib\site-packages\pygments\lexers\matlab.py:1586:"matlab.mock.MethodCallBehavior",
+.\venv\Lib\site-packages\pygments\lexers\matlab.py:1587:"matlab.mock.PropertyBehavior",
+.\venv\Lib\site-packages\pygments\lexers\matlab.py:1588:"matlab.mock.PropertyGetBehavior",
+.\venv\Lib\site-packages\pygments\lexers\matlab.py:1589:"matlab.mock.PropertySetBehavior",
+.\venv\Lib\site-packages\pygments\lexers\matlab.py:1590:"matlab.mock.TestCase",
+.\venv\Lib\site-packages\pygments\lexers\matlab.py:1591:"matlab.mock.actions.AssignOutputs",
+.\venv\Lib\site-packages\pygments\lexers\matlab.py:1592:"matlab.mock.actions.DoNothing",
+.\venv\Lib\site-packages\pygments\lexers\matlab.py:1593:"matlab.mock.actions.Invoke",
+.\venv\Lib\site-packages\pygments\lexers\matlab.py:1594:"matlab.mock.actions.ReturnStoredValue",
+.\venv\Lib\site-packages\pygments\lexers\matlab.py:1595:"matlab.mock.actions.StoreValue",
+.\venv\Lib\site-packages\pygments\lexers\matlab.py:1596:"matlab.mock.actions.ThrowException",
+.\venv\Lib\site-packages\pygments\lexers\matlab.py:1597:"matlab.mock.constraints.Occurred",
+.\venv\Lib\site-packages\pygments\lexers\matlab.py:1598:"matlab.mock.constraints.WasAccessed",
+.\venv\Lib\site-packages\pygments\lexers\matlab.py:1599:"matlab.mock.constraints.WasCalled",
+.\venv\Lib\site-packages\pygments\lexers\matlab.py:1600:"matlab.mock.constraints.WasSet",
+.\venv\Lib\site-packages\pygments\lexers\meson.py:27:# TODO String interpolation @VARNAME@ inner matches
+.\venv\Lib\site-packages\pygments\lexers\meson.py:28:# TODO keyword_arg: value inner matches
+.\venv\Lib\site-packages\pygments\lexers\mips.py:28:# TODO: add '*.s' and '*.asm', which will require designing an analyse_text
+.\venv\Lib\site-packages\pygments\lexers\modula2.py:474:'TODO', 'FFI', 'ADDR', 'VARGLIST', 'VARGC',
+.\venv\Lib\site-packages\pygments\lexers\mojo.py:123:"varname",  # TODO varname the right fit?
+.\venv\Lib\site-packages\pygments\lexers\mojo.py:273:"async for",  # TODO https://docs.modular.com/mojo/roadmap#no-async-for-or-async-with
+.\venv\Lib\site-packages\pygments\lexers\mojo.py:274:"async with",  # TODO https://docs.modular.com/mojo/roadmap#no-async-for-or-async-with
+.\venv\Lib\site-packages\pygments\lexers\mojo.py:702:# TODO supported?
+.\venv\Lib\site-packages\pygments\lexers\ncl.py:79:'charactertodouble', 'charactertofloat', 'charactertointeger',
+.\venv\Lib\site-packages\pygments\lexers\ncl.py:81:'chartodouble', 'chartofloat', 'chartoint', 'chartointeger',
+.\venv\Lib\site-packages\pygments\lexers\ncl.py:219:'stringtocharacter', 'stringtodouble', 'stringtofloat',
+.\venv\Lib\site-packages\pygments\lexers\ncl.py:229:'tochar', 'todouble', 'tofloat', 'toint', 'toint64', 'tointeger',
+.\venv\Lib\site-packages\pygments\lexers\nix.py:123:# TODO: we should probably escape also here ''${ \${
+.\venv\Lib\site-packages\pygments\lexers\nix.py:135:# TODO: let/in
+.\venv\Lib\site-packages\pygments\lexers\oberon.py:50:# TODO: nested comments (* (* ... *) ... (* ... *) *) not supported!
+.\venv\Lib\site-packages\pygments\lexers\objective.py:130:# TODO unsure if ellipses are allowed elsewhere, see
+.\venv\Lib\site-packages\pygments\lexers\objective.py:458:(r':param: [a-zA-Z_]\w*|:returns?:|(FIXME|MARK|TODO):',
+.\venv\Lib\site-packages\pygments\lexers\openscad.py:81:(r':param: [a-zA-Z_]\w*|:returns?:|(FIXME|MARK|TODO):',
+.\venv\Lib\site-packages\pygments\lexers\parsers.py:396:# TODO finish implementing other possibilities for scope
+.\venv\Lib\site-packages\pygments\lexers\pascal.py:131:'chr', 'close', 'closefile', 'comptocurrency', 'comptodouble',
+.\venv\Lib\site-packages\pygments\lexers\perl.py:35:# TODO: give this to a perl guy who knows how to parse perl...
+.\venv\Lib\site-packages\pygments\lexers\perl.py:360:'throws-like','timezone','tmpdir','to','today','todo','toggle','to-posix',
+.\venv\Lib\site-packages\pygments\lexers\python.py:724:# different tokens.  TODO: DelegatingLexer should support this
+.\venv\Lib\site-packages\pygments\lexers\rnc.py:36:# TODO single quoted strings and escape sequences outside of
+.\venv\Lib\site-packages\pygments\lexers\rust.py:62:'thread_local', 'todo', 'trace_macros', 'unimplemented', 'unreachable',
+.\venv\Lib\site-packages\pygments\lexers\scripting.py:1532:# TODO: JES3 statement
+.\venv\Lib\site-packages\pygments\lexers\sql.py:150:# TODO: better logging
+.\venv\Lib\site-packages\pygments\lexers\sql.py:223:# FIXME: use inheritance
+.\venv\Lib\site-packages\pygments\lexers\sql.py:347:# TODO: better handle multiline comments at the end with
+.\venv\Lib\site-packages\pygments\lexers\sql.py:593:# TODO: Backslash escapes?
+.\venv\Lib\site-packages\pygments\lexers\templates.py:755:# TODO support other Python syntax like $foo['bar']
+.\venv\Lib\site-packages\pygments\lexers\templates.py:1403:# FIXME: I want to make these keywords but still parse attributes.
+.\venv\Lib\site-packages\pygments\lexers\testing.py:199:# Extract todo items.
+.\venv\Lib\site-packages\pygments\lexers\testing.py:200:(r'(?i)\bTODO\b', Comment.Preproc),
+.\venv\Lib\site-packages\pygments\lexers\textedit.py:140:# TODO: regexes can have other delims
+.\venv\Lib\site-packages\pygments\lexers\textedit.py:195:# TODO: builtins are only subsequent tokens on lines
+.\venv\Lib\site-packages\pygments\lexers\textfmts.py:19:__all__ = ['IrcLogsLexer', 'TodotxtLexer', 'HttpLexer', 'GettextLexer',
+.\venv\Lib\site-packages\pygments\lexers\textfmts.py:208:class TodotxtLexer(RegexLexer):
+.\venv\Lib\site-packages\pygments\lexers\textfmts.py:210:Lexer for Todo.txt todo list format.
+.\venv\Lib\site-packages\pygments\lexers\textfmts.py:213:name = 'Todotxt'
+.\venv\Lib\site-packages\pygments\lexers\textfmts.py:214:url = 'http://todotxt.com/'
+.\venv\Lib\site-packages\pygments\lexers\textfmts.py:215:aliases = ['todotxt']
+.\venv\Lib\site-packages\pygments\lexers\textfmts.py:217:# *.todotxt is not a standard extension for Todo.txt files; including it
+.\venv\Lib\site-packages\pygments\lexers\textfmts.py:219:filenames = ['todo.txt', '*.todotxt']
+.\venv\Lib\site-packages\pygments\lexers\textfmts.py:220:mimetypes = ['text/x-todo']
+.\venv\Lib\site-packages\pygments\lexers\textfmts.py:222:# Aliases mapping standard token types of Todo.txt format concepts
+.\venv\Lib\site-packages\pygments\lexers\textfmts.py:240:# TODO: Make date regex more ISO 8601 compliant
+.\venv\Lib\site-packages\pygments\lexers\typst.py:135:# FIXME: make this work
+.\venv\Lib\site-packages\pygments\lexers\urbi.py:34:# TODO
+.\venv\Lib\site-packages\pygments\lexers\varnish.py:100:'elsif', 'elif', 'synth', 'synthetic', 'ban',
+.\venv\Lib\site-packages\pygments\lexers\wgsl.py:390:# TODO: Treat context-depedendent names specially
+.\venv\Lib\site-packages\pygments\lexers\wgsl.py:396:# TODO: templates start and end tokens.
+.\venv\Lib\site-packages\pygments\lexers\_asy_builtins.py:9:TODO: perl/python script in Asymptote SVN similar to asy-list.pl but only
+.\venv\Lib\site-packages\pygments\lexers\_lasso_builtins.py:2504:'ical_todo',
+.\venv\Lib\site-packages\pygments\lexers\_lasso_builtins.py:5297:'todos',
+.\venv\Lib\site-packages\pygments\lexers\_mapping.py:540:'TodotxtLexer': ('pygments.lexers.textfmts', 'Todotxt', ('todotxt',), ('todo.txt', '*.todotxt'), ('text/x-todo',)),
+.\venv\Lib\site-packages\pygments\lexers\_mql_builtins.py:257:'StrToDouble',
+.\venv\Lib\site-packages\pygments\lexers\_mql_builtins.py:278:'StringToDouble',
+.\venv\Lib\site-packages\pygments\lexers\_php_builtins.py:2903:'uopz_get_mock',
+.\venv\Lib\site-packages\pygments\lexers\_php_builtins.py:2913:'uopz_set_mock',
+.\venv\Lib\site-packages\pygments\lexers\_php_builtins.py:2919:'uopz_unset_mock',
+.\venv\Lib\site-packages\pygments\lexers\_qlik_builtins.py:291:# Synthetic dimension functions
+.\venv\Lib\site-packages\pygments\lexers\_scilab_builtins.py:431:'csvStringToDouble',
+.\venv\Lib\site-packages\pygments\lexers\_sourcemod_builtins.py:786:'AddFileToDownloadsTable',
+.\venv\Lib\site-packages\pygments\lexers\_stata_builtins.py:80:"esti", "estimates", "etodow", "etof", "etomdy", "ex",
+.\venv\Lib\site-packages\pytest_asyncio\plugin.py:1088:"""Find an unused localhost port from 1024-65535 and return it."""
+.\venv\Lib\site-packages\pytest_asyncio\plugin.py:1090:sock.bind(("127.0.0.1", 0))
+.\venv\Lib\site-packages\redis\client.py:181:redis://[[username]:[password]]@localhost:6379/0
+.\venv\Lib\site-packages\redis\client.py:182:rediss://[[username]:[password]]@localhost:6379/0
+.\venv\Lib\site-packages\redis\client.py:200:1. A ``db`` querystring option, e.g. redis://localhost?db=0
+.\venv\Lib\site-packages\redis\client.py:202:of the url, e.g. redis://localhost/0
+.\venv\Lib\site-packages\redis\client.py:270:host: str = "localhost",
+.\venv\Lib\site-packages\redis\cluster.py:656:redis://[[username]:[password]]@localhost:6379/0
+.\venv\Lib\site-packages\redis\cluster.py:657:rediss://[[username]:[password]]@localhost:6379/0
+.\venv\Lib\site-packages\redis\cluster.py:675:1. A ``db`` querystring option, e.g. redis://localhost?db=0
+.\venv\Lib\site-packages\redis\cluster.py:677:of the url, e.g. redis://localhost/0
+.\venv\Lib\site-packages\redis\cluster.py:856:" RedisCluster(host='localhost', port=6379)\n"
+.\venv\Lib\site-packages\redis\cluster.py:858:" RedisCluster(startup_nodes=[ClusterNode('localhost', 6379),"
+.\venv\Lib\site-packages\redis\cluster.py:859:" ClusterNode('localhost', 6378)])"
+.\venv\Lib\site-packages\redis\cluster.py:2146:if host == "localhost":
+.\venv\Lib\site-packages\redis\cluster.py:2308:if host == "localhost":
+.\venv\Lib\site-packages\redis\cluster.py:2567:tests to mock the epoch fetch and control race condition timing.
+.\venv\Lib\site-packages\redis\connection.py:245:# TODO: Rename this API; it detects pending data or dirty/closed
+.\venv\Lib\site-packages\redis\connection.py:700:host = getattr(self, "host", "localhost")
+.\venv\Lib\site-packages\redis\connection.py:1378:# TODO: Rename this API; it detects pending data or dirty/closed
+.\venv\Lib\site-packages\redis\connection.py:1537:host="localhost",
+.\venv\Lib\site-packages\redis\connection.py:1743:# TODO: Investigate if it's possible to unpack command
+.\venv\Lib\site-packages\redis\connection.py:1810:# TODO: Rename this API; it detects pending data or dirty/closed
+.\venv\Lib\site-packages\redis\connection.py:2925:redis://[[username]:[password]]@localhost:6379/0
+.\venv\Lib\site-packages\redis\connection.py:2926:rediss://[[username]:[password]]@localhost:6379/0
+.\venv\Lib\site-packages\redis\connection.py:2944:1. A ``db`` querystring option, e.g. redis://localhost?db=0
+.\venv\Lib\site-packages\redis\connection.py:2946:of the url, e.g. redis://localhost/0
+.\venv\Lib\site-packages\redis\connection.py:3438:lambda error: self._mock(error),
+.\venv\Lib\site-packages\redis\connection.py:3441:lambda: conn.read_response(), lambda error: self._mock(error)
+.\venv\Lib\site-packages\redis\connection.py:3457:def _mock(self, error: RedisError):
+.\venv\Lib\site-packages\redis\event.py:85:# TODO: Make dispatcher to accept external mappings.
+.\venv\Lib\site-packages\redis\keyspace_notifications.py:44:>>> rc = RedisCluster(host="localhost", port=7000)
+.\venv\Lib\site-packages\redis\lock.py:259:# TODO: this can be simplified when the context manager is finished
+.\venv\Lib\site-packages\redis\maint_notifications.py:490:"127.0.0.1:6379": [
+.\venv\Lib\site-packages\redis\maint_notifications.py:491:{"127.0.0.1:6380": "1-100"},
+.\venv\Lib\site-packages\redis\maint_notifications.py:492:{"127.0.0.1:6381": "101-200"}
+.\venv\Lib\site-packages\redis\maint_notifications.py:494:"127.0.0.1:6382": [
+.\venv\Lib\site-packages\redis\maint_notifications.py:495:{"127.0.0.1:6383": "201-300"}
+.\venv\Lib\site-packages\redis\sentinel.py:229:>>> sentinel = Sentinel([('localhost', 26379)], socket_timeout=0.1)
+.\venv\Lib\site-packages\redis\asyncio\client.py:169:redis://[[username]:[password]]@localhost:6379/0
+.\venv\Lib\site-packages\redis\asyncio\client.py:170:rediss://[[username]:[password]]@localhost:6379/0
+.\venv\Lib\site-packages\redis\asyncio\client.py:188:1. A ``db`` querystring option, e.g. redis://localhost?db=0
+.\venv\Lib\site-packages\redis\asyncio\client.py:191:of the url, e.g. redis://localhost/0
+.\venv\Lib\site-packages\redis\asyncio\client.py:271:host: str = "localhost",
+.\venv\Lib\site-packages\redis\asyncio\client.py:1440:# TODO(next-major): when the async Connection.read_response
+.\venv\Lib\site-packages\redis\asyncio\cluster.py:338:redis://[[username]:[password]]@localhost:6379/0
+.\venv\Lib\site-packages\redis\asyncio\cluster.py:339:rediss://[[username]:[password]]@localhost:6379/0
+.\venv\Lib\site-packages\redis\asyncio\cluster.py:473:'   - host and port: RedisCluster(host="localhost", port=6379)\n'
+.\venv\Lib\site-packages\redis\asyncio\cluster.py:475:'ClusterNode("localhost", 6379), ClusterNode("localhost", 6380)])'
+.\venv\Lib\site-packages\redis\asyncio\cluster.py:1651:if host == "localhost":
+.\venv\Lib\site-packages\redis\asyncio\cluster.py:1969:lambda error: self._mock(error),
+.\venv\Lib\site-packages\redis\asyncio\cluster.py:1972:lambda: conn.read_response(), lambda error: self._mock(error)
+.\venv\Lib\site-packages\redis\asyncio\cluster.py:1980:async def _mock(self, error: RedisError):
+.\venv\Lib\site-packages\redis\asyncio\cluster.py:2042:if host == "localhost":
+.\venv\Lib\site-packages\redis\asyncio\cluster.py:2097:# TODO: Make this method async in the next major release to allow
+.\venv\Lib\site-packages\redis\asyncio\cluster.py:2890:todo = [
+.\venv\Lib\site-packages\redis\asyncio\cluster.py:2895:for cmd in todo:
+.\venv\Lib\site-packages\redis\asyncio\cluster.py:2981:for cmd in todo:
+.\venv\Lib\site-packages\redis\asyncio\cluster.py:2991:for cmd in todo:
+.\venv\Lib\site-packages\redis\asyncio\connection.py:1232:# TODO: Rename this API; it detects pending data or dirty/closed
+.\venv\Lib\site-packages\redis\asyncio\connection.py:1259:TODO(next-major): replace the ``math.inf`` opt-in with a SENTINEL
+.\venv\Lib\site-packages\redis\asyncio\connection.py:1268:# TODO(next-major): drop the math.inf branch. Use SENTINEL as the
+.\venv\Lib\site-packages\redis\asyncio\connection.py:1444:host: str = "localhost",
+.\venv\Lib\site-packages\redis\asyncio\connection.py:2577:redis://[[username]:[password]]@localhost:6379/0
+.\venv\Lib\site-packages\redis\asyncio\connection.py:2578:rediss://[[username]:[password]]@localhost:6379/0
+.\venv\Lib\site-packages\redis\asyncio\connection.py:2596:1. A ``db`` querystring option, e.g. redis://localhost?db=0
+.\venv\Lib\site-packages\redis\asyncio\connection.py:2599:of the url, e.g. redis://localhost/0
+.\venv\Lib\site-packages\redis\asyncio\connection.py:2963:lambda error: self._mock(error),
+.\venv\Lib\site-packages\redis\asyncio\connection.py:2966:lambda: conn.read_response(), lambda error: self._mock(error)
+.\venv\Lib\site-packages\redis\asyncio\connection.py:2971:async def _mock(self, error: RedisError):
+.\venv\Lib\site-packages\redis\asyncio\keyspace_notifications.py:30:...     async with RedisCluster(host="localhost", port=7000) as rc:
+.\venv\Lib\site-packages\redis\asyncio\lock.py:256:# TODO: this can be simplified when the context manager is finished
+.\venv\Lib\site-packages\redis\asyncio\sentinel.py:186:>>> sentinel = Sentinel([('localhost', 26379)], socket_timeout=0.1)
+.\venv\Lib\site-packages\redis\asyncio\observability\recorder.py:16:server_address='localhost',
+.\venv\Lib\site-packages\redis\asyncio\observability\recorder.py:125:>>> await record_operation_duration('SET', time.monotonic() - start, 'localhost', 6379, '0')
+.\venv\Lib\site-packages\redis\commands\json\commands.py:707:# TODO: rsplit(".") splits on all dots, mishandling paths
+.\venv\Lib\site-packages\redis\commands\json\__init__.py:349:# TODO: rsplit(".") splits on all dots, mishandling paths
+.\venv\Lib\site-packages\redis\observability\attributes.py:397:>>> pool = ConnectionPool(host='localhost', port=6379, db=0)
+.\venv\Lib\site-packages\redis\observability\attributes.py:399:'localhost:6379_a1b2c3d4'
+.\venv\Lib\site-packages\redis\observability\providers.py:102:"      endpoint='http://localhost:4318/v1/metrics'\n"
+.\venv\Lib\site-packages\redis\observability\providers.py:203:>>> r = redis.Redis(host='localhost', port=6379)
+.\venv\Lib\site-packages\redis\observability\recorder.py:15:server_address='localhost',
+.\venv\Lib\site-packages\redis\observability\recorder.py:86:>>> record_operation_duration('SET', time.monotonic() - start, 'localhost', 6379, '0')
+.\venv\Lib\site-packages\redis\observability\recorder.py:130:>>> record_connection_create_time('ConnectionPool<localhost:6379>', time.monotonic() - start)
+.\venv\Lib\site-packages\redis\observability\recorder.py:269:>>> record_connection_timeout('ConnectionPool<localhost:6379>')
+.\venv\Lib\site-packages\redis\observability\recorder.py:300:>>> record_connection_wait_time('ConnectionPool<localhost:6379>', time.monotonic() - start)
+.\venv\Lib\site-packages\redis\observability\recorder.py:330:>>> record_connection_closed('ConnectionPool<localhost:6379>', 'idle_timeout')
+.\venv\Lib\site-packages\redis\observability\recorder.py:362:>>> record_connection_relaxed_timeout('localhost:6379_a1b2c3d4', 'MOVING', True)
+.\venv\Lib\site-packages\redis\observability\recorder.py:391:>>> record_connection_handoff('ConnectionPool<localhost:6379>')
+.\venv\Lib\site-packages\redis\observability\recorder.py:430:>>> record_error_count('localhost', 6379, 'localhost', 6379, ConnectionError(), 3)
+.\venv\Lib\site-packages\redis\observability\recorder.py:634:>>> record_maint_notification_count('localhost', 6379, 'localhost', 6379, 'MOVING')
+.\venv\Lib\site-packages\redis\_parsers\base.py:165:# TODO: Rename this API; it detects pending data or dirty/closed
+.\venv\Lib\site-packages\redis\_parsers\base.py:190:# TODO: Rename this API; it detects pending data or dirty/closed
+.\venv\Lib\site-packages\redis\_parsers\base.py:546:# TODO: Rename this API; it detects pending data or dirty/closed
+.\venv\Lib\site-packages\redis\_parsers\commands.py:53:supported in the 'COMMAND's output, so the key positions are hardcoded
+.\venv\Lib\site-packages\redis\_parsers\hiredis.py:160:# TODO: Rename this API; it detects pending data or dirty/closed
+.\venv\Lib\site-packages\redis\_parsers\hiredis.py:322:# TODO: Rename this API; it detects pending data or dirty/closed
+.\venv\Lib\site-packages\sqlalchemy\exc.py:572:dbapi_base_err: Type[Exception],
+.\venv\Lib\site-packages\sqlalchemy\exc.py:586:dbapi_base_err: Type[Exception],
+.\venv\Lib\site-packages\sqlalchemy\exc.py:600:dbapi_base_err: Type[Exception],
+.\venv\Lib\site-packages\sqlalchemy\exc.py:613:dbapi_base_err: Type[Exception],
+.\venv\Lib\site-packages\sqlalchemy\exc.py:644:elif not isinstance(orig, dbapi_base_err) and statement:
+.\venv\Lib\site-packages\sqlalchemy\__init__.py:20:from .engine import create_mock_engine as create_mock_engine
+.\venv\Lib\site-packages\sqlalchemy\dialects\__init__.py:40:# hardcoded.   if mysql / mariadb etc were third party dialects
+.\venv\Lib\site-packages\sqlalchemy\dialects\mssql\base.py:2134:# TODO: Why?  shouldn't we use TOP always ?
+.\venv\Lib\site-packages\sqlalchemy\dialects\mssql\base.py:2511:# TODO: does this comment (from mysql) apply to here, too?
+.\venv\Lib\site-packages\sqlalchemy\dialects\mssql\base.py:3416:# TODO: try to avoid having to run a separate query here
+.\venv\Lib\site-packages\sqlalchemy\dialects\mssql\base.py:4071:# TODO: we support match=<keyword> for foreign keys so
+.\venv\Lib\site-packages\sqlalchemy\dialects\mssql\information_schema.py:176:# TODO: is CATLOG misspelled ?
+.\venv\Lib\site-packages\sqlalchemy\dialects\mssql\pymssql.py:70:# TODO: monkeypatching here is less than ideal
+.\venv\Lib\site-packages\sqlalchemy\dialects\mysql\base.py:245:"mysql+mysqldb://scott:tiger@localhost/test",
+.\venv\Lib\site-packages\sqlalchemy\dialects\mysql\base.py:352:"mysql+pymysql://scott:tiger@localhost/test?charset=utf8mb4"
+.\venv\Lib\site-packages\sqlalchemy\dialects\mysql\base.py:373:"mysql+pymysql://scott:tiger@localhost/test?charset=utf8mb4"
+.\venv\Lib\site-packages\sqlalchemy\dialects\mysql\base.py:420:"mysql+mysqldb://scott:tiger@localhost/test?charset=utf8mb4&binary_prefix=true"
+.\venv\Lib\site-packages\sqlalchemy\dialects\mysql\base.py:425:"mysql+pymysql://scott:tiger@localhost/test?charset=utf8mb4&binary_prefix=true"
+.\venv\Lib\site-packages\sqlalchemy\dialects\mysql\base.py:470:"mysql+mysqldb://scott:tiger@localhost/test", echo="debug"
+.\venv\Lib\site-packages\sqlalchemy\dialects\mysql\base.py:715:This setting is currently hardcoded.
+.\venv\Lib\site-packages\sqlalchemy\dialects\mysql\base.py:1051:e = create_engine("mysql+mysqldb://scott:tiger@localhost/test", echo=True)
+.\venv\Lib\site-packages\sqlalchemy\dialects\mysql\base.py:1500:# TODO: this coercion should be up front.  we can't cache
+.\venv\Lib\site-packages\sqlalchemy\dialects\mysql\base.py:1822:# TODO: remove ??
+.\venv\Lib\site-packages\sqlalchemy\dialects\mysql\enumerated.py:118:# TODO: SET is a string as far as configuration but does not act like
+.\venv\Lib\site-packages\sqlalchemy\dialects\mysql\pyodbc.py:34:"SERVER=localhost;"
+.\venv\Lib\site-packages\sqlalchemy\dialects\mysql\types.py:120:# TODO: float arguments?
+.\venv\Lib\site-packages\sqlalchemy\dialects\oracle\base.py:145:is common in Oracle installations, the default isolation level is hardcoded
+.\venv\Lib\site-packages\sqlalchemy\dialects\oracle\base.py:194:>>> pg_engine = create_engine("postgresql://scott:tiger@localhost/test")
+.\venv\Lib\site-packages\sqlalchemy\dialects\oracle\base.py:310:"oracle+oracledb://scott:tiger@localhost:1521?service_name=freepdb1",
+.\venv\Lib\site-packages\sqlalchemy\dialects\oracle\base.py:551:"oracle+oracledb://scott:tiger@localhost:1521?service_name=freepdb1"
+.\venv\Lib\site-packages\sqlalchemy\dialects\oracle\base.py:586:"oracle+oracledb://scott:tiger@localhost:1521/?service_name=freepdb1",
+.\venv\Lib\site-packages\sqlalchemy\dialects\oracle\cx_oracle.py:660:# TODO: the names used across CHAR / VARCHAR / NCHAR / NVARCHAR
+.\venv\Lib\site-packages\sqlalchemy\dialects\oracle\cx_oracle.py:804:# TODO: we could likely do away with quoting altogether for
+.\venv\Lib\site-packages\sqlalchemy\dialects\oracle\cx_oracle.py:1482:# TODO: Others ?
+.\venv\Lib\site-packages\sqlalchemy\dialects\oracle\cx_oracle.py:1491:# TODO: others?
+.\venv\Lib\site-packages\sqlalchemy\dialects\oracle\cx_oracle.py:1517:# TODO: need to end XA state here
+.\venv\Lib\site-packages\sqlalchemy\dialects\oracle\cx_oracle.py:1532:# TODO: need to end XA state here
+.\venv\Lib\site-packages\sqlalchemy\dialects\oracle\dictionary.py:445:# TODO figure out if it's still relevant, since there is no mention from here
+.\venv\Lib\site-packages\sqlalchemy\dialects\oracle\oracledb.py:36:"oracle+oracledb://scott:tiger@localhost?service_name=FREEPDB1"
+.\venv\Lib\site-packages\sqlalchemy\dialects\oracle\oracledb.py:45:"oracle+oracledb://scott:tiger@localhost?service_name=FREEPDB1"
+.\venv\Lib\site-packages\sqlalchemy\dialects\oracle\oracledb.py:54:"oracle+oracledb_async://scott:tiger@localhost?service_name=FREEPDB1"
+.\venv\Lib\site-packages\sqlalchemy\dialects\oracle\oracledb.py:268:dsn="localhost:1521/freepdb1",
+.\venv\Lib\site-packages\sqlalchemy\dialects\oracle\oracledb.py:310:dsn="localhost:1521/freepdb1",
+.\venv\Lib\site-packages\sqlalchemy\dialects\oracle\oracledb.py:342:dsn="localhost:1521/freepdb1",
+.\venv\Lib\site-packages\sqlalchemy\dialects\oracle\oracledb.py:478:"oracle+oracledb://scott:tiger@localhost:1521?service_name=freepdb1"
+.\venv\Lib\site-packages\sqlalchemy\dialects\oracle\oracledb.py:504:"oracle+oracledb://scott:tiger@localhost:1521?service_name=freepdb1"
+.\venv\Lib\site-packages\sqlalchemy\dialects\oracle\provision.py:221:# TODO: oracledb claims to have this feature built in somehow,
+.\venv\Lib\site-packages\sqlalchemy\dialects\postgresql\asyncpg.py:169:"postgresql+asyncpg://user:password@localhost/tmp",
+.\venv\Lib\site-packages\sqlalchemy\dialects\postgresql\asyncpg.py:682:# TODO: looks like we have to hand-roll some kind of batching here.
+.\venv\Lib\site-packages\sqlalchemy\dialects\postgresql\base.py:170:"postgresql+pg8000://scott:tiger@localhost/test",
+.\venv\Lib\site-packages\sqlalchemy\dialects\postgresql\base.py:480:>>> engine = create_engine("postgresql+psycopg2://scott:tiger@localhost/test")
+.\venv\Lib\site-packages\sqlalchemy\dialects\postgresql\base.py:827:text matching.   For the PostgreSQL backend, it's hardcoded to generate
+.\venv\Lib\site-packages\sqlalchemy\dialects\postgresql\base.py:1166:engine = create_engine("postgresql+psycopg2://localhost/test")
+.\venv\Lib\site-packages\sqlalchemy\dialects\postgresql\base.py:2308:# TODO: this coercion should be up front.  we can't cache
+.\venv\Lib\site-packages\sqlalchemy\dialects\postgresql\base.py:3592:# FIXME: ugly hack to get out of transaction
+.\venv\Lib\site-packages\sqlalchemy\dialects\postgresql\json.py:157:"postgresql+psycopg2://scott:tiger@localhost/test",
+.\venv\Lib\site-packages\sqlalchemy\dialects\postgresql\psycopg.py:34:"postgresql+psycopg://scott:tiger@localhost/test"
+.\venv\Lib\site-packages\sqlalchemy\dialects\postgresql\psycopg.py:44:"postgresql+psycopg://scott:tiger@localhost/test"
+.\venv\Lib\site-packages\sqlalchemy\dialects\postgresql\psycopg.py:53:"postgresql+psycopg_async://scott:tiger@localhost/test"
+.\venv\Lib\site-packages\sqlalchemy\dialects\postgresql\psycopg.py:81:conninfo="postgresql://scott:tiger@localhost/test",
+.\venv\Lib\site-packages\sqlalchemy\dialects\postgresql\psycopg.py:103:conninfo="postgresql://scott:tiger@localhost/test",
+.\venv\Lib\site-packages\sqlalchemy\dialects\postgresql\psycopg2.py:63:"postgresql+psycopg2://scott:tiger@localhost/test",
+.\venv\Lib\site-packages\sqlalchemy\dialects\postgresql\psycopg2.py:187:libpq client library, which by default indicates to connect to a localhost
+.\venv\Lib\site-packages\sqlalchemy\dialects\postgresql\psycopg2.py:479:"postgresql+psycopg2://scott:tiger@localhost/test",
+.\venv\Lib\site-packages\sqlalchemy\dialects\postgresql\psycopg2.py:580:# around test suites such as SQLAlchemy's using a Mock object for
+.\venv\Lib\site-packages\sqlalchemy\dialects\sqlite\aiosqlite.py:152:# TODO: base on connectors/asyncio.py
+.\venv\Lib\site-packages\sqlalchemy\dialects\sqlite\aiosqlite.py:257:# TODO: base on connectors/asyncio.py
+.\venv\Lib\site-packages\sqlalchemy\dialects\sqlite\base.py:2066:# TODO: detect SQLite version 3.10.0 or greater;
+.\venv\Lib\site-packages\sqlalchemy\dialects\sqlite\provision.py:28:# TODO: I can't get this to build dynamically with pytest-xdist procs
+.\venv\Lib\site-packages\sqlalchemy\engine\base.py:1674:TODO: why do we have this?   likely deprecate or remove
+.\venv\Lib\site-packages\sqlalchemy\engine\base.py:2148:# TODO: this will be fixed by #13018
+.\venv\Lib\site-packages\sqlalchemy\engine\base.py:2463:This method is only here so that the MockConnection can change the
+.\venv\Lib\site-packages\sqlalchemy\engine\base.py:2528:engine = create_engine("postgresql+psycopg2://scott:tiger@localhost/test")
+.\venv\Lib\site-packages\sqlalchemy\engine\create.py:25:from .mock import create_mock_engine
+.\venv\Lib\site-packages\sqlalchemy\engine\create.py:96:"and the only argument accepted is 'mock'; please use "
+.\venv\Lib\site-packages\sqlalchemy\engine\create.py:97:":func:`.create_mock_engine` going forward.  For general "
+.\venv\Lib\site-packages\sqlalchemy\engine\create.py:119:The standard calling form is to send the :ref:`URL <database_urls>` as the
+.\venv\Lib\site-packages\sqlalchemy\engine\create.py:123:engine = create_engine("postgresql+psycopg2://scott:tiger@localhost/test")
+.\venv\Lib\site-packages\sqlalchemy\engine\create.py:127:Please review :ref:`database_urls` for general guidelines in composing
+.\venv\Lib\site-packages\sqlalchemy\engine\create.py:393:inject "mock" DBAPI implementations into the :class:`_engine.Engine`.
+.\venv\Lib\site-packages\sqlalchemy\engine\create.py:555:if strat == "mock":
+.\venv\Lib\site-packages\sqlalchemy\engine\create.py:557:return create_mock_engine(url, **kwargs)  # type: ignore
+.\venv\Lib\site-packages\sqlalchemy\engine\create.py:716:# engines with mocks etc.
+.\venv\Lib\site-packages\sqlalchemy\engine\create.py:816:which provides the :ref:`database URL <database_urls>`.
+.\venv\Lib\site-packages\sqlalchemy\engine\cursor.py:281:# TODO: need unit test for:
+.\venv\Lib\site-packages\sqlalchemy\engine\cursor.py:869:# TODO: can consider pre-loading ints and negative ints
+.\venv\Lib\site-packages\sqlalchemy\engine\cursor.py:917:# TODO: consider serializing this as SimpleResultMetaData
+.\venv\Lib\site-packages\sqlalchemy\engine\cursor.py:1989:# TODO: if these are Row objects, can we save on not having to
+.\venv\Lib\site-packages\sqlalchemy\engine\default.py:272:# TODO: this is not to be part of 2.0.  implement rudimentary binary
+.\venv\Lib\site-packages\sqlalchemy\engine\events.py:64:engine = create_engine("postgresql+psycopg2://scott:tiger@localhost/test")
+.\venv\Lib\site-packages\sqlalchemy\engine\events.py:566:# TODO: deprecate "context"
+.\venv\Lib\site-packages\sqlalchemy\engine\events.py:578:# TODO: deprecate "context"
+.\venv\Lib\site-packages\sqlalchemy\engine\interfaces.py:2574:a hardcoded list of values.  If the dialect supports "AUTOCOMMIT",
+.\venv\Lib\site-packages\sqlalchemy\engine\interfaces.py:2795:"mysql+pymysql://scott:tiger@localhost/test?"
+.\venv\Lib\site-packages\sqlalchemy\engine\interfaces.py:2804:"mysql+pymysql://scott:tiger@localhost/test?"
+.\venv\Lib\site-packages\sqlalchemy\engine\interfaces.py:2812:"mysql+pymysql://scott:tiger@localhost/test", plugins=["myplugin"]
+.\venv\Lib\site-packages\sqlalchemy\engine\interfaces.py:2850:"mysql+pymysql://scott:tiger@localhost/test?"
+.\venv\Lib\site-packages\sqlalchemy\engine\mock.py:1:# engine/mock.py
+.\venv\Lib\site-packages\sqlalchemy\engine\mock.py:34:class MockConnection:
+.\venv\Lib\site-packages\sqlalchemy\engine\mock.py:43:def connect(self, **kwargs: Any) -> MockConnection:
+.\venv\Lib\site-packages\sqlalchemy\engine\mock.py:49:def execution_options(self, **kw: Any) -> MockConnection:
+.\venv\Lib\site-packages\sqlalchemy\engine\mock.py:72:def create_mock_engine(
+.\venv\Lib\site-packages\sqlalchemy\engine\mock.py:74:) -> MockConnection:
+.\venv\Lib\site-packages\sqlalchemy\engine\mock.py:75:"""Create a "mock" engine used for echoing DDL.
+.\venv\Lib\site-packages\sqlalchemy\engine\mock.py:91:from sqlalchemy import create_mock_engine
+.\venv\Lib\site-packages\sqlalchemy\engine\mock.py:98:engine = create_mock_engine("postgresql+psycopg2://", dump)
+.\venv\Lib\site-packages\sqlalchemy\engine\mock.py:109:.. versionadded:: 1.4 - the :func:`.create_mock_engine` function replaces
+.\venv\Lib\site-packages\sqlalchemy\engine\mock.py:110:the previous "mock" engine strategy used with
+.\venv\Lib\site-packages\sqlalchemy\engine\mock.py:133:return MockConnection(dialect, executor)
+.\venv\Lib\site-packages\sqlalchemy\engine\result.py:324:# TODO: are we freezing the result with or without uniqueness
+.\venv\Lib\site-packages\sqlalchemy\engine\result.py:2389:# TODO: this throws away the iterator which may be holding
+.\venv\Lib\site-packages\sqlalchemy\engine\strategies.py:8:"""Deprecated mock engine strategy used by Alembic."""
+.\venv\Lib\site-packages\sqlalchemy\engine\strategies.py:12:from .mock import MockConnection  # noqa
+.\venv\Lib\site-packages\sqlalchemy\engine\strategies.py:15:class MockEngineStrategy:
+.\venv\Lib\site-packages\sqlalchemy\engine\strategies.py:16:MockConnection = MockConnection
+.\venv\Lib\site-packages\sqlalchemy\engine\url.py:79::ref:`database_urls`
+.\venv\Lib\site-packages\sqlalchemy\engine\url.py:167::ref:`database_urls`
+.\venv\Lib\site-packages\sqlalchemy\engine\url.py:851::ref:`database_urls`
+.\venv\Lib\site-packages\sqlalchemy\engine\url.py:858:name_or_url, "_sqla_is_testing_if_this_is_a_mock_object"
+.\venv\Lib\site-packages\sqlalchemy\engine\__init__.py:42:from .mock import create_mock_engine as create_mock_engine
+.\venv\Lib\site-packages\sqlalchemy\ext\associationproxy.py:528:return inst  # type: ignore  # TODO
+.\venv\Lib\site-packages\sqlalchemy\ext\associationproxy.py:1628:# TODO: no idea how to do this without separate "stub"
+.\venv\Lib\site-packages\sqlalchemy\ext\associationproxy.py:1721:# TODO: again, no idea how to create an actual MutableMapping.
+.\venv\Lib\site-packages\sqlalchemy\ext\automap.py:150:e = create_engine("postgresql://scott:tiger@localhost/test")
+.\venv\Lib\site-packages\sqlalchemy\ext\automap.py:180:e = create_engine("postgresql://scott:tiger@localhost/test")
+.\venv\Lib\site-packages\sqlalchemy\ext\baked.py:528:# TODO: can mapper._get_clause be pre-adapted?
+.\venv\Lib\site-packages\sqlalchemy\ext\compiler.py:535:# TODO: why is the lambda needed ?
+.\venv\Lib\site-packages\sqlalchemy\ext\compiler.py:570:# TODO: yes, this could also switch off of DBAPI in use.
+.\venv\Lib\site-packages\sqlalchemy\ext\horizontal_shard.py:456:# TODO: if we had an ORMOption that gets applied at ORM statement
+.\venv\Lib\site-packages\sqlalchemy\ext\instrumentation.py:56:- An object implementing all or some of InstrumentationManager (TODO)
+.\venv\Lib\site-packages\sqlalchemy\ext\instrumentation.py:57:- A dictionary of callables, implementing all or some of the above (TODO)
+.\venv\Lib\site-packages\sqlalchemy\ext\asyncio\session.py:1639:"postgresql+asyncpg://scott:tiger@localhost/"
+.\venv\Lib\site-packages\sqlalchemy\ext\mypy\decl_class.py:135:# TODO: this is nearly the same logic as that of
+.\venv\Lib\site-packages\sqlalchemy\ext\mypy\decl_class.py:429:# TODO: do we need to convert from unbound for this case?
+.\venv\Lib\site-packages\sqlalchemy\ext\mypy\infer.py:181:# TODO: handle mypy.types.Overloaded
+.\venv\Lib\site-packages\sqlalchemy\ext\mypy\infer.py:301:# TODO: look at generic ref and either use that,
+.\venv\Lib\site-packages\sqlalchemy\ext\mypy\infer.py:571:# TODO: support other pep-435 types here
+.\venv\Lib\site-packages\sqlalchemy\ext\mypy\util.py:290:# TODO: figure out a more robust way to check this.  The node is some
+.\venv\Lib\site-packages\sqlalchemy\orm\attributes.py:598:# TODO: can move this to descriptor_props if the need for this
+.\venv\Lib\site-packages\sqlalchemy\orm\attributes.py:1104:# TODO: no test coverage here.
+.\venv\Lib\site-packages\sqlalchemy\orm\attributes.py:1913:# TODO: better solution here would be to add
+.\venv\Lib\site-packages\sqlalchemy\orm\attributes.py:2305:# TODO: need coverage in test/orm/ of remove event
+.\venv\Lib\site-packages\sqlalchemy\orm\attributes.py:2573:"""TODO"""
+.\venv\Lib\site-packages\sqlalchemy\orm\attributes.py:2621:# TODO: this appears to be the WriteOnlyAttributeImpl /
+.\venv\Lib\site-packages\sqlalchemy\orm\attributes.py:2622:# DynamicAttributeImpl constructor which is hardcoded
+.\venv\Lib\site-packages\sqlalchemy\orm\bulk_persistence.py:912:# TODO: dive more into how a local table PK is used for fetch
+.\venv\Lib\site-packages\sqlalchemy\orm\bulk_persistence.py:2138:# TODO: inline this and call remove_newly_deleted
+.\venv\Lib\site-packages\sqlalchemy\orm\context.py:431:# TODO: this structure is set up by JoinedLoader
+.\venv\Lib\site-packages\sqlalchemy\orm\context.py:1294:# TODO: some complexity with order_by here was due to mapper.order_by.
+.\venv\Lib\site-packages\sqlalchemy\orm\context.py:1398:# TODO: this goes away once we get rid of the deep entity
+.\venv\Lib\site-packages\sqlalchemy\orm\context.py:2195:# TODO: should we be checking for multiple mapper entities
+.\venv\Lib\site-packages\sqlalchemy\orm\context.py:2272:# TODO: we had orm_only=False here before, removing
+.\venv\Lib\site-packages\sqlalchemy\orm\context.py:2942:# TODO: we might be able to implement this but for now
+.\venv\Lib\site-packages\sqlalchemy\orm\context.py:3259:# TODO: polymorphic subclasses ?
+.\venv\Lib\site-packages\sqlalchemy\orm\decl_api.py:1364:todo = registries
+.\venv\Lib\site-packages\sqlalchemy\orm\decl_api.py:1366:while todo:
+.\venv\Lib\site-packages\sqlalchemy\orm\decl_api.py:1367:reg = todo.pop()
+.\venv\Lib\site-packages\sqlalchemy\orm\decl_api.py:1372:todo.update(reg._dependents.difference(done))
+.\venv\Lib\site-packages\sqlalchemy\orm\decl_api.py:1377:todo.update(reg._dependents.difference(done))
+.\venv\Lib\site-packages\sqlalchemy\orm\decl_api.py:1383:todo = registries
+.\venv\Lib\site-packages\sqlalchemy\orm\decl_api.py:1385:while todo:
+.\venv\Lib\site-packages\sqlalchemy\orm\decl_api.py:1386:reg = todo.pop()
+.\venv\Lib\site-packages\sqlalchemy\orm\decl_api.py:1391:todo.update(reg._dependencies.difference(done))
+.\venv\Lib\site-packages\sqlalchemy\orm\decl_api.py:1397:todo.update(reg._dependencies.difference(done))
+.\venv\Lib\site-packages\sqlalchemy\orm\decl_base.py:1248:# ``dataclasses._AutoDocstring``).  As the ``finally:`` block
+.\venv\Lib\site-packages\sqlalchemy\orm\decl_base.py:1541:# TODO: should "registry" here be also?   might be too late
+.\venv\Lib\site-packages\sqlalchemy\orm\dependency.py:251:# TODO: add a high speed method
+.\venv\Lib\site-packages\sqlalchemy\orm\dependency.py:393:# TODO: this whole block is not covered
+.\venv\Lib\site-packages\sqlalchemy\orm\dependency.py:1037:# TODO: no tests fail if this whole
+.\venv\Lib\site-packages\sqlalchemy\orm\descriptor_props.py:646:# TODO: need a deserialize hook here
+.\venv\Lib\site-packages\sqlalchemy\orm\descriptor_props.py:988:# TODO: when initialized, check _proxied_object,
+.\venv\Lib\site-packages\sqlalchemy\orm\events.py:1081:# TODO: need coverage for this event
+.\venv\Lib\site-packages\sqlalchemy\orm\events.py:2521:# TODO: coverage
+.\venv\Lib\site-packages\sqlalchemy\orm\instrumentation.py:557:"""TODO"""
+.\venv\Lib\site-packages\sqlalchemy\orm\instrumentation.py:715:# TODO: we should use the ClassManager's notion of the
+.\venv\Lib\site-packages\sqlalchemy\orm\instrumentation.py:725:# FIXME: need to juggle local names to avoid constructor argument
+.\venv\Lib\site-packages\sqlalchemy\orm\interfaces.py:142:# TODO: add python_type and sql_type here; combining them
+.\venv\Lib\site-packages\sqlalchemy\orm\loading.py:385:# TODO: need test coverage and documentation for the FrozenResult
+.\venv\Lib\site-packages\sqlalchemy\orm\loading.py:470:# TODO: no coverage here
+.\venv\Lib\site-packages\sqlalchemy\orm\loading.py:862:todo = []
+.\venv\Lib\site-packages\sqlalchemy\orm\loading.py:884:"todo": todo,
+.\venv\Lib\site-packages\sqlalchemy\orm\loading.py:951:todo.append(prop)
+.\venv\Lib\site-packages\sqlalchemy\orm\loading.py:958:for prop in getters["todo"]:
+.\venv\Lib\site-packages\sqlalchemy\orm\loading.py:1262:# TODO: polymorphic_from seems to be a Mapper in all cases.
+.\venv\Lib\site-packages\sqlalchemy\orm\loading.py:1281:# TODO: we are currently ignoring the case where the
+.\venv\Lib\site-packages\sqlalchemy\orm\loading.py:1373:# TODO:  allow "existing" populator to know this is
+.\venv\Lib\site-packages\sqlalchemy\orm\loading.py:1382:# TODO: same path
+.\venv\Lib\site-packages\sqlalchemy\orm\mapper.py:1989:# TODO: what happens if polymorphic_on column attribute name
+.\venv\Lib\site-packages\sqlalchemy\orm\mapper.py:4431:# TODO: weakref would be a good idea here
+.\venv\Lib\site-packages\sqlalchemy\orm\path_registry.py:257:# TODO: what are we using this for?
+.\venv\Lib\site-packages\sqlalchemy\orm\persistence.py:461:# TODO: ordered values, etc
+.\venv\Lib\site-packages\sqlalchemy\orm\persistence.py:890:# TODO: why with bookkeeping=False?
+.\venv\Lib\site-packages\sqlalchemy\orm\persistence.py:1490:# TODO: why does this "only warn" if versioning is turned off,
+.\venv\Lib\site-packages\sqlalchemy\orm\persistence.py:1727:# TODO: this still goes a little too often.  would be nice to
+.\venv\Lib\site-packages\sqlalchemy\orm\query.py:560:# TODO: this event needs to be deprecated, as it currently applies
+.\venv\Lib\site-packages\sqlalchemy\orm\query.py:1292:# TODO: deprecate, property has to be supplied
+.\venv\Lib\site-packages\sqlalchemy\orm\query.py:1335:# TODO: deprecate
+.\venv\Lib\site-packages\sqlalchemy\orm\query.py:2840:# TODO: not sure why we can't use result.scalar() here
+.\venv\Lib\site-packages\sqlalchemy\orm\query.py:2994:# TODO: isn't this supposed to be a list?
+.\venv\Lib\site-packages\sqlalchemy\orm\relationships.py:2528:# TODO: coverage
+.\venv\Lib\site-packages\sqlalchemy\orm\relationships.py:3470:TODO: does this need to be serializable anymore?  can we find what the
+.\venv\Lib\site-packages\sqlalchemy\orm\session.py:287:"_events_todo",
+.\venv\Lib\site-packages\sqlalchemy\orm\session.py:347:_events_todo: List[Any]
+.\venv\Lib\site-packages\sqlalchemy\orm\session.py:358:events_todo: List[_InstanceLevelDispatch[Session]],
+.\venv\Lib\site-packages\sqlalchemy\orm\session.py:374:self._events_todo = list(events_todo)
+.\venv\Lib\site-packages\sqlalchemy\orm\session.py:378:return self._events_todo[self._starting_event_idx + 1 :]
+.\venv\Lib\site-packages\sqlalchemy\orm\session.py:1200:# TODO: shouldn't we only be here if not
+.\venv\Lib\site-packages\sqlalchemy\orm\session.py:1429:# TODO: these two None sets were historically after the
+.\venv\Lib\site-packages\sqlalchemy\orm\session.py:2177:events_todo = _parent_execute_state._remaining_events()
+.\venv\Lib\site-packages\sqlalchemy\orm\session.py:2179:events_todo = self.dispatch.do_orm_execute
+.\venv\Lib\site-packages\sqlalchemy\orm\session.py:2181:events_todo = list(events_todo) + [_add_event]
+.\venv\Lib\site-packages\sqlalchemy\orm\session.py:2183:if events_todo:
+.\venv\Lib\site-packages\sqlalchemy\orm\session.py:2221:events_todo,
+.\venv\Lib\site-packages\sqlalchemy\orm\session.py:2223:for idx, fn in enumerate(events_todo):
+.\venv\Lib\site-packages\sqlalchemy\orm\session.py:3862:# TODO: this was being tested before, but this is not possible
+.\venv\Lib\site-packages\sqlalchemy\orm\session.py:4948:engine = create_engine("postgresql+psycopg2://scott:tiger@localhost/")
+.\venv\Lib\site-packages\sqlalchemy\orm\strategies.py:250:# TODO: check all columns ?  check for foreign key as well?
+.\venv\Lib\site-packages\sqlalchemy\orm\strategies.py:750:# TODO: the "not self.uselist" can be taken out entirely; a m2o
+.\venv\Lib\site-packages\sqlalchemy\orm\strategy_options.py:1434:# TODO: no cases in test suite where we actually get
+.\venv\Lib\site-packages\sqlalchemy\orm\strategy_options.py:2378:# TODO: need to figure out this None thing being returned by
+.\venv\Lib\site-packages\sqlalchemy\orm\strategy_options.py:2449:# TODO: attrs against different classes.  we likely have to
+.\venv\Lib\site-packages\sqlalchemy\orm\unitofwork.py:280:# TODO: store the history as (state, object) tuples
+.\venv\Lib\site-packages\sqlalchemy\pool\base.py:326:# needed for mock testing
+.\venv\Lib\site-packages\sqlalchemy\pool\base.py:1522:# TODO: should this be _return_conn?
+.\venv\Lib\site-packages\sqlalchemy\pool\events.py:42:engine = create_engine("postgresql+psycopg2://scott:tiger@localhost/test")
+.\venv\Lib\site-packages\sqlalchemy\sql\base.py:333:# TODO: cython candidate
+.\venv\Lib\site-packages\sqlalchemy\sql\base.py:935:# TODO: very inefficient.  This is used only in test suites
+.\venv\Lib\site-packages\sqlalchemy\sql\base.py:943:# TODO: fairly inefficient, used only in debugging right now.
+.\venv\Lib\site-packages\sqlalchemy\sql\base.py:1950:# TODO: cython candidate
+.\venv\Lib\site-packages\sqlalchemy\sql\cache_key.py:176:# TODO: wouldn't we instead get this from our superclass?
+.\venv\Lib\site-packages\sqlalchemy\sql\cache_key.py:276:# TODO: see if C code can help here as Python lacks an
+.\venv\Lib\site-packages\sqlalchemy\sql\coercions.py:758:# TODO: there's no test coverage now for the
+.\venv\Lib\site-packages\sqlalchemy\sql\coercions.py:1256:# TODO: doing _implicit_subquery here causes tests to fail,
+.\venv\Lib\site-packages\sqlalchemy\sql\compiler.py:3170:# TODO: would need a fast cast again here,
+.\venv\Lib\site-packages\sqlalchemy\sql\compiler.py:3815:# TODO: this condition is not well understood.
+.\venv\Lib\site-packages\sqlalchemy\sql\compiler.py:4007:# TODO: accumulate_bind_names is passed by crud.py to gather
+.\venv\Lib\site-packages\sqlalchemy\sql\compiler.py:4215:# TODO: can we get at the .columns_plus_names collection
+.\venv\Lib\site-packages\sqlalchemy\sql\compiler.py:4219:# TODO: proxy_name is not technically safe,
+.\venv\Lib\site-packages\sqlalchemy\sql\compiler.py:4624:# TODO: this only seems to be tested indirectly
+.\venv\Lib\site-packages\sqlalchemy\sql\compiler.py:5443:# TODO: likely need asfrom=True here?
+.\venv\Lib\site-packages\sqlalchemy\sql\compiler.py:5531:# TODO: do we want non-primary key explicit sentinel cols
+.\venv\Lib\site-packages\sqlalchemy\sql\compiler.py:6573:# TODO: remove in 2.1
+.\venv\Lib\site-packages\sqlalchemy\sql\compiler.py:7700:# TODO: no coverage here
+.\venv\Lib\site-packages\sqlalchemy\sql\crud.py:700:# TODO - see TODO(return_defaults_columns) below
+.\venv\Lib\site-packages\sqlalchemy\sql\crud.py:728:# TODO - see TODO(return_defaults_columns) below
+.\venv\Lib\site-packages\sqlalchemy\sql\crud.py:823:# TODO(return_defaults_columns): there can still be more columns in
+.\venv\Lib\site-packages\sqlalchemy\sql\crud.py:1452:**kw,  # TODO: no test coverage for literal binds here
+.\venv\Lib\site-packages\sqlalchemy\sql\crud.py:1585:# TODO: not sure if accumulated_bind_names applies here
+.\venv\Lib\site-packages\sqlalchemy\sql\crud.py:1712:# TODO: this is weird.  See #9685 where we have to
+.\venv\Lib\site-packages\sqlalchemy\sql\elements.py:755:# TODO: this code is uncovered and in all likelihood is not included
+.\venv\Lib\site-packages\sqlalchemy\sql\elements.py:2100:# TODO: set up protocol for bind parameter callable
+.\venv\Lib\site-packages\sqlalchemy\sql\elements.py:2610:# TODO: this seems wrong, it seems like we might not
+.\venv\Lib\site-packages\sqlalchemy\sql\elements.py:4760:# TODO: this is only covered in test_text.py, but nothing
+.\venv\Lib\site-packages\sqlalchemy\sql\elements.py:4771:# TODO: no coverage for this block, again would be in
+.\venv\Lib\site-packages\sqlalchemy\sql\functions.py:424:# TODO: this might not be fully accurate
+.\venv\Lib\site-packages\sqlalchemy\sql\lambdas.py:378:# TODO: this needs A LOT of tests
+.\venv\Lib\site-packages\sqlalchemy\sql\lambdas.py:479:# TODO: TEST TEST TEST, this is very out there
+.\venv\Lib\site-packages\sqlalchemy\sql\lambdas.py:494:# TODO: A LOT A LOT of tests.   for _resolve_with_args, we don't know
+.\venv\Lib\site-packages\sqlalchemy\sql\lambdas.py:740:# TODO: validate kw haven't changed?
+.\venv\Lib\site-packages\sqlalchemy\sql\lambdas.py:897:# TODO: should we coerce consts None/True/False here?
+.\venv\Lib\site-packages\sqlalchemy\sql\lambdas.py:1321:# TODO: coverage where an ORM option or similar is here
+.\venv\Lib\site-packages\sqlalchemy\sql\lambdas.py:1411:# TODO: coverage
+.\venv\Lib\site-packages\sqlalchemy\sql\roles.py:283:# TODO: are we using this?
+.\venv\Lib\site-packages\sqlalchemy\sql\schema.py:1905:"postgresql+psycopg2://scott:tiger@localhost/mydatabase"
+.\venv\Lib\site-packages\sqlalchemy\sql\schema.py:3275:# TODO: no test coverage for self not in memos
+.\venv\Lib\site-packages\sqlalchemy\sql\schema.py:5275:# TODO: consider "table" argument being public, but for
+.\venv\Lib\site-packages\sqlalchemy\sql\selectable.py:20:from typing import Any as TODO_Any
+.\venv\Lib\site-packages\sqlalchemy\sql\selectable.py:1629:) -> TODO_Any:
+.\venv\Lib\site-packages\sqlalchemy\sql\selectable.py:4505:# TODO: this is hacky and slow
+.\venv\Lib\site-packages\sqlalchemy\sql\selectable.py:5320:_memoized_select_entities: Tuple[TODO_Any, ...] = ()
+.\venv\Lib\site-packages\sqlalchemy\sql\selectable.py:6924:# TODO: this seems like we should be using coercions for this
+.\venv\Lib\site-packages\sqlalchemy\sql\sqltypes.py:900:# TODO: this is useless for real world scenarios; implement
+.\venv\Lib\site-packages\sqlalchemy\sql\sqltypes.py:3911:# foil mock.Mock() and other impostors by ensuring
+.\venv\Lib\site-packages\sqlalchemy\sql\traversals.py:358:# TODO: use abc classes
+.\venv\Lib\site-packages\sqlalchemy\sql\traversals.py:833:# TODO: look at attrname for "legacy_join" and use different structure
+.\venv\Lib\site-packages\sqlalchemy\sql\type_api.py:725:TODO: this should be part of public API
+.\venv\Lib\site-packages\sqlalchemy\sql\type_api.py:771:TODO: this should be part of public API
+.\venv\Lib\site-packages\sqlalchemy\sql\util.py:929:# TODO: add specific coverage here
+.\venv\Lib\site-packages\sqlalchemy\sql\util.py:936:# TODO: add specific coverage here
+.\venv\Lib\site-packages\sqlalchemy\sql\util.py:1147:# TODO: cython candidate
+.\venv\Lib\site-packages\sqlalchemy\sql\util.py:1448:# TODO: typing is finding a few gaps in here, see if they can be
+.\venv\Lib\site-packages\sqlalchemy\sql\_selectable_constructors.py:107:# TODO: mypy requires the _TypedSelectable overloads in all compound select
+.\venv\Lib\site-packages\sqlalchemy\sql\_typing.py:76:from ..engine.mock import MockConnection
+.\venv\Lib\site-packages\sqlalchemy\sql\_typing.py:321:_CreateDropBind = Union["Engine", "Connection", "MockConnection"]
+.\venv\Lib\site-packages\sqlalchemy\testing\assertions.py:23:from . import mock
+.\venv\Lib\site-packages\sqlalchemy\testing\assertions.py:242:with mock.patch("warnings.warn", our_warn):
+.\venv\Lib\site-packages\sqlalchemy\testing\assertions.py:257:Hardcoded at the moment, a modular system can be built here
+.\venv\Lib\site-packages\sqlalchemy\testing\assertions.py:639:with mock.patch.object(
+.\venv\Lib\site-packages\sqlalchemy\testing\assertsql.py:276:# TODO: why do we need this part?
+.\venv\Lib\site-packages\sqlalchemy\testing\cancellation.py:38:from unittest import mock
+.\venv\Lib\site-packages\sqlalchemy\testing\cancellation.py:110:with mock.patch.object(
+.\venv\Lib\site-packages\sqlalchemy\testing\cancellation.py:112:), mock.patch.object(_AsyncIoGreenlet, "throw", throw):
+.\venv\Lib\site-packages\sqlalchemy\testing\cancellation.py:155:with mock.patch.object(
+.\venv\Lib\site-packages\sqlalchemy\testing\cancellation.py:157:), mock.patch.object(pool, "_close_connection", _close_connection):
+.\venv\Lib\site-packages\sqlalchemy\testing\config.py:25:from . import mock
+.\venv\Lib\site-packages\sqlalchemy\testing\config.py:63:return mock.Mock()
+.\venv\Lib\site-packages\sqlalchemy\testing\engines.py:270:# TODO: this doesn't cover all cases
+.\venv\Lib\site-packages\sqlalchemy\testing\engines.py:395:def mock_engine(dialect_name=None):
+.\venv\Lib\site-packages\sqlalchemy\testing\engines.py:396:"""Provides a mocking engine based on the current testing.db.
+.\venv\Lib\site-packages\sqlalchemy\testing\engines.py:407:from sqlalchemy import create_mock_engine
+.\venv\Lib\site-packages\sqlalchemy\testing\engines.py:423:return "\n".join(str(s.compile(dialect=d)) for s in engine.mock)
+.\venv\Lib\site-packages\sqlalchemy\testing\engines.py:425:engine = create_mock_engine(dialect_name + "://", executor)
+.\venv\Lib\site-packages\sqlalchemy\testing\engines.py:426:assert not hasattr(engine, "mock")
+.\venv\Lib\site-packages\sqlalchemy\testing\engines.py:427:engine.mock = buffer
+.\venv\Lib\site-packages\sqlalchemy\testing\pickleable.py:41:# TODO: these are kind of arbitrary....
+.\venv\Lib\site-packages\sqlalchemy\testing\requirements.py:146:# TODO: exclusions should be composable,
+.\venv\Lib\site-packages\sqlalchemy\testing\requirements.py:1571:def threading_with_mock(self):
+.\venv\Lib\site-packages\sqlalchemy\testing\requirements.py:1572:"""Mark tests that use threading and mock at the same time - stability
+.\venv\Lib\site-packages\sqlalchemy\testing\schema.py:71:# hardcoded rule for oracle; this should
+.\venv\Lib\site-packages\sqlalchemy\testing\util.py:30:from . import mock
+.\venv\Lib\site-packages\sqlalchemy\testing\util.py:265:# TODO: this warning can be used to find all the places
+.\venv\Lib\site-packages\sqlalchemy\testing\util.py:331:arg_sets = lambda_arg_sets(*[mock.Mock() for arg in args[0]])
+.\venv\Lib\site-packages\sqlalchemy\testing\util.py:371:# TODO:
+.\venv\Lib\site-packages\sqlalchemy\testing\__init__.py:10:from unittest import mock
+.\venv\Lib\site-packages\sqlalchemy\testing\fixtures\sql.py:17:from .. import mock
+.\venv\Lib\site-packages\sqlalchemy\testing\fixtures\sql.py:475:with mock.patch.object(
+.\venv\Lib\site-packages\sqlalchemy\testing\suite\test_dialect.py:20:from .. import mock
+.\venv\Lib\site-packages\sqlalchemy\testing\suite\test_dialect.py:366:with mock.patch.object(
+.\venv\Lib\site-packages\sqlalchemy\testing\suite\test_dialect.py:371:eq_(check_rollback.mock_calls, [mock.call()])
+.\venv\Lib\site-packages\sqlalchemy\testing\suite\test_dialect.py:373:eq_(check_rollback.mock_calls, [])
+.\venv\Lib\site-packages\sqlalchemy\testing\suite\test_reflection.py:53:from ...testing import mock
+.\venv\Lib\site-packages\sqlalchemy\testing\suite\test_reflection.py:61:# TODO: when temp tables are subject to server reset,
+.\venv\Lib\site-packages\sqlalchemy\testing\suite\test_reflection.py:945:materialized = {(schema, "dingalings_v"): mock.ANY}
+.\venv\Lib\site-packages\sqlalchemy\testing\suite\test_reflection.py:947:(schema, "email_addresses_v"): mock.ANY,
+.\venv\Lib\site-packages\sqlalchemy\testing\suite\test_reflection.py:948:(schema, "users_v"): mock.ANY,
+.\venv\Lib\site-packages\sqlalchemy\testing\suite\test_reflection.py:949:(schema, "user_tmp_v"): mock.ANY,
+.\venv\Lib\site-packages\sqlalchemy\testing\suite\test_reflection.py:953:(schema, "users"): mock.ANY,
+.\venv\Lib\site-packages\sqlalchemy\testing\suite\test_reflection.py:954:(schema, "dingalings"): mock.ANY,
+.\venv\Lib\site-packages\sqlalchemy\testing\suite\test_reflection.py:955:(schema, "email_addresses"): mock.ANY,
+.\venv\Lib\site-packages\sqlalchemy\testing\suite\test_reflection.py:956:(schema, "comment_test"): mock.ANY,
+.\venv\Lib\site-packages\sqlalchemy\testing\suite\test_reflection.py:957:(schema, "no_constraints"): mock.ANY,
+.\venv\Lib\site-packages\sqlalchemy\testing\suite\test_reflection.py:958:(schema, "local_table"): mock.ANY,
+.\venv\Lib\site-packages\sqlalchemy\testing\suite\test_reflection.py:959:(schema, "remote_table"): mock.ANY,
+.\venv\Lib\site-packages\sqlalchemy\testing\suite\test_reflection.py:960:(schema, "remote_table_2"): mock.ANY,
+.\venv\Lib\site-packages\sqlalchemy\testing\suite\test_reflection.py:961:(schema, "noncol_idx_test_nopk"): mock.ANY,
+.\venv\Lib\site-packages\sqlalchemy\testing\suite\test_reflection.py:962:(schema, "noncol_idx_test_pk"): mock.ANY,
+.\venv\Lib\site-packages\sqlalchemy\testing\suite\test_reflection.py:963:(schema, self.temp_table_name()): mock.ANY,
+.\venv\Lib\site-packages\sqlalchemy\testing\suite\test_reflection.py:1013:name, auto=False, default=mock.ANY, comment=None, nullable=True
+.\venv\Lib\site-packages\sqlalchemy\testing\suite\test_reflection.py:1018:"type": mock.ANY,
+.\venv\Lib\site-packages\sqlalchemy\testing\suite\test_reflection.py:1028:kw = {"auto": True, "default": mock.ANY, "nullable": False, **kw}
+.\venv\Lib\site-packages\sqlalchemy\testing\suite\test_reflection.py:1033:col("dingaling_id", auto="omit", nullable=mock.ANY),
+.\venv\Lib\site-packages\sqlalchemy\testing\suite\test_reflection.py:1041:col("address_id", auto="omit", nullable=mock.ANY),
+.\venv\Lib\site-packages\sqlalchemy\testing\suite\test_reflection.py:1046:col("user_id", auto="omit", nullable=mock.ANY),
+.\venv\Lib\site-packages\sqlalchemy\testing\suite\test_reflection.py:1047:col("test1", nullable=mock.ANY),
+.\venv\Lib\site-packages\sqlalchemy\testing\suite\test_reflection.py:1048:col("test2", nullable=mock.ANY),
+.\venv\Lib\site-packages\sqlalchemy\testing\suite\test_reflection.py:1052:col("id", auto="omit", nullable=mock.ANY),
+.\venv\Lib\site-packages\sqlalchemy\testing\suite\test_reflection.py:1112:def pk(*cols, name=mock.ANY, comment=None):
+.\venv\Lib\site-packages\sqlalchemy\testing\suite\test_reflection.py:1148:val["name"] = mock.ANY
+.\venv\Lib\site-packages\sqlalchemy\testing\suite\test_reflection.py:1176:name=mock.ANY,
+.\venv\Lib\site-packages\sqlalchemy\testing\suite\test_reflection.py:1183:"options": mock.ANY,
+.\venv\Lib\site-packages\sqlalchemy\testing\suite\test_reflection.py:1238:if val["name"] is not mock.ANY:
+.\venv\Lib\site-packages\sqlalchemy\testing\suite\test_reflection.py:1239:val["name"] = mock.ANY
+.\venv\Lib\site-packages\sqlalchemy\testing\suite\test_reflection.py:1284:"dialect_options": mock.ANY,
+.\venv\Lib\site-packages\sqlalchemy\testing\suite\test_reflection.py:1317:*idx("data", name=mock.ANY, unique=True, duplicates=True),
+.\venv\Lib\site-packages\sqlalchemy\testing\suite\test_reflection.py:1318:*idx("id_user", name=mock.ANY, fk=True),
+.\venv\Lib\site-packages\sqlalchemy\testing\suite\test_reflection.py:1328:*idx("email_address", name=mock.ANY),
+.\venv\Lib\site-packages\sqlalchemy\testing\suite\test_reflection.py:1329:*idx("remote_user_id", name=mock.ANY, fk=True),
+.\venv\Lib\site-packages\sqlalchemy\testing\suite\test_reflection.py:1334:*idx("remote_id", name=mock.ANY, fk=True)
+.\venv\Lib\site-packages\sqlalchemy\testing\suite\test_reflection.py:1337:*idx("local_id", name=mock.ANY, fk=True)
+.\venv\Lib\site-packages\sqlalchemy\testing\suite\test_reflection.py:1417:*uc("data", name=mock.ANY, duplicates_index=mock.ANY),
+.\venv\Lib\site-packages\sqlalchemy\testing\suite\test_reflection.py:1480:cc("test2 <= 1000", mock.ANY),
+.\venv\Lib\site-packages\sqlalchemy\testing\suite\test_reflection.py:2451:v.get("name") in (None, mock.ANY) for v in val
+.\venv\Lib\site-packages\sqlalchemy\testing\suite\test_reflection.py:2569:with mock.patch.object(Inspector, "get_multi_columns", patched):
+.\venv\Lib\site-packages\sqlalchemy\testing\suite\test_reflection.py:2799:"name": constraint_name or mock.ANY,
+.\venv\Lib\site-packages\sqlalchemy\testing\suite\test_reflection.py:2829:"name": constraint_name or mock.ANY,
+.\venv\Lib\site-packages\sqlalchemy\testing\suite\test_reflection.py:2863:{"name": mock.ANY, "sqltext": "a > 1 and a < 5"},
+.\venv\Lib\site-packages\sqlalchemy\testing\suite\test_reflection.py:3090:"dialect_options": mock.ANY,
+.\venv\Lib\site-packages\sqlalchemy\testing\suite\test_results.py:257:# TODO: this is a huge issue as it prevents these tests from being
+.\venv\Lib\site-packages\sqlalchemy\testing\suite\test_results.py:334:# TODO: need a real requirement for this, or dont use this test
+.\venv\Lib\site-packages\sqlalchemy\testing\suite\test_types.py:19:from .. import mock
+.\venv\Lib\site-packages\sqlalchemy\testing\suite\test_types.py:1597:js = mock.Mock(side_effect=json.dumps)
+.\venv\Lib\site-packages\sqlalchemy\testing\suite\test_types.py:1598:jd = mock.Mock(side_effect=json.loads)
+.\venv\Lib\site-packages\sqlalchemy\testing\suite\test_types.py:1612:eq_(js.mock_calls, [mock.call(data_element)])
+.\venv\Lib\site-packages\sqlalchemy\testing\suite\test_types.py:1615:jd.mock_calls,
+.\venv\Lib\site-packages\sqlalchemy\testing\suite\test_types.py:1616:[mock.call(json.dumps(data_element).encode())],
+.\venv\Lib\site-packages\sqlalchemy\testing\suite\test_types.py:1619:eq_(jd.mock_calls, [mock.call(json.dumps(data_element))])
+.\venv\Lib\site-packages\sqlalchemy\util\langhelpers.py:86:TODO: we should at some point evaluate current behaviors in this regard
+.\venv\Lib\site-packages\sqlalchemy\util\langhelpers.py:2239:# TODO: this is not working for params like ":param case_sensitive=True:"
+.\venv\Lib\site-packages\sqlalchemy\util\langhelpers.py:2269:# TODO: this still won't cover if the code example itself has
+.\venv\Lib\site-packages\sqlalchemy\util\topological.py:37:todo = list(allitems)
+.\venv\Lib\site-packages\sqlalchemy\util\topological.py:38:todo_set = set(allitems)
+.\venv\Lib\site-packages\sqlalchemy\util\topological.py:40:while todo_set:
+.\venv\Lib\site-packages\sqlalchemy\util\topological.py:42:for node in todo:
+.\venv\Lib\site-packages\sqlalchemy\util\topological.py:43:if todo_set.isdisjoint(edges[node]):
+.\venv\Lib\site-packages\sqlalchemy\util\topological.py:53:todo_set.difference_update(output)
+.\venv\Lib\site-packages\sqlalchemy\util\topological.py:54:todo = [t for t in todo if t in todo_set]
+.\venv\Lib\site-packages\sqlalchemy\util\topological.py:101:todo = nodes_to_test.difference(stack)
+.\venv\Lib\site-packages\sqlalchemy\util\topological.py:107:todo.difference_update(cyc)
+.\venv\Lib\site-packages\sqlalchemy\util\topological.py:110:if node in todo:
+.\venv\Lib\site-packages\sqlalchemy\util\topological.py:112:todo.remove(node)
+.\venv\Lib\site-packages\sqlalchemy\util\typing.py:502:unfortunately this seems to require lots of hardcoded heuristics
+.\venv\Lib\site-packages\starlette\middleware\exceptions.py:26:self.debug = debug  # TODO: We ought to handle 404 cases if debug is set.
+.\venv\Lib\site-packages\starlette\middleware\gzip.py:12:# TODO(v2): We should rename `DEFAULT_EXCLUDED_CONTENT_TYPES` to `DEFAULT_EXCLUDE_CONTENT_TYPES`.
+.\venv\Lib\site-packages\starlette\middleware\wsgi.py:51:server = scope.get("server") or ("localhost", 80)
+.\venv\Lib\site-packages\typing_inspection\introspection.py:221:# TODO at some point, we could switch to an enum flag, so that multiple sources
+.\venv\Lib\site-packages\typing_inspection\introspection.py:224:# TODO if/when https://peps.python.org/pep-0767/ is accepted, add 'read_only'
+.\venv\Lib\site-packages\typing_inspection\introspection.py:319:# TODO use a match statement when Python 3.9 support is dropped.
+.\venv\Lib\site-packages\uvicorn\config.py:199:host: str = "127.0.0.1",
+.\venv\Lib\site-packages\uvicorn\config.py:363:self.forwarded_allow_ips = os.environ.get("FORWARDED_ALLOW_IPS", "127.0.0.1,::1")
+.\venv\Lib\site-packages\uvicorn\main.py:66:default="127.0.0.1",
+.\venv\Lib\site-packages\uvicorn\main.py:255:"$FORWARDED_ALLOW_IPS environment variable if available, or '127.0.0.1,::1'. "
+.\venv\Lib\site-packages\uvicorn\main.py:506:host: str = "127.0.0.1",
+.\venv\Lib\site-packages\uvicorn\middleware\proxy_headers.py:24:def __init__(self, app: ASGI3Application, trusted_hosts: list[str] | str = "127.0.0.1") -> None:
+.\venv\Lib\site-packages\uvicorn\middleware\wsgi.py:53:server = ("localhost", 80)
+.\venv\Lib\site-packages\uvicorn\protocols\websockets\wsproto_impl.py:167:# TODO: Remove `type: ignore` when wsproto fixes the type annotation.
+.\venv\Lib\site-packages\websockets\http11.py:199:# Methods are hardcoded and always ASCII. Non-ASCII paths are converted
+.\venv\Lib\site-packages\websockets\asyncio\client.py:649:``ws://localhost/`` or, when a ``ssl`` argument is provided, to
+.\venv\Lib\site-packages\websockets\asyncio\client.py:650:``wss://localhost/``.
+.\venv\Lib\site-packages\websockets\asyncio\client.py:655:uri = "ws://localhost/"
+.\venv\Lib\site-packages\websockets\asyncio\client.py:657:uri = "wss://localhost/"
+.\venv\Lib\site-packages\websockets\legacy\client.py:690:uri: str = "ws://localhost/",
+.\venv\Lib\site-packages\websockets\sync\client.py:844:uri = "ws://localhost/"
+.\venv\Lib\site-packages\websockets\sync\client.py:846:uri = "wss://localhost/"
+.\venv\Lib\site-packages\websockets\sync\client.py:890:``ws://localhost/`` or, when a ``ssl`` is provided, to
+.\venv\Lib\site-packages\websockets\sync\client.py:891:``wss://localhost/``.
+.\venv\Lib\site-packages\websockets\trio\client.py:660:``ws://localhost/`` or, when a ``ssl`` argument is provided, to
+.\venv\Lib\site-packages\websockets\trio\client.py:661:``wss://localhost/``.
+.\venv\Lib\site-packages\websockets\trio\client.py:672:uri = "ws://localhost/"
+.\venv\Lib\site-packages\websockets\trio\client.py:674:uri = "wss://localhost/"
+.\venv\Lib\site-packages\yaml\scanner.py:187:# TODO: support for BOM within a stream.
+.\venv\Lib\site-packages\yaml\scanner.py:761:# TODO: We need to make tab handling rules more sane. A good rule is
+.\venv\Lib\site-packages\_pytest\cacheprovider.py:580:# TODO: evaluate generating upward relative paths
+.\venv\Lib\site-packages\_pytest\capture.py:708:# TODO: This type error is real, need to fix.
+.\venv\Lib\site-packages\_pytest\compat.py:89:def num_mock_patch_args(function) -> int:
+.\venv\Lib\site-packages\_pytest\compat.py:90:"""Return number of arguments used up by mock arguments (if any)."""
+.\venv\Lib\site-packages\_pytest\compat.py:95:mock_sentinel = getattr(sys.modules.get("mock"), "DEFAULT", object())
+.\venv\Lib\site-packages\_pytest\compat.py:96:ut_mock_sentinel = getattr(sys.modules.get("unittest.mock"), "DEFAULT", object())
+.\venv\Lib\site-packages\_pytest\compat.py:103:and (p.new is mock_sentinel or p.new is ut_mock_sentinel)
+.\venv\Lib\site-packages\_pytest\compat.py:120:* Aren't replaced with mocks.
+.\venv\Lib\site-packages\_pytest\compat.py:127:# TODO(RonnyPfannschmidt): This function should be refactored when we
+.\venv\Lib\site-packages\_pytest\compat.py:170:# Remove any names that will be replaced with mocks.
+.\venv\Lib\site-packages\_pytest\compat.py:172:arg_names = arg_names[num_mock_patch_args(function) :]
+.\venv\Lib\site-packages\_pytest\doctest.py:316:# TODO: Type ignored -- breaks Liskov Substitution.
+.\venv\Lib\site-packages\_pytest\doctest.py:346:# TODO: ReprFileLocation doesn't expect a None lineno.
+.\venv\Lib\site-packages\_pytest\doctest.py:461:def _is_mocked(obj: object) -> bool:
+.\venv\Lib\site-packages\_pytest\doctest.py:462:"""Return if an object is possibly a mock object by checking the
+.\venv\Lib\site-packages\_pytest\doctest.py:465:safe_getattr(obj, "pytest_mock_example_attribute_that_shouldnt_exist", None)
+.\venv\Lib\site-packages\_pytest\doctest.py:471:def _patch_unwrap_mock_aware() -> Generator[None]:
+.\venv\Lib\site-packages\_pytest\doctest.py:473:that's aware of mock objects and doesn't recurse into them."""
+.\venv\Lib\site-packages\_pytest\doctest.py:476:def _mock_aware_unwrap(
+.\venv\Lib\site-packages\_pytest\doctest.py:480:if stop is None or stop is _is_mocked:
+.\venv\Lib\site-packages\_pytest\doctest.py:481:return real_unwrap(func, stop=_is_mocked)
+.\venv\Lib\site-packages\_pytest\doctest.py:483:return real_unwrap(func, stop=lambda obj: _is_mocked(obj) or _stop(func))
+.\venv\Lib\site-packages\_pytest\doctest.py:493:inspect.unwrap = _mock_aware_unwrap
+.\venv\Lib\site-packages\_pytest\doctest.py:504:class MockAwareDocTestFinder(doctest.DocTestFinder):
+.\venv\Lib\site-packages\_pytest\doctest.py:559:finder = MockAwareDocTestFinder()
+.\venv\Lib\site-packages\_pytest\fixtures.py:188:# TODO: Try to use FixtureFunctionDefinition instead of the marker
+.\venv\Lib\site-packages\_pytest\fixtures.py:716:# TODO(pytest10.1): Remove the `warn` and `if` and call
+.\venv\Lib\site-packages\_pytest\fixtures.py:1385:# TODO: paramspec/return type annotation tracking and storing
+.\venv\Lib\site-packages\_pytest\fixtures.py:1719:# TODO: The order of the FixtureDefs list of each arg is significant,
+.\venv\Lib\site-packages\_pytest\fixtures.py:1937:# TODO: Handle the case where the super-fixture is transitively
+.\venv\Lib\site-packages\_pytest\fixtures.py:2259:# TODO: Fix this type ignore.
+.\venv\Lib\site-packages\_pytest\junitxml.py:510:# TODO: breaks for --dist=each
+.\venv\Lib\site-packages\_pytest\legacypath.py:389:# TODO: This assert is probably not valid in all cases.
+.\venv\Lib\site-packages\_pytest\main.py:1005:# TODO: Remove the hacky split once the collection structure
+.\venv\Lib\site-packages\_pytest\monkeypatch.py:2:"""Monkeypatching and mocking functionality."""
+.\venv\Lib\site-packages\_pytest\monkeypatch.py:151:such as mocking ``stdlib`` functions that might break pytest itself if mocked (for examples
+.\venv\Lib\site-packages\_pytest\monkeypatch.py:216:See the section :ref:`Where to patch <python:where-to-patch>` in the :mod:`unittest.mock`
+.\venv\Lib\site-packages\_pytest\monkeypatch.py:217:docs for a complete explanation, which is meant for :func:`unittest.mock.patch` but
+.\venv\Lib\site-packages\_pytest\nodes.py:506:# TODO: This omits the style= parameter which breaks Liskov Substitution.
+.\venv\Lib\site-packages\_pytest\python.py:229:# mock seems to store unbound methods (issue473), normalize it.
+.\venv\Lib\site-packages\_pytest\python.py:233:# We mustn't if it's been wrapped with mock.patch (python 2 only).
+.\venv\Lib\site-packages\_pytest\python.py:306:# TODO: Improve the type of `parent` such that assert/ignore aren't needed.
+.\venv\Lib\site-packages\_pytest\python.py:1568:# TODO: If escaping is turned off and the user passes bytes,
+.\venv\Lib\site-packages\_pytest\python.py:1640:# todo: this is a hell of a hack
+.\venv\Lib\site-packages\_pytest\python.py:1657:# todo: determine sound type limitations
+.\venv\Lib\site-packages\_pytest\python.py:1741:# TODO: Type ignored -- breaks Liskov Substitution.
+.\venv\Lib\site-packages\_pytest\raises.py:477:# TODO: harmonize with ExceptionInfo.match
+.\venv\Lib\site-packages\_pytest\raises.py:687:# TODO: move common code into superclass
+.\venv\Lib\site-packages\_pytest\reports.py:523:# TODO: Check if this is actually reachable.
+.\venv\Lib\site-packages\_pytest\reports.py:575:# TODO: Investigate whether the duck typing is really necessary here.
+.\venv\Lib\site-packages\_pytest\terminal.py:113:# todo Deprecate config.quiet
+.\venv\Lib\site-packages\_pytest\terminal.py:1593:# TODO: Revisit after marks scope would be fixed.
+.\venv\Lib\site-packages\_pytest\timing.py:3:We intentionally grab some "time" functions internally to avoid tests mocking "time" to affect
+.\venv\Lib\site-packages\_pytest\timing.py:6:Fixture "mock_timing" also interacts with this module for pytest's own tests.
+.\venv\Lib\site-packages\_pytest\timing.py:34:# Note: using a `lambda` to correctly get the mocked time via `MockTiming`.
+.\venv\Lib\site-packages\_pytest\timing.py:39:# Note: using a `lambda` to correctly get the mocked time via `MockTiming`.
+.\venv\Lib\site-packages\_pytest\timing.py:68:class MockTiming:
+.\venv\Lib\site-packages\_pytest\timing.py:69:"""Mocks _pytest.timing with a known object that can be used to control timing in tests
+.\venv\Lib\site-packages\_pytest\unittest.py:361:reason: twisted.trial.unittest.Todo | None = None,
+.\venv\Lib\site-packages\_pytest\assertion\rewrite.py:99:# Indirection so we can mock calls to find_spec originated from the hook during testing
+.\venv\Lib\site-packages\_pytest\assertion\rewrite.py:858:# TODO: This assert should not be needed.
+.\venv\Lib\site-packages\_pytest\config\argparsing.py:404:# TODO(py313): Replace with `exit_on_error=False`. Note that while it
+.\venv\Lib\site-packages\_pytest\config\__init__.py:955:For example the package "pytest_mock/__init__.py" should be added as "pytest_mock" in
+.\venv\Lib\site-packages\_pytest\config\__init__.py:963:pytest_mock/__init__.py
+.\venv\Lib\site-packages\_pytest\config\__init__.py:964:pytest_mock/_version.py
+.\venv\Lib\site-packages\_pytest\config\__init__.py:965:pytest_mock/plugin.py
+.\venv\Lib\site-packages\_pytest\config\__init__.py:966:pytest_mock.egg-info/PKG-INFO
+.\venv\Lib\site-packages\_pytest\config\__init__.py:970:src/pytest_mock/__init__.py
+.\venv\Lib\site-packages\_pytest\config\__init__.py:971:src/pytest_mock/_version.py
+.\venv\Lib\site-packages\_pytest\config\__init__.py:972:src/pytest_mock/plugin.py
+.\venv\Lib\site-packages\_pytest\config\__init__.py:973:src/pytest_mock.egg-info/PKG-INFO
+.\venv\Lib\site-packages\_pytest\config\__init__.py:981:https://github.com/pytest-dev/pytest-mock/issues/167
+.\venv\Lib\site-packages\_pytest\mark\structures.py:158:# TODO: Refactor to fix this type-ignore. Currently the following
+.\venv\Lib\site-packages\_pytest\mark\structures.py:543:# TODO(pytest10): Change to below after PARAMETRIZE_NON_COLLECTION_ITERABLE deprecation.
+.\venv\Lib\site-packages\_pytest\_code\code.py:1422:# Using tw.write instead of tw.line for testing purposes due to TWMock implementation;
+.\venv\Lib\site-packages\_pytest\_code\code.py:1423:# lines written with TWMock.line and TWMock._write_source cannot be distinguished
+.\venv\Lib\site-packages\_pytest\_code\code.py:1424:# from each other, whereas lines written with TWMock.write are marked with TWMock.WRITE

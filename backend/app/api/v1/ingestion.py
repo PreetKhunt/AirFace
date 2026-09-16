@@ -1,0 +1,50 @@
+﻿"""
+Ingestion API Endpoints -- SIH26056 Phase B
+"""
+from fastapi import APIRouter, Depends, HTTPException, status
+from sqlalchemy.orm import Session
+from app.database.session import get_db
+from app.core.enums import DataMode
+from app.scrapers.fixture_adapter import FixtureAdapter
+from app.services.ingestion import run_ingestion
+from app.schemas.observation import IngestionResult
+
+router = APIRouter(prefix="/ingestion", tags=["Ingestion"])
+
+
+@router.post(
+    "/fixtures/historical",
+    response_model=IngestionResult,
+    status_code=status.HTTP_200_OK,
+    summary="Ingest Historical Fixture Dataset",
+    description="Loads 450 historical baseline observations from data/fixtures/historical/airfare_historical.csv",
+)
+def ingest_historical_fixture(db: Session = Depends(get_db)):
+    try:
+        adapter = FixtureAdapter(data_mode=DataMode.HISTORICAL)
+        result = run_ingestion(adapter, db)
+        return result
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Historical fixture ingestion failed: {str(e)}"
+        )
+
+
+@router.post(
+    "/fixtures/synthetic",
+    response_model=IngestionResult,
+    status_code=status.HTTP_200_OK,
+    summary="Ingest Synthetic Fixture Dataset",
+    description="Loads 90 synthetic demo observations from data/fixtures/synthetic/airfare_synthetic.csv",
+)
+def ingest_synthetic_fixture(db: Session = Depends(get_db)):
+    try:
+        adapter = FixtureAdapter(data_mode=DataMode.SYNTHETIC)
+        result = run_ingestion(adapter, db)
+        return result
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Synthetic fixture ingestion failed: {str(e)}"
+        )
