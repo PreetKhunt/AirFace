@@ -18,7 +18,7 @@ services:
           name: sih-redis
           property: connectionString
       - key: CORS_ORIGINS
-        value: "https://your-vercel-domain.vercel.app,http://localhost:3000"
+        value: "https://air-face-rho.vercel.app"
       - key: ENVIRONMENT
         value: "production"
         
