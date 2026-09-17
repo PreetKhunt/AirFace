@@ -3,8 +3,10 @@ services:
   - type: web
     name: sih-backend
     env: python
+    plan: free
     buildCommand: "cd backend && pip install -r requirements.txt && alembic upgrade head"
     startCommand: "cd backend && uvicorn app.main:app --host 0.0.0.0 --port $PORT"
+    healthCheckPath: "/api/v1/health"
     envVars:
       - key: DATABASE_URL
         fromDatabase:
@@ -19,31 +21,16 @@ services:
         value: "https://your-vercel-domain.vercel.app,http://localhost:3000"
       - key: ENVIRONMENT
         value: "production"
-
-  # Celery Worker
-  - type: worker
-    name: sih-celery-worker
-    env: python
-    buildCommand: "cd backend && pip install -r requirements.txt"
-    startCommand: "cd backend && celery -A app.core.celery_app worker --loglevel=info"
-    envVars:
-      - key: DATABASE_URL
-        fromDatabase:
-          name: sih-postgres
-          property: connectionString
-      - key: REDIS_URL
-        fromService:
-          type: redis
-          name: sih-redis
-          property: connectionString
-      - key: ENVIRONMENT
-        value: "production"
+        
+  # Render Free Key Value (Redis-compatible)
+  - type: redis
+    name: sih-redis
+    plan: free
+    maxmemoryPolicy: noeviction
+    ipAllowList: []
 
 databases:
+  # Render Free PostgreSQL
   - name: sih-postgres
     plan: free
-    ipAllowList: [] # empty means all allowed in Render, but better to lock down if needed
-
-# Add a redis instance (if you have render paid plan, or use external)
-# Note: Render does not have free Redis anymore, you must provision an external one like Upstash if on free tier.
-# However, this config demonstrates how to wire it up if a Redis service exists.
+    ipAllowList: []
