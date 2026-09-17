@@ -14,9 +14,8 @@ from datetime import date, time, datetime, timezone, timedelta
 from typing import Optional
 from pathlib import Path
 
-from app.core.enums import DataMode
+from app.core.enums import DataMode, VALID_ROUTES, VALID_BOOKING_WINDOW_DAYS
 from app.scrapers.base import BaseScraperAdapter, RawObservationRecord
-from app.core.index_config import VALID_ROUTES, VALID_BOOKING_WINDOW_DAYS
 
 logger = logging.getLogger(__name__)
 
