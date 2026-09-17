@@ -32,7 +32,7 @@ def execute_pipeline(db: Session = Depends(get_db)):
 
         # Phase B: Ingestion
         # We will use FixtureAdapter with historical data for the demo
-        adapter = FixtureAdapter(mode=DataMode.HISTORICAL)
+        adapter = FixtureAdapter(data_mode=DataMode.HISTORICAL)
         ingest_result = run_ingestion(adapter, db)
         results["ingestion"] = ingest_result.model_dump()
 
