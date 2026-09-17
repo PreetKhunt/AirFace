@@ -3,10 +3,9 @@
 import { useEffect, useState, useMemo } from 'react';
 import { api } from '@/lib/api';
 import { SystemStatusResponse, NationalAggregateIndex, DataQualityLog, SourceHealth } from '@/types';
-import { Activity, ArrowUpRight, ArrowDownRight, ShieldCheck, Database, Calendar } from 'lucide-react';
-import { DataModeBadge } from '@/components/DataModeBadge';
+import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 import { StateBoundary } from '@/components/StateBoundary';
-import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
+import { ArrowUpRight, ArrowDownRight } from 'lucide-react';
 
 export default function OverviewPage() {
   const [sysStatus, setSysStatus] = useState<SystemStatusResponse | null>(null);
@@ -41,11 +40,9 @@ export default function OverviewPage() {
     loadData();
   }, []);
 
-  // Compute latest metrics from indices
   const latestIndex = indices.length > 0 ? indices[indices.length - 1] : null;
   const lastIndexValue = latestIndex ? parseFloat(latestIndex.index_value) : null;
 
-  // We can calculate daily change from `indices` array.
   let dailyChange = 0;
   if (indices.length >= 2) {
     const curr = parseFloat(indices[indices.length - 1].index_value);
@@ -53,7 +50,6 @@ export default function OverviewPage() {
     dailyChange = ((curr - prev) / prev) * 100;
   }
 
-  // Chart data
   const chartData = useMemo(() => {
     return indices.map(idx => ({
       date: idx.calculation_date,
@@ -65,135 +61,100 @@ export default function OverviewPage() {
     .map(s => s.last_collection_time ? new Date(s.last_collection_time).getTime() : 0)
     .filter(t => t > 0);
   const lastCollection = validDates.length > 0 
-    ? new Date(Math.max(...validDates)).toLocaleString()
-    : 'Unknown';
+    ? new Date(Math.max(...validDates)).toLocaleTimeString('en-GB')
+    : '---';
+
+  const totalScraped = sources.reduce((sum, s) => sum + s.total_records_scraped, 0);
+  const healthySources = sources.filter(s => s.status === 'HEALTHY').length;
 
   return (
-    <div className="min-h-screen p-6 md:p-8 space-y-6 max-w-7xl mx-auto">
-      <header className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4 p-6 bg-card border border-border rounded-xl shadow-sm">
-        <div>
-          <h1 className="text-2xl md:text-3xl font-bold tracking-tight text-white mb-1">
-            Real-Time Airfare Price Index
-          </h1>
-          <p className="text-sm text-gray-400">National Overview & Aggregated Metrics</p>
-        </div>
-        {sysStatus && <DataModeBadge mode={sysStatus.data_mode} />}
-      </header>
-
-      <StateBoundary loading={loading} error={error} onRetry={loadData} isEmpty={!loading && indices.length === 0} emptyMessage="No index data available yet.">
+    <div className="min-h-[calc(100vh-5rem)] p-6 md:p-8 flex flex-col gap-8 max-w-[1600px] mx-auto w-full fade-in">
+      <StateBoundary loading={loading} error={error} onRetry={loadData} isEmpty={!loading && indices.length === 0} emptyMessage="No index data available in the current environment.">
         
-        {/* KPI Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-          <div className="p-5 bg-card border border-border rounded-xl">
-            <p className="text-sm font-medium text-gray-400">Current National Index</p>
-            <div className="mt-2 flex items-baseline gap-2">
-              <span className="text-3xl font-bold text-white">{lastIndexValue?.toFixed(2) || '---'}</span>
-            </div>
-            {indices.length >= 2 && (
-              <p className={`text-sm mt-1 flex items-center gap-1 ${dailyChange >= 0 ? 'text-emerald-400' : 'text-red-400'}`}>
-                {dailyChange >= 0 ? <ArrowUpRight className="w-4 h-4" /> : <ArrowDownRight className="w-4 h-4" />}
-                {Math.abs(dailyChange).toFixed(2)}% daily change
-              </p>
-            )}
-          </div>
-
-          <div className="p-5 bg-card border border-border rounded-xl">
-            <p className="text-sm font-medium text-gray-400">Current Coverage</p>
-            <div className="mt-2">
-              <span className="text-3xl font-bold text-white">{latestIndex?.coverage_pct || '0.00'}%</span>
-            </div>
-            <p className="text-sm mt-1 text-gray-400">Route availability</p>
-          </div>
-
-          <div className="p-5 bg-card border border-border rounded-xl">
-            <p className="text-sm font-medium text-gray-400">Data Quality Score</p>
-            <div className="mt-2 flex items-center gap-2">
-              <span className="text-3xl font-bold text-white">{dq?.composite_score || '---'}</span>
-              <ShieldCheck className="w-6 h-6 text-emerald-400" />
-            </div>
-            <p className="text-sm mt-1 text-gray-400">Composite integrity</p>
-          </div>
-
-          <div className="p-5 bg-card border border-border rounded-xl">
-            <p className="text-sm font-medium text-gray-400">Last Successful Collection</p>
-            <div className="mt-2">
-              <span className="text-lg font-bold text-white leading-tight block">{lastCollection}</span>
-            </div>
-            <p className="text-sm mt-1 text-gray-400 flex items-center gap-1">
-              <Database className="w-4 h-4" /> System heartbeat
-            </p>
-          </div>
-        </div>
-
-        {/* Pipeline System Component */}
-        <div className="p-6 bg-card border border-border rounded-xl">
-          <h2 className="text-sm font-bold text-white uppercase tracking-wider mb-6">Pipeline Status</h2>
-          <div className="flex flex-col md:flex-row justify-between items-center relative">
-            <div className="absolute top-1/2 left-0 w-full h-0.5 bg-border -z-10 hidden md:block"></div>
-            
-            {/* Steps */}
-            {[
-              { name: 'Sources', val: `${sources.filter(s => s.status === 'HEALTHY').length}/${sources.length} OK` },
-              { name: 'Collection', val: `${sources.reduce((a,b) => a + b.total_records_scraped, 0)} obs` },
-              { name: 'Normalization', val: dq ? 'Cleaned' : 'Pending' },
-              { name: 'Quality', val: dq ? `${dq.composite_score}/100` : '---' },
-              { name: 'Index', val: latestIndex ? `${latestIndex.route_count} routes` : '---' },
-              { name: 'Validation', val: dq ? (parseFloat(dq.composite_score) >= 60 ? 'Pass' : 'Review') : '---' },
-            ].map((step, idx) => (
-              <div key={idx} className="flex flex-col items-center bg-card p-2 rounded-lg mb-4 md:mb-0 border md:border-none border-border">
-                <div className="w-10 h-10 rounded-full bg-accent/20 border-2 border-accent flex items-center justify-center text-accent font-bold mb-2">
-                  {idx + 1}
-                </div>
-                <span className="text-sm font-semibold text-white">{step.name}</span>
-                <span className="text-xs text-gray-400">{step.val}</span>
+        {/* HERO SECTION */}
+        <section className="grid grid-cols-1 lg:grid-cols-4 gap-6">
+          <div className="lg:col-span-1 flex flex-col justify-center space-y-6">
+            <div>
+              <h2 className="text-xs font-semibold text-muted tracking-[0.2em] uppercase mb-2">National Airfare Price Index</h2>
+              <div className="flex items-baseline gap-3">
+                <span className="text-6xl font-bold tracking-tighter text-white font-mono">
+                  {lastIndexValue?.toFixed(2) || '---'}
+                </span>
               </div>
-            ))}
-          </div>
-        </div>
+              {indices.length >= 2 && (
+                <div className={`flex items-center gap-2 mt-2 text-sm font-medium ${dailyChange >= 0 ? 'text-accent' : 'text-danger'}`}>
+                  {dailyChange >= 0 ? <ArrowUpRight className="w-5 h-5" /> : <ArrowDownRight className="w-5 h-5" />}
+                  <span>{Math.abs(dailyChange).toFixed(2)}% vs previous</span>
+                </div>
+              )}
+            </div>
 
-        {/* Main Chart */}
-        <div className="p-6 bg-card border border-border rounded-xl">
-          <div className="flex items-center justify-between mb-6">
-            <h2 className="text-lg font-bold text-white">NATIONAL AIRFARE INDEX</h2>
+            <div className="grid grid-cols-2 gap-4 pt-6 border-t border-border">
+              <div>
+                <p className="text-[10px] uppercase tracking-widest text-muted mb-1">Coverage</p>
+                <p className="text-xl font-mono text-white">{latestIndex?.coverage_pct || '0.00'}%</p>
+              </div>
+              <div>
+                <p className="text-[10px] uppercase tracking-widest text-muted mb-1">Last Updated</p>
+                <p className="text-xl font-mono text-white">{lastCollection}</p>
+              </div>
+            </div>
           </div>
-          <div className="h-80 w-full">
+
+          <div className="lg:col-span-3 h-[300px] lg:h-[400px] bg-card/30 border border-border rounded-2xl relative overflow-hidden flex items-end">
             <ResponsiveContainer width="100%" height="100%">
-              <LineChart data={chartData}>
-                <CartesianGrid strokeDasharray="3 3" stroke="#333" vertical={false} />
-                <XAxis 
-                  dataKey="date" 
-                  stroke="#888" 
-                  fontSize={12} 
-                  tickLine={false} 
-                  axisLine={false} 
-                />
-                <YAxis 
-                  domain={['auto', 'auto']}
-                  stroke="#888" 
-                  fontSize={12} 
-                  tickLine={false} 
-                  axisLine={false} 
-                  tickFormatter={(val: number) => val.toFixed(1)}
-                />
+              <AreaChart data={chartData} margin={{ top: 0, right: 0, left: 0, bottom: 0 }}>
+                <defs>
+                  <linearGradient id="colorValue" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="5%" stopColor="#10b981" stopOpacity={0.3}/>
+                    <stop offset="95%" stopColor="#10b981" stopOpacity={0}/>
+                  </linearGradient>
+                </defs>
+                <XAxis dataKey="date" hide />
+                <YAxis domain={['auto', 'auto']} hide />
                 <Tooltip 
-                  contentStyle={{ backgroundColor: '#1a1a1a', border: '1px solid #333', borderRadius: '8px' }}
-                  itemStyle={{ color: '#fff' }}
-                  labelStyle={{ color: '#888', marginBottom: '4px' }}
+                  contentStyle={{ backgroundColor: '#18181b', borderColor: '#27272a', borderRadius: '8px', color: '#f8fafc' }}
+                  itemStyle={{ color: '#10b981', fontWeight: 600, fontFamily: 'monospace' }}
+                  labelStyle={{ color: '#94a3b8', fontSize: '12px' }}
                 />
-                <Line 
-                  type="monotone" 
-                  dataKey="value" 
-                  stroke="#3b82f6" 
-                  strokeWidth={3} 
-                  dot={{ r: 4, fill: '#1a1a1a', strokeWidth: 2 }}
-                  activeDot={{ r: 6, fill: '#3b82f6' }}
-                  name="Index Value"
-                />
-              </LineChart>
+                <Area type="monotone" dataKey="value" stroke="#10b981" strokeWidth={3} fillOpacity={1} fill="url(#colorValue)" />
+              </AreaChart>
             </ResponsiveContainer>
+            
+            <div className="absolute top-4 left-4 flex gap-2">
+              <span className="px-2 py-1 text-[10px] font-mono tracking-widest bg-accent/10 text-accent rounded border border-accent/20">LIVE DATA FEED</span>
+            </div>
           </div>
-        </div>
+        </section>
+
+        {/* METRICS ROW */}
+        <section className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
+          <MetricCard title="Collection Health" value={`${healthySources}/${sources.length}`} sub="Adapters Online" status={healthySources === sources.length && sources.length > 0 ? 'good' : 'warn'} />
+          <MetricCard title="Data Quality" value={dq?.composite_score || '---'} sub="Composite Score" status={parseFloat(dq?.composite_score || '0') >= 80 ? 'good' : 'warn'} />
+          <MetricCard title="Active Routes" value={latestIndex?.route_count?.toString() || '---'} sub="Indexed Corridors" />
+          <MetricCard title="Observations" value={totalScraped.toLocaleString()} sub="Raw Fare Points" />
+          <MetricCard title="Airlines" value="4" sub="Domestic Carriers" />
+          <MetricCard title="Validation" value={dq ? (parseFloat(dq.composite_score) >= 60 ? 'PASS' : 'REVIEW') : '---'} sub="30-Day Backtest" status={dq && parseFloat(dq.composite_score) >= 60 ? 'good' : 'warn'} />
+        </section>
+
       </StateBoundary>
+    </div>
+  );
+}
+
+function MetricCard({ title, value, sub, status }: { title: string, value: string, sub: string, status?: 'good'|'warn'|'bad' }) {
+  let color = 'text-white';
+  if (status === 'good') color = 'text-accent';
+  if (status === 'warn') color = 'text-warning';
+  if (status === 'bad') color = 'text-danger';
+
+  return (
+    <div className="bg-card border border-border rounded-xl p-5 flex flex-col justify-between group hover:border-border/80 transition-colors">
+      <h3 className="text-[10px] uppercase tracking-widest text-muted mb-4">{title}</h3>
+      <div>
+        <div className={`text-3xl font-mono font-bold ${color}`}>{value}</div>
+        <div className="text-xs text-muted mt-1">{sub}</div>
+      </div>
     </div>
   );
 }

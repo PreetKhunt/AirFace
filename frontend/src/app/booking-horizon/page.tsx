@@ -4,12 +4,15 @@ import { useEffect, useState, useMemo } from 'react';
 import { api } from '@/lib/api';
 import { NationalAggregateIndex } from '@/types';
 import { StateBoundary } from '@/components/StateBoundary';
-import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Cell } from 'recharts';
+import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Cell, LabelList } from 'recharts';
+import { Clock } from 'lucide-react';
+import { clsx } from 'clsx';
 
 export default function BookingHorizonPage() {
   const [indices, setIndices] = useState<NationalAggregateIndex[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [selectedHorizon, setSelectedHorizon] = useState<string | null>(null);
 
   const loadData = async () => {
     try {
@@ -28,64 +31,162 @@ export default function BookingHorizonPage() {
     loadData();
   }, []);
 
-  const chartData = useMemo(() => {
-    if (indices.length === 0) return [];
-    
-    // Get the most recent calculation date
-    const latestDateStr = indices.map(i => i.calculation_date).sort().pop();
-    if (!latestDateStr) return [];
-    
-    // Group by horizon for the latest date
-    const latestByHorizon = indices.filter(i => i.calculation_date === latestDateStr);
-    
-    // Derive available horizons from actual data (not a hardcoded whitelist)
-    const horizons = Array.from(new Set(indices.map(i => i.booking_horizon))).sort();
-    
-    return horizons.map(h => {
-      const match = latestByHorizon.find(i => i.booking_horizon === h);
-      return {
-        name: h,
-        value: match ? parseFloat(match.index_value) : 0,
-        coverage: match ? match.coverage_pct : "0.00"
-      };
-    }).filter(d => d.value > 0);
+  const availableHorizons = useMemo(() => Array.from(new Set(indices.map(i => i.booking_horizon))).sort((a,b) => {
+    const na = parseInt(a.replace('T+',''));
+    const nb = parseInt(b.replace('T+',''));
+    return na - nb;
+  }), [indices]);
+
+  useEffect(() => {
+    if (availableHorizons.length > 0 && !selectedHorizon) {
+      setSelectedHorizon(availableHorizons[0]);
+    }
+  }, [availableHorizons, selectedHorizon]);
+
+  const latestDateStr = useMemo(() => {
+    if (indices.length === 0) return null;
+    return indices.map(i => i.calculation_date).sort().pop();
   }, [indices]);
 
+  const chartData = useMemo(() => {
+    if (!latestDateStr) return [];
+    const latestByHorizon = indices.filter(i => i.calculation_date === latestDateStr);
+    
+    // Sort reverse for waterfall escalation visual (from far to near)
+    const reversedHorizons = [...availableHorizons].reverse();
+
+    return reversedHorizons.map((h, i) => {
+      const match = latestByHorizon.find(idx => idx.booking_horizon === h);
+      const val = match ? parseFloat(match.index_value) : 0;
+      
+      // Calculate escalation step (delta from previous further horizon)
+      const prevMatch = i > 0 ? latestByHorizon.find(idx => idx.booking_horizon === reversedHorizons[i-1]) : null;
+      const prevVal = prevMatch ? parseFloat(prevMatch.index_value) : 0;
+      const delta = i === 0 ? val : val - prevVal;
+      
+      return {
+        name: h,
+        value: val,
+        delta: delta,
+        base: prevVal,
+        coverage: match ? match.coverage_pct : "0.00",
+        observations: match ? match.observation_count : 0,
+        routes: match ? match.route_count : 0
+      };
+    }).filter(d => d.value > 0);
+  }, [indices, availableHorizons, latestDateStr]);
+
+  const selectedData = useMemo(() => {
+    return chartData.find(d => d.name === selectedHorizon) || null;
+  }, [chartData, selectedHorizon]);
+
   return (
-    <div className="min-h-screen p-6 md:p-8 space-y-6 max-w-7xl mx-auto">
-      <header className="p-6 bg-card border border-border rounded-xl shadow-sm">
-        <h1 className="text-2xl md:text-3xl font-bold tracking-tight text-white mb-1">
-          Booking Horizon Analysis
-        </h1>
-        <p className="text-sm text-gray-400">Examine how airfare indices change according to advance booking lead-times.</p>
+    <div className="min-h-[calc(100vh-5rem)] p-6 flex flex-col gap-6 max-w-[1600px] mx-auto w-full fade-in">
+      <header className="flex flex-col md:flex-row md:items-end justify-between gap-4 border-b border-border pb-6">
+        <div>
+          <h2 className="text-xs font-semibold text-muted tracking-[0.2em] uppercase mb-1">Temporal Analysis</h2>
+          <h1 className="text-3xl font-bold tracking-tight text-white flex items-center gap-3">
+            <Clock className="w-8 h-8 text-warning" /> Booking Horizon Escalation
+          </h1>
+        </div>
       </header>
 
       <StateBoundary loading={loading} error={error} onRetry={loadData} isEmpty={!loading && chartData.length === 0}>
-        <div className="grid grid-cols-1 gap-6">
-          <div className="p-6 bg-card border border-border rounded-xl">
-            <h3 className="text-lg font-bold text-white mb-6">Current National Index by Booking Horizon</h3>
-            <div className="h-96 w-full">
+        <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
+          
+          {/* Timeline and Details */}
+          <div className="lg:col-span-4 flex flex-col items-center bg-card border border-border rounded-xl p-8">
+            <h3 className="text-xs font-semibold text-muted tracking-[0.2em] uppercase mb-8">Horizon Selection Timeline</h3>
+            
+            <div className="flex items-center w-full max-w-4xl relative">
+              <div className="absolute top-1/2 left-0 w-full h-[1px] bg-border -z-10" />
+              {availableHorizons.map((h, idx) => (
+                <div key={h} className="flex-1 flex justify-center relative">
+                  <button
+                    onClick={() => setSelectedHorizon(h)}
+                    className={clsx(
+                      'flex flex-col items-center gap-2 group outline-none',
+                    )}
+                  >
+                    <div className={clsx(
+                      'w-4 h-4 rounded-full border-2 transition-all duration-300',
+                      selectedHorizon === h 
+                        ? 'bg-warning border-warning shadow-[0_0_12px_rgba(245,158,11,0.8)] scale-125' 
+                        : 'bg-background border-border group-hover:border-warning/50'
+                    )} />
+                    <span className={clsx(
+                      'text-xs font-mono transition-colors mt-2',
+                      selectedHorizon === h ? 'text-warning font-bold' : 'text-muted group-hover:text-white'
+                    )}>
+                      {h}
+                    </span>
+                  </button>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          <div className="lg:col-span-1 flex flex-col gap-4">
+            {selectedData ? (
+              <>
+                <div className="bg-card border border-border p-6 rounded-xl flex flex-col gap-1">
+                  <span className="text-[10px] uppercase tracking-widest text-muted">Index Level</span>
+                  <span className="text-4xl font-mono text-white font-bold">{selectedData.value.toFixed(2)}</span>
+                </div>
+                <div className="bg-card border border-border p-6 rounded-xl flex flex-col gap-1">
+                  <span className="text-[10px] uppercase tracking-widest text-muted">Price Escalation (vs previous horizon)</span>
+                  <span className={`text-2xl font-mono font-bold ${selectedData.delta >= 0 ? 'text-danger' : 'text-accent'}`}>
+                    {selectedData.delta > 0 ? '+' : ''}{selectedData.delta.toFixed(2)}
+                  </span>
+                </div>
+                <div className="bg-card border border-border p-6 rounded-xl flex flex-col gap-1">
+                  <span className="text-[10px] uppercase tracking-widest text-muted">Coverage</span>
+                  <span className="text-2xl font-mono text-white">{selectedData.coverage}%</span>
+                </div>
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="bg-card border border-border p-5 rounded-xl flex flex-col gap-1">
+                    <span className="text-[10px] uppercase tracking-widest text-muted">Obs</span>
+                    <span className="text-xl font-mono text-white">{selectedData.observations}</span>
+                  </div>
+                  <div className="bg-card border border-border p-5 rounded-xl flex flex-col gap-1">
+                    <span className="text-[10px] uppercase tracking-widest text-muted">Routes</span>
+                    <span className="text-xl font-mono text-white">{selectedData.routes}</span>
+                  </div>
+                </div>
+              </>
+            ) : (
+              <div className="h-full flex items-center justify-center border border-dashed border-border rounded-xl text-muted font-mono text-sm p-6 text-center">
+                Select a horizon to view detailed metrics.
+              </div>
+            )}
+          </div>
+
+          {/* Chart */}
+          <div className="lg:col-span-3 bg-card border border-border rounded-xl p-6 flex flex-col">
+            <h3 className="text-xs font-semibold text-muted tracking-[0.2em] uppercase mb-6">Price Escalation Curve</h3>
+            <div className="flex-1 w-full h-[400px]">
               <ResponsiveContainer width="100%" height="100%">
-                <BarChart data={chartData} margin={{ top: 20, right: 30, left: 20, bottom: 5 }}>
-                  <CartesianGrid strokeDasharray="3 3" stroke="#333" vertical={false} />
-                  <XAxis dataKey="name" stroke="#888" fontSize={12} tickLine={false} axisLine={false} />
-                  <YAxis domain={['auto', 'auto']} stroke="#888" fontSize={12} tickLine={false} axisLine={false} />
+                <BarChart data={chartData} margin={{ top: 30, right: 0, left: -20, bottom: 0 }}>
+                  <CartesianGrid strokeDasharray="3 3" stroke="#27272a" vertical={false} />
+                  <XAxis dataKey="name" stroke="#94a3b8" fontSize={10} tickLine={false} axisLine={false} />
+                  <YAxis domain={['auto', 'auto']} stroke="#94a3b8" fontSize={10} tickLine={false} axisLine={false} />
                   <Tooltip 
-                    cursor={{fill: '#333', opacity: 0.2}}
-                    contentStyle={{ backgroundColor: '#1a1a1a', border: '1px solid #333', borderRadius: '8px' }}
-                    itemStyle={{ color: '#fff' }}
+                    cursor={{fill: '#18181b', opacity: 0.5}}
+                    contentStyle={{ backgroundColor: '#18181b', borderColor: '#27272a', borderRadius: '8px', color: '#f8fafc' }}
+                    itemStyle={{ color: '#f59e0b', fontWeight: 600, fontFamily: 'monospace' }}
+                    labelStyle={{ color: '#94a3b8', fontSize: '12px' }}
+                    formatter={(value: number, name: string) => [value.toFixed(2), name === 'value' ? 'Total Index' : name]}
                   />
-                  <Bar dataKey="value" name="Index Value" radius={[4, 4, 0, 0]}>
+                  <Bar dataKey="base" stackId="a" fill="transparent" />
+                  <Bar dataKey="delta" stackId="a" radius={[4, 4, 4, 4]}>
                     {chartData.map((entry, index) => (
-                      <Cell key={`cell-${index}`} fill={index === 0 ? '#ef4444' : '#3b82f6'} />
+                      <Cell key={`cell-${index}`} fill={entry.delta > 0 ? '#f59e0b' : '#3b82f6'} fillOpacity={entry.name === selectedHorizon ? 1 : 0.6} />
                     ))}
+                    <LabelList dataKey="value" position="top" formatter={(val: number) => val.toFixed(1)} fill="#f8fafc" fontSize={11} fontFamily="monospace" />
                   </Bar>
                 </BarChart>
               </ResponsiveContainer>
             </div>
-            <p className="text-sm text-gray-500 mt-6 text-center">
-              Note: T+1 represents bookings made 1 day before departure, illustrating typical last-minute price escalation curves.
-            </p>
           </div>
         </div>
       </StateBoundary>

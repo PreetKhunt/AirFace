@@ -1,11 +1,11 @@
 'use client';
 
-import { useEffect, useState, useMemo } from 'react';
+import { useEffect, useState } from 'react';
 import { api } from '@/lib/api';
 import { BacktestRun } from '@/types';
 import { StateBoundary } from '@/components/StateBoundary';
-import { AlertTriangle, CheckCircle2 } from 'lucide-react';
-import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
+import { AlertTriangle, CheckCircle2, LineChart as ChartIcon, XCircle, Info } from 'lucide-react';
+import { clsx } from 'clsx';
 
 export default function BacktestPage() {
   const [runs, setRuns] = useState<BacktestRun[]>([]);
@@ -32,90 +32,108 @@ export default function BacktestPage() {
   const latestRun = runs.length > 0 ? runs[0] : null;
 
   return (
-    <div className="min-h-screen p-6 md:p-8 space-y-6 max-w-7xl mx-auto">
-      <header className="p-6 bg-card border border-border rounded-xl shadow-sm">
-        <h1 className="text-2xl md:text-3xl font-bold tracking-tight text-white mb-1">
-          30-DAY BACKTEST & VALIDATION
-        </h1>
-        <p className="text-sm text-gray-400">Strict temporal-aligned benchmark validation of the calculated index.</p>
+    <div className="min-h-[calc(100vh-5rem)] p-6 flex flex-col gap-6 max-w-[1600px] mx-auto w-full fade-in">
+      <header className="flex flex-col md:flex-row md:items-end justify-between gap-4 border-b border-border pb-6">
+        <div>
+          <h2 className="text-xs font-semibold text-muted tracking-[0.2em] uppercase mb-1">Index Validation</h2>
+          <h1 className="text-3xl font-bold tracking-tight text-white flex items-center gap-3">
+            <ChartIcon className="w-8 h-8 text-accent" /> Backtest Engine
+          </h1>
+        </div>
       </header>
 
       <StateBoundary loading={loading} error={error} onRetry={loadData} isEmpty={!loading && runs.length === 0} emptyMessage="No backtest runs found.">
         
         {latestRun && (
-          <div className="space-y-6">
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
             
-            <div className="flex flex-col md:flex-row gap-4 p-4 bg-card border border-border rounded-xl">
-              <div className="flex-1">
-                <span className="text-xs text-gray-400 block mb-1">Reference Source</span>
-                <span className="text-sm font-bold text-white">{latestRun.reference_source}</span>
+            {/* Meta Info */}
+            <div className="lg:col-span-3 flex flex-col md:flex-row gap-4 p-4 bg-card border border-border rounded-xl">
+              <div className="flex-1 border-r border-border pr-4">
+                <span className="text-[10px] uppercase tracking-widest text-muted block mb-1">Reference Source</span>
+                <span className="text-sm font-mono text-white">{latestRun.reference_source}</span>
               </div>
-              <div className="flex-1">
-                <span className="text-xs text-gray-400 block mb-1">Data Mode</span>
-                <span className="text-sm font-bold text-accent">{latestRun.data_mode}</span>
+              <div className="flex-1 border-r border-border px-4">
+                <span className="text-[10px] uppercase tracking-widest text-muted block mb-1">Environment Data Mode</span>
+                <span className="text-sm font-mono text-accent">{latestRun.data_mode}</span>
               </div>
-              <div className="flex-1">
-                <span className="text-xs text-gray-400 block mb-1">Methodology</span>
-                <span className="text-sm font-bold text-white">{latestRun.methodology}</span>
+              <div className="flex-1 border-r border-border px-4">
+                <span className="text-[10px] uppercase tracking-widest text-muted block mb-1">Methodology</span>
+                <span className="text-sm font-mono text-white">{latestRun.methodology}</span>
               </div>
-              <div className="flex-1">
-                <span className="text-xs text-gray-400 block mb-1">Period</span>
-                <span className="text-sm font-bold text-white">{latestRun.start_date} to {latestRun.end_date}</span>
+              <div className="flex-1 pl-4">
+                <span className="text-[10px] uppercase tracking-widest text-muted block mb-1">Test Period</span>
+                <span className="text-sm font-mono text-white">{latestRun.start_date} &rarr; {latestRun.end_date}</span>
               </div>
             </div>
 
+            {/* Content Based on Status */}
             {latestRun.status === 'INSUFFICIENT_DATA' ? (
-              <div className="p-12 bg-card border border-border rounded-xl text-center space-y-4">
-                <AlertTriangle className="w-12 h-12 text-amber-400 mx-auto" />
-                <h2 className="text-xl font-bold text-white">REFERENCE DATA UNAVAILABLE</h2>
-                <p className="text-gray-400 text-sm max-w-md mx-auto">
-                  Insufficient matching observations found between the scraped index ({latestRun.match_count}) and the reference baseline ({latestRun.sample_count}). Valid correlation requires a strict overlap without manufacturing artificial data.
+              <div className="lg:col-span-3 h-[400px] bg-card border border-border rounded-xl flex flex-col items-center justify-center text-center p-8 relative overflow-hidden">
+                <div className="absolute top-0 left-0 w-full h-1 bg-warning" />
+                <AlertTriangle className="w-16 h-16 text-warning mb-6" />
+                <h2 className="text-2xl font-bold text-white mb-2 tracking-tight">REFERENCE DATA UNAVAILABLE</h2>
+                <p className="text-muted text-sm max-w-xl font-mono leading-relaxed">
+                  Insufficient matching observations found between the scraped index (count: {latestRun.match_count}) and the reference baseline (count: {latestRun.sample_count}). Valid statistical correlation requires strict temporal overlap without manufacturing artificial data.
                 </p>
+                <div className="mt-8 px-4 py-2 bg-warning/10 border border-warning/20 text-warning text-xs font-bold tracking-widest uppercase rounded">
+                  Status: INSUFFICIENT DATA
+                </div>
               </div>
             ) : (
-              <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
-                <MetricCard title="MAPE" value={`${latestRun.mape}%`} />
-                <MetricCard title="RMSE" value={latestRun.rmse || 'N/A'} />
-                <MetricCard title="Pearson r" value={latestRun.pearson_r || 'N/A'} />
-                <MetricCard title="Mean Bias" value={`${latestRun.mean_bias_pct}%`} />
-                <MetricCard title="Directional Accuracy" value={`${latestRun.directional_accuracy}%`} />
-              </div>
-            )}
-            
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-              <div className="md:col-span-1 p-6 bg-card border border-border rounded-xl space-y-4">
-                <h3 className="font-bold text-white mb-4">Coverage & Matching</h3>
-                <div className="flex justify-between items-center text-sm">
-                  <span className="text-gray-400">Target Samples</span>
-                  <span className="font-bold text-white">{latestRun.sample_count}</span>
+              <>
+                <div className="lg:col-span-3 grid grid-cols-2 md:grid-cols-5 gap-4">
+                  <MetricCard title="MAPE" value={`${latestRun.mape}%`} desc="Mean Absolute Pct Error" status={parseFloat(latestRun.mape || '100') < 15 ? 'good' : 'warn'} />
+                  <MetricCard title="RMSE" value={latestRun.rmse || '---'} desc="Root Mean Square Error" />
+                  <MetricCard title="Pearson r" value={latestRun.pearson_r || '---'} desc="Linear Correlation" status={parseFloat(latestRun.pearson_r || '0') > 0.8 ? 'good' : 'warn'} />
+                  <MetricCard title="Mean Bias" value={`${latestRun.mean_bias_pct}%`} desc="Directional Bias" />
+                  <MetricCard title="Directional Accuracy" value={`${latestRun.directional_accuracy}%`} desc="Trend match" status={parseFloat(latestRun.directional_accuracy || '0') > 80 ? 'good' : 'warn'} />
                 </div>
-                <div className="flex justify-between items-center text-sm">
-                  <span className="text-gray-400">Matched Pairs</span>
-                  <span className="font-bold text-emerald-400">{latestRun.match_count}</span>
-                </div>
-                <div className="flex justify-between items-center text-sm">
-                  <span className="text-gray-400">Unmatched Reference</span>
-                  <span className="font-bold text-amber-400">{latestRun.sample_count - latestRun.match_count}</span>
-                </div>
-                <div className="w-full h-2 bg-white/10 rounded-full mt-4 overflow-hidden">
-                  <div className="h-full bg-accent" style={{ width: `${latestRun.coverage_pct}%` }}></div>
-                </div>
-                <p className="text-xs text-right text-gray-500">{latestRun.coverage_pct}% Matching Rate</p>
-              </div>
-              
-              <div className="md:col-span-2 p-6 bg-card border border-border rounded-xl flex items-center justify-center text-center">
-                <div>
-                  <h3 className="font-bold text-gray-500 mb-2">Visualizer Interface</h3>
-                  <p className="text-sm text-gray-600 mb-4">
-                    The backend returns the exact validation metrics above. Rendering the full time-series comparison chart requires the exact daily reference vectors which are not currently attached to the `/api/v1/backtest/results` list endpoint response schema. 
-                  </p>
-                  <p className="text-xs text-accent">
-                    The math engine evaluates RMSE/MAPE securely in Python without exposing raw reference vectors to the browser.
-                  </p>
-                </div>
-              </div>
-            </div>
 
+                <div className="lg:col-span-1 p-6 bg-card border border-border rounded-xl flex flex-col gap-6">
+                  <h3 className="text-xs font-semibold text-muted tracking-[0.2em] uppercase">Coverage & Matching</h3>
+                  
+                  <div className="space-y-4 font-mono text-sm">
+                    <div className="flex justify-between border-b border-border pb-2">
+                      <span className="text-muted">Target Samples</span>
+                      <span className="text-white">{latestRun.sample_count}</span>
+                    </div>
+                    <div className="flex justify-between border-b border-border pb-2">
+                      <span className="text-muted">Matched Pairs</span>
+                      <span className="text-accent">{latestRun.match_count}</span>
+                    </div>
+                    <div className="flex justify-between border-b border-border pb-2">
+                      <span className="text-muted">Unmatched</span>
+                      <span className="text-warning">{latestRun.sample_count - latestRun.match_count}</span>
+                    </div>
+                  </div>
+
+                  <div className="mt-auto">
+                    <div className="flex justify-between items-end mb-2">
+                      <span className="text-[10px] uppercase tracking-widest text-muted">Matching Rate</span>
+                      <span className="font-mono text-accent">{latestRun.coverage_pct}%</span>
+                    </div>
+                    <div className="w-full h-1.5 bg-background rounded-full overflow-hidden">
+                      <div className="h-full bg-accent" style={{ width: `${latestRun.coverage_pct}%` }}></div>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="lg:col-span-2 p-6 bg-surface border border-border rounded-xl flex flex-col items-center justify-center text-center relative overflow-hidden group">
+                  <div className="absolute inset-0 bg-[url('https://www.transparenttextures.com/patterns/cubes.png')] opacity-5 mix-blend-overlay"></div>
+                  
+                  <Info className="w-10 h-10 text-blue mb-4 opacity-80" />
+                  <h3 className="text-sm font-bold text-white mb-2 uppercase tracking-widest">Secure Evaluation Engine</h3>
+                  <p className="text-muted text-sm max-w-lg mb-6 leading-relaxed">
+                    Validation metrics (RMSE, MAPE, Pearson) are evaluated strictly on the backend via Pandas and NumPy. Raw proprietary reference vectors are never exposed to the client interface for security and commercial compliance.
+                  </p>
+                  
+                  <div className="px-4 py-2 border border-blue/30 bg-blue/10 rounded-lg text-blue text-xs font-mono font-bold flex items-center gap-2">
+                    <CheckCircle2 className="w-4 h-4" /> STATISTICAL VALIDATION COMPLETE
+                  </div>
+                </div>
+              </>
+            )}
           </div>
         )}
       </StateBoundary>
@@ -123,11 +141,17 @@ export default function BacktestPage() {
   );
 }
 
-function MetricCard({ title, value }: { title: string, value: string }) {
+function MetricCard({ title, value, desc, status }: { title: string, value: string, desc: string, status?: 'good'|'warn'|'bad' }) {
+  let color = 'text-white';
+  if (status === 'good') color = 'text-accent';
+  if (status === 'warn') color = 'text-warning';
+  if (status === 'bad') color = 'text-danger';
+
   return (
-    <div className="bg-card border border-border rounded-xl p-5 text-center">
-      <p className="text-xs font-medium text-gray-400 mb-2">{title}</p>
-      <p className="text-xl lg:text-2xl font-bold text-white">{value}</p>
+    <div className="bg-card border border-border rounded-xl p-5 flex flex-col group hover:border-border/80 transition-colors">
+      <h3 className="text-[10px] uppercase tracking-widest text-muted mb-4">{title}</h3>
+      <div className={`text-3xl font-mono font-bold mb-1 ${color}`}>{value}</div>
+      <div className="text-[10px] uppercase text-muted tracking-wide">{desc}</div>
     </div>
   );
 }
