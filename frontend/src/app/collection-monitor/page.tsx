@@ -68,7 +68,7 @@ export default function CollectionMonitorPage() {
       const data = await res.json();
       
       addLog('PIPELINE SUCCESS');
-      addLog(`Payload: ${JSON.stringify(data.results)}`);
+      addLog(`Payload: ${JSON.stringify(data)}`);
       setRunResult(data);
     } catch (err: any) {
       addLog(`[ERROR] ${err.message}`);
@@ -177,12 +177,12 @@ export default function CollectionMonitorPage() {
                 <div key={i} className="mb-1 leading-relaxed opacity-90 break-words">{log}</div>
               ))}
               
-              {runResult && (
+              {runResult && runResult.index && runResult.normalization && (
                 <div className="mt-4 p-3 bg-accent/10 border border-accent/20 rounded text-accent">
                   <div className="font-bold mb-2">INDEXING COMPLETE</div>
-                  <div>- Tier 1 Routes Generated: {runResult.results.indexing.tier1_routes}</div>
-                  <div>- Tier 2 National Generated: {runResult.results.indexing.tier2_national}</div>
-                  <div>- Normalization Records Processed: {runResult.results.normalization.processed}</div>
+                  <div>- Tier 1 Routes Generated: {runResult.index.elementary_indices_generated ?? 0}</div>
+                  <div>- Tier 2 National Generated: {runResult.index.national_indices_generated ?? 0}</div>
+                  <div>- Normalization Records Processed: {runResult.normalization.total_normalized_created ?? 0}</div>
                 </div>
               )}
               <div ref={logsEndRef} />
