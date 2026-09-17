@@ -70,7 +70,7 @@ export default function BookingHorizonPage() {
         delta: delta,
         base: prevVal,
         coverage: match ? match.coverage_pct : "0.00",
-        observations: match ? match.observation_count : 0,
+        observations: 0,
         routes: match ? match.route_count : 0
       };
     }).filter(d => d.value > 0);
@@ -175,14 +175,14 @@ export default function BookingHorizonPage() {
                     contentStyle={{ backgroundColor: '#18181b', borderColor: '#27272a', borderRadius: '8px', color: '#f8fafc' }}
                     itemStyle={{ color: '#f59e0b', fontWeight: 600, fontFamily: 'monospace' }}
                     labelStyle={{ color: '#94a3b8', fontSize: '12px' }}
-                    formatter={(value: number, name: string) => [value.toFixed(2), name === 'value' ? 'Total Index' : name]}
+                    formatter={(value: any, name: any) => [value.toFixed(2), name === 'value' ? 'Total Index' : name]}
                   />
                   <Bar dataKey="base" stackId="a" fill="transparent" />
                   <Bar dataKey="delta" stackId="a" radius={[4, 4, 4, 4]}>
                     {chartData.map((entry, index) => (
                       <Cell key={`cell-${index}`} fill={entry.delta > 0 ? '#f59e0b' : '#3b82f6'} fillOpacity={entry.name === selectedHorizon ? 1 : 0.6} />
                     ))}
-                    <LabelList dataKey="value" position="top" formatter={(val: number) => val.toFixed(1)} fill="#f8fafc" fontSize={11} fontFamily="monospace" />
+                    <LabelList dataKey="value" position="top" formatter={(val: any) => val.toFixed(1)} fill="#f8fafc" fontSize={11} fontFamily="monospace" />
                   </Bar>
                 </BarChart>
               </ResponsiveContainer>
