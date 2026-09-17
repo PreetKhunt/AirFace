@@ -1,4 +1,4 @@
-﻿"""
+"""
 FixtureAdapter -- SIH26056 Phase B
 
 Reads fixture CSV files (historical or synthetic) and returns RawObservationRecord list.
@@ -11,18 +11,23 @@ from __future__ import annotations
 import csv
 import logging
 from datetime import date, time, datetime, timezone, timedelta
-from pathlib import Path
 from typing import Optional
+from pathlib import Path
 
-from app.core.enums import DataMode, VALID_BOOKING_WINDOW_DAYS, VALID_ROUTES
-from app.scrapers.base import BaseScraperAdapter, RawObservationRecord
+from app.core.enums import DataMode
+from app.schemas.observation import RawObservationRecord
+from app.scrapers.base import BaseScraperAdapter
+from app.core.index_config import VALID_ROUTES, VALID_BOOKING_WINDOW_DAYS
 
 logger = logging.getLogger(__name__)
 
+# Resolve project root dynamically so this works whether CWD is repo root or backend/
+PROJECT_ROOT = Path(__file__).resolve().parent.parent.parent.parent
+
 # Canonical fixture paths relative to project root
 FIXTURE_PATHS = {
-    DataMode.HISTORICAL: Path("data/fixtures/historical/airfare_historical.csv"),
-    DataMode.SYNTHETIC:  Path("data/fixtures/synthetic/airfare_synthetic.csv"),
+    DataMode.HISTORICAL: PROJECT_ROOT / "data" / "fixtures" / "historical" / "airfare_historical.csv",
+    DataMode.SYNTHETIC:  PROJECT_ROOT / "data" / "fixtures" / "synthetic" / "airfare_synthetic.csv",
 }
 
 
