@@ -15,8 +15,7 @@ from typing import Optional
 from pathlib import Path
 
 from app.core.enums import DataMode
-from app.schemas.observation import RawObservationRecord
-from app.scrapers.base import BaseScraperAdapter
+from app.scrapers.base import BaseScraperAdapter, RawObservationRecord
 from app.core.index_config import VALID_ROUTES, VALID_BOOKING_WINDOW_DAYS
 
 logger = logging.getLogger(__name__)
