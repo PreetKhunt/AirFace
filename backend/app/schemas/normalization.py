@@ -46,6 +46,8 @@ class NormalizedObservationListResponse(BaseModel):
     results: list[NormalizedObservationOut]
 
 
+from datetime import date, time
+
 class ParsedObservationEmbedded(BaseModel):
     """Parsed airfare observation fields embedded inside a normalized observation response."""
     observation_id: UUID
@@ -55,9 +57,9 @@ class ParsedObservationEmbedded(BaseModel):
     airline_code: str
     airline_name: Optional[str] = None
     flight_number: str
-    travel_date: str
-    departure_time: Optional[str] = None
-    arrival_time: Optional[str] = None
+    travel_date: date
+    departure_time: Optional[time] = None
+    arrival_time: Optional[time] = None
     booking_window_days: int
     raw_total_fare: Decimal
     base_fare: Optional[Decimal] = None
