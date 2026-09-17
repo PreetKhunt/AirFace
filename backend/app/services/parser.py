@@ -1,4 +1,4 @@
-﻿"""
+"""
 Parser Service -- SIH26056 Phase B
 
 Converts RawObservationRecord -> (RawAirfareObservation, ParsedAirfareObservation)
@@ -81,6 +81,7 @@ def parse_record(
         collection_mode=record.collection_mode,
     )
     db.add(raw_obs)
+    db.flush()
 
     # --- Build Parsed row ---
     observation_id = uuid.uuid4()
@@ -106,6 +107,7 @@ def parse_record(
         fare_family=record.fare_family,
     )
     db.add(parsed_obs)
+    db.flush()
 
     # --- Provenance Audit Trail ---
     audit = ProvenanceAuditTrail(
@@ -119,5 +121,6 @@ def parse_record(
         payload_sha256_hash=sha256,
     )
     db.add(audit)
+    db.flush()
 
     return raw_obs, parsed_obs
