@@ -55,7 +55,12 @@ export default function DataQualityPage() {
               <ShieldCheck className="w-16 h-16 text-emerald-400 mb-4" />
               <h2 className="text-sm font-bold text-gray-400 uppercase tracking-wider mb-2">Composite Score</h2>
               <div className="text-5xl font-bold text-white mb-2">{latest.composite_score}</div>
-              <p className="text-xs text-emerald-400 font-medium">EXCELLENT STATUS</p>
+              {(() => {
+                const score = parseFloat(latest.composite_score ?? '0');
+                const label = score >= 80 ? 'EXCELLENT STATUS' : score >= 60 ? 'ACCEPTABLE' : 'DEGRADED';
+                const color = score >= 80 ? 'text-emerald-400' : score >= 60 ? 'text-amber-400' : 'text-red-400';
+                return <p className={`text-xs font-medium ${color}`}>{label}</p>;
+              })()}
             </div>
             
             <div className="md:col-span-2 bg-card border border-border rounded-xl p-6">

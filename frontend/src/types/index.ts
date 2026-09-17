@@ -69,7 +69,7 @@ export interface BacktestRun {
 export interface SourceHealth {
   source_id: string;
   source_name: string;
-  last_collection_time: string;
+  last_collection_time: string | null;
   status: string;
   success_rate: string;
   total_records_scraped: number;
@@ -92,20 +92,56 @@ export interface DataQualityLog {
   data_mode: DataMode;
 }
 
+/** Parsed fare observation fields embedded inside a normalized observation (returned when include_parsed=true) */
+export interface ParsedAirfareObservationEmbedded {
+  observation_id: string;
+  raw_id: string;
+  origin: string;
+  destination: string;
+  airline_code: string;
+  airline_name: string | null;
+  flight_number: string;
+  travel_date: string;
+  departure_time: string | null;
+  arrival_time: string | null;
+  booking_window_days: number;
+  raw_total_fare: string;
+  base_fare: string | null;
+  udf_fee: string | null;
+  asf_fee: string | null;
+  gst_tax: string | null;
+  yq_surcharge: string | null;
+  convenience_fee: string | null;
+  comparable_fare: string | null;
+  cabin_class: string | null;
+  fare_family: string | null;
+}
+
+/** Normalized observation. Field names match the backend NormalizedObservationOut schema exactly. */
 export interface NormalizedIndexObservation {
   index_obs_id: string;
   observation_id: string;
   route_id: string;
   booking_horizon: string;
   comparable_index_fare: string;
-  valid_for_index: boolean;
-  exclusion_reason: string | null;
-  outlier_flag: boolean;
-  commercial_dedup_flag: boolean;
+  raw_displayed_total: string | null;
+  component_sum: string | null;
+  normalization_status: string;
+  normalization_reason: string | null;
   availability_status: string;
-  dq_score: string;
+  outlier_status: string;
+  commercial_dedup_status: string;
+  is_imputed: boolean;
+  imputation_method: string | null;
+  is_outlier: boolean;
+  valid_for_index: boolean;
+  dq_score: number | null;
+  created_at: string | null;
+  /** Present only when API is called with include_parsed=true */
+  parsed: ParsedAirfareObservationEmbedded | null;
 }
 
+/** Legacy standalone parsed observation (from GET /observations/{id}) */
 export interface ParsedAirfareObservation {
   observation_id: string;
   raw_id: string;
@@ -118,10 +154,13 @@ export interface ParsedAirfareObservation {
   booking_window_days: number;
   raw_total_fare: string;
   base_fare: string | null;
-  taxes: string | null;
+  udf_fee: string | null;
+  asf_fee: string | null;
+  gst_tax: string | null;
   yq_surcharge: string | null;
-  cabin_class: string;
-  fare_basis_code: string | null;
+  convenience_fee: string | null;
+  cabin_class: string | null;
+  fare_family: string | null;
 }
 
 export interface RawAirfareObservation {
@@ -136,12 +175,12 @@ export interface RawAirfareObservation {
 
 export interface ProvenanceAuditTrail {
   audit_id: string;
-  record_type: string;
-  record_id: string;
-  pipeline_stage: string;
-  action: string;
-  timestamp: string;
-  actor_service: string;
-  payload_hash: string;
-  previous_hash: string | null;
+  observation_id: string;
+  source_portal: string;
+  source_url: string;
+  collection_timestamp: string;
+  parser_version: string;
+  normalization_version: string;
+  payload_sha256_hash: string;
+  created_at: string;
 }

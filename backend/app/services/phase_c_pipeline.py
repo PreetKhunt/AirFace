@@ -1,4 +1,4 @@
-﻿"""
+"""
 Phase C Normalization & Quality Pipeline Coordinator -- SIH26056
 
 Coordinates:
@@ -92,6 +92,11 @@ def run_phase_c_normalization(
         # If all already normalized, query existing stats
         total_norm = db.query(NormalizedIndexObservation).count()
         valid_count = db.query(NormalizedIndexObservation).filter_by(valid_for_index=True).count()
+        # Get actual latest DQ score instead of hardcoding
+        from app.models.log import DataQualityLog
+        latest_dq = db.query(DataQualityLog).order_by(DataQualityLog.created_at.desc()).first()
+        dq_val = latest_dq.dq_score if latest_dq else Decimal("0.00")
+
         return PhaseCNormalizationResponse(
             total_parsed_processed=0,
             total_normalized_created=0,
@@ -100,7 +105,7 @@ def run_phase_c_normalization(
             outliers_detected_count=0,
             market_surges_count=0,
             imputed_count=0,
-            overall_dq_score=Decimal("100.00"),
+            overall_dq_score=dq_val,
             status="ALL_RECORDS_ALREADY_NORMALIZED",
         )
 

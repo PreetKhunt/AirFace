@@ -88,6 +88,19 @@ class IndexEngine:
                     ElementaryRouteIndex.data_mode == data_mode
                 ).delete()
                 
+                # Get total parsed obs for this route/horizon to compute coverage
+                total_obs = self.db.query(ParsedAirfareObservation)\
+                    .join(RawAirfareObservation, ParsedAirfareObservation.raw_id == RawAirfareObservation.raw_id)\
+                    .filter(
+                        ParsedAirfareObservation.origin == route_id.split('-')[0],
+                        ParsedAirfareObservation.destination == route_id.split('-')[1],
+                        ParsedAirfareObservation.booking_window_days == int(horizon.replace('T+', '')),
+                        func.date(RawAirfareObservation.collection_timestamp) == calculation_date,
+                        RawAirfareObservation.collection_mode == data_mode
+                    ).count()
+                
+                coverage_val = Decimal(str((valid_count / total_obs) * 100)).quantize(Decimal('0.00')) if total_obs > 0 else Decimal("0.00")
+                
                 elementary_index = ElementaryRouteIndex(
                     calculation_date=calculation_date,
                     route_id=route_id,
@@ -96,7 +109,7 @@ class IndexEngine:
                     data_mode=data_mode,
                     index_value=Decimal(str(index_val)).quantize(Decimal('0.0000'), rounding=ROUND_HALF_UP),
                     observation_count=valid_count,
-                    coverage_pct=Decimal("100.00"),  # Simplified coverage metric for now
+                    coverage_pct=coverage_val,
                     base_date=base_date
                 )
                 self.db.add(elementary_index)
@@ -168,7 +181,13 @@ class IndexEngine:
                 NationalAggregateIndex.methodology == methodology,
                 NationalAggregateIndex.data_mode == data_mode
             ).delete()
-            
+            # Get latest DQ score
+            from app.models.log import DataQualityLog
+            latest_dq = self.db.query(DataQualityLog).filter(
+                DataQualityLog.calculation_date == calculation_date
+            ).order_by(DataQualityLog.created_at.desc()).first()
+            dq_val = latest_dq.dq_score if latest_dq else Decimal("0.00")
+
             national_index = NationalAggregateIndex(
                 calculation_date=calculation_date,
                 booking_horizon=horizon,
@@ -177,7 +196,7 @@ class IndexEngine:
                 index_value=Decimal(str(national_val)).quantize(Decimal('0.0000'), rounding=ROUND_HALF_UP),
                 route_count=len(indices),
                 coverage_pct=Decimal(str((len(indices) / len(routes)) * 100)).quantize(Decimal('0.00')),
-                dq_score=Decimal("100.00"),  # Placeholder for Phase D
+                dq_score=dq_val,
                 base_date=base_date
             )
             self.db.add(national_index)

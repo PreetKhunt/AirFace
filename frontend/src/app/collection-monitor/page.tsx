@@ -70,7 +70,11 @@ export default function CollectionMonitorPage() {
                     <td className="px-6 py-4">{source.total_records_scraped.toLocaleString()}</td>
                     <td className="px-6 py-4 text-red-400">{source.error_count.toLocaleString()}</td>
                     <td className="px-6 py-4">{source.average_latency_ms}</td>
-                    <td className="px-6 py-4 text-gray-400">{new Date(source.last_collection_time).toLocaleString()}</td>
+                    <td className="px-6 py-4 text-gray-400">
+                      {source.last_collection_time
+                        ? new Date(source.last_collection_time).toLocaleString()
+                        : <span className="text-gray-600 italic">Never</span>}
+                    </td>
                   </tr>
                 ))}
               </tbody>

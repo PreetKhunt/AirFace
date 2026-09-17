@@ -38,7 +38,8 @@ export default function BookingHorizonPage() {
     // Group by horizon for the latest date
     const latestByHorizon = indices.filter(i => i.calculation_date === latestDateStr);
     
-    const horizons = ['T+1', 'T+7', 'T+15', 'T+30', 'T+45'];
+    // Derive available horizons from actual data (not a hardcoded whitelist)
+    const horizons = Array.from(new Set(indices.map(i => i.booking_horizon))).sort();
     
     return horizons.map(h => {
       const match = latestByHorizon.find(i => i.booking_horizon === h);

@@ -1,15 +1,18 @@
-﻿"""
+"""
 Normalization API Endpoints -- SIH26056 Phase C
 """
-from typing import Optional
+from typing import Optional, Union
 from uuid import UUID
 from fastapi import APIRouter, Depends, HTTPException, Query, status
 from sqlalchemy.orm import Session
 from app.database.session import get_db
-from app.models.observation import NormalizedIndexObservation
+from app.models.observation import NormalizedIndexObservation, ParsedAirfareObservation
 from app.schemas.normalization import (
     NormalizedObservationOut,
     NormalizedObservationListResponse,
+    NormalizedObservationWithParsedOut,
+    NormalizedObservationWithParsedListResponse,
+    ParsedObservationEmbedded,
     PhaseCNormalizationResponse,
 )
 from app.services.phase_c_pipeline import run_phase_c_normalization
@@ -37,9 +40,8 @@ def execute_normalization(db: Session = Depends(get_db)):
 
 @router.get(
     "/normalized-observations",
-    response_model=NormalizedObservationListResponse,
     summary="List Normalized Index Observations",
-    description="Retrieve paginated list of index-ready normalized observations with optional filters.",
+    description="Retrieve paginated list of index-ready normalized observations. Use include_parsed=true to embed the parsed fare breakdown.",
 )
 def list_normalized_observations(
     route_id: Optional[str] = Query(None, description="Route identifier (e.g. DEL-BOM)"),
@@ -47,6 +49,7 @@ def list_normalized_observations(
     valid_for_index: Optional[bool] = Query(None, description="Filter by index eligibility"),
     is_outlier: Optional[bool] = Query(None, description="Filter by outlier flag"),
     normalization_status: Optional[str] = Query(None, description="Filter by normalization status"),
+    include_parsed: bool = Query(False, description="Embed parsed fare breakdown in each result"),
     page: int = Query(1, ge=1, description="Page number"),
     page_size: int = Query(50, ge=1, le=500, description="Page size limit"),
     db: Session = Depends(get_db),
@@ -68,13 +71,38 @@ def list_normalized_observations(
 
     total = query.count()
     offset = (page - 1) * page_size
-    results = query.order_by(NormalizedIndexObservation.created_at.desc()).offset(offset).limit(page_size).all()
+    norm_rows = query.order_by(NormalizedIndexObservation.created_at.desc()).offset(offset).limit(page_size).all()
+
+    if include_parsed:
+        # Batch-fetch all parsed observations by observation_id to avoid N+1
+        obs_ids = [row.observation_id for row in norm_rows]
+        parsed_map: dict = {}
+        if obs_ids:
+            parsed_rows = db.query(ParsedAirfareObservation).filter(
+                ParsedAirfareObservation.observation_id.in_(obs_ids)
+            ).all()
+            parsed_map = {str(p.observation_id): p for p in parsed_rows}
+
+        results_with_parsed = []
+        for norm in norm_rows:
+            parsed_row = parsed_map.get(str(norm.observation_id))
+            parsed_embedded = ParsedObservationEmbedded.model_validate(parsed_row) if parsed_row else None
+            item = NormalizedObservationWithParsedOut.model_validate(norm)
+            item.parsed = parsed_embedded
+            results_with_parsed.append(item)
+
+        return NormalizedObservationWithParsedListResponse(
+            total=total,
+            page=page,
+            page_size=page_size,
+            results=results_with_parsed
+        )
 
     return NormalizedObservationListResponse(
         total=total,
         page=page,
         page_size=page_size,
-        results=results
+        results=norm_rows
     )
 
 

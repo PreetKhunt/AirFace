@@ -8,6 +8,8 @@ from app.api.v1 import (
     data_quality,
     index,
     backtest,
+    pipeline,
+    provenance,
 )
 
 api_router = APIRouter()
@@ -21,3 +23,5 @@ api_router.include_router(normalization.router, tags=["Normalization"])
 api_router.include_router(data_quality.router, tags=["Data Quality"])
 api_router.include_router(index.router, prefix="/index", tags=["Index Engine"])
 api_router.include_router(backtest.router, prefix="/backtest", tags=["Backtesting"])
+api_router.include_router(pipeline.router, tags=["Pipeline"])
+api_router.include_router(provenance.router, tags=["Provenance"])

@@ -44,10 +44,7 @@ export default function OverviewPage() {
   // Compute latest metrics from indices
   const latestIndex = indices.length > 0 ? indices[indices.length - 1] : null;
   const lastIndexValue = latestIndex ? parseFloat(latestIndex.index_value) : null;
-  
-  // Fake weekly/monthly change if backend hasn't computed it? Wait, instruction says: 
-  // "NEVER hard-code dashboard metrics." "No hard-coded percentage changes".
-  // So we just use what backend provides, or calculate it purely based on the historical series.
+
   // We can calculate daily change from `indices` array.
   let dailyChange = 0;
   if (indices.length >= 2) {
@@ -64,8 +61,11 @@ export default function OverviewPage() {
     }));
   }, [indices]);
 
-  const lastCollection = sources.length > 0 
-    ? new Date(Math.max(...sources.map(s => new Date(s.last_collection_time).getTime()))).toLocaleString()
+  const validDates = sources
+    .map(s => s.last_collection_time ? new Date(s.last_collection_time).getTime() : 0)
+    .filter(t => t > 0);
+  const lastCollection = validDates.length > 0 
+    ? new Date(Math.max(...validDates)).toLocaleString()
     : 'Unknown';
 
   return (
@@ -138,7 +138,7 @@ export default function OverviewPage() {
               { name: 'Normalization', val: dq ? 'Cleaned' : 'Pending' },
               { name: 'Quality', val: dq ? `${dq.composite_score}/100` : '---' },
               { name: 'Index', val: latestIndex ? `${latestIndex.route_count} routes` : '---' },
-              { name: 'Validation', val: 'Ready' },
+              { name: 'Validation', val: dq ? (parseFloat(dq.composite_score) >= 60 ? 'Pass' : 'Review') : '---' },
             ].map((step, idx) => (
               <div key={idx} className="flex flex-col items-center bg-card p-2 rounded-lg mb-4 md:mb-0 border md:border-none border-border">
                 <div className="w-10 h-10 rounded-full bg-accent/20 border-2 border-accent flex items-center justify-center text-accent font-bold mb-2">

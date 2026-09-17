@@ -48,11 +48,21 @@ def get_system_status(db: Session = Depends(get_db)):
         logger.error(f"Database health check failed: {e}")
         db_connected = False
 
+    import redis
+    redis_connected = False
+    try:
+        r = redis.from_url(settings.REDIS_URL, socket_timeout=1)
+        r.ping()
+        redis_connected = True
+    except Exception as e:
+        logger.error(f"Redis health check failed: {e}")
+        redis_connected = False
+
     return SystemStatusResponse(
-        status="ok" if db_connected else "degraded",
+        status="ok" if db_connected and redis_connected else "degraded",
         service=settings.SERVICE_NAME,
         version=settings.VERSION,
         database_connected=db_connected,
-        redis_connected=True,
+        redis_connected=redis_connected,
         data_mode=settings.DATA_MODE
     )

@@ -1,4 +1,4 @@
-﻿"""
+"""
 Pydantic v2 Schemas for Phase C Normalization Endpoints -- SIH26056
 """
 from datetime import datetime
@@ -44,6 +44,46 @@ class NormalizedObservationListResponse(BaseModel):
     page: int
     page_size: int
     results: list[NormalizedObservationOut]
+
+
+class ParsedObservationEmbedded(BaseModel):
+    """Parsed airfare observation fields embedded inside a normalized observation response."""
+    observation_id: UUID
+    raw_id: UUID
+    origin: str
+    destination: str
+    airline_code: str
+    airline_name: Optional[str] = None
+    flight_number: str
+    travel_date: str
+    departure_time: Optional[str] = None
+    arrival_time: Optional[str] = None
+    booking_window_days: int
+    raw_total_fare: Decimal
+    base_fare: Optional[Decimal] = None
+    udf_fee: Optional[Decimal] = None
+    asf_fee: Optional[Decimal] = None
+    gst_tax: Optional[Decimal] = None
+    yq_surcharge: Optional[Decimal] = None
+    convenience_fee: Optional[Decimal] = None
+    comparable_fare: Optional[Decimal] = None
+    cabin_class: Optional[str] = None
+    fare_family: Optional[str] = None
+
+    model_config = {"from_attributes": True}
+
+
+class NormalizedObservationWithParsedOut(NormalizedObservationOut):
+    """Normalized observation with embedded parsed observation data (use include_parsed=true)."""
+    parsed: Optional[ParsedObservationEmbedded] = None
+
+
+class NormalizedObservationWithParsedListResponse(BaseModel):
+    """Paginated response schema for normalized observations with embedded parsed data."""
+    total: int
+    page: int
+    page_size: int
+    results: list[NormalizedObservationWithParsedOut]
 
 
 class PhaseCNormalizationResponse(BaseModel):
