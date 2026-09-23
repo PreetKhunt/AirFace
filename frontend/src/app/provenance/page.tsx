@@ -19,10 +19,21 @@ export default function ProvenanceExplorerPage() {
     try {
       setLoading(true);
       setError(null);
-      const natIndices = await api.getNationalIndices('T+1');
+
+      // Discover a valid route+horizon combination from what's actually indexed
+      const routeIndices = await api.getRouteIndices();
+      if (routeIndices.length === 0) {
+        setError('No indexed route observations available for provenance tracing.');
+        return;
+      }
+      const firstIdx = routeIndices[0];
+      const routeId = firstIdx.route_id;
+      const horizon = firstIdx.booking_horizon;
+
+      const natIndices = await api.getNationalIndices(horizon).catch(() => []);
       const latestNat = natIndices.length > 0 ? natIndices[natIndices.length - 1] : null;
 
-      const normResult = await api.getNormalizedObservations('DEL-BOM', 'T+1', true);
+      const normResult = await api.getNormalizedObservations(routeId, horizon, true);
       const latestNorm = normResult.items.length > 0 ? normResult.items[0] : null;
       
       let provData = null;

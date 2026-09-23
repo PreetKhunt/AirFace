@@ -2,7 +2,7 @@
 
 import { useEffect, useState, useMemo } from 'react';
 import { api } from '@/lib/api';
-import { SystemStatusResponse, NationalAggregateIndex, DataQualityLog, SourceHealth } from '@/types';
+import { SystemStatusResponse, NationalAggregateIndex, DataQualityLog, SourceHealth, BacktestRun } from '@/types';
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 import { StateBoundary } from '@/components/StateBoundary';
 import { ArrowUpRight, ArrowDownRight } from 'lucide-react';
@@ -12,6 +12,7 @@ export default function OverviewPage() {
   const [indices, setIndices] = useState<NationalAggregateIndex[]>([]);
   const [dq, setDq] = useState<DataQualityLog | null>(null);
   const [sources, setSources] = useState<SourceHealth[]>([]);
+  const [backtests, setBacktests] = useState<BacktestRun[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -19,16 +20,18 @@ export default function OverviewPage() {
     try {
       setLoading(true);
       setError(null);
-      const [sys, nat, quality, srcs] = await Promise.all([
+      const [sys, nat, quality, srcs, tests] = await Promise.all([
         api.getSystemStatus(),
         api.getNationalIndices().catch(() => []),
         api.getQualityScore().catch(() => null),
-        api.getSources().catch(() => [])
+        api.getSources().catch(() => []),
+        api.getBacktestResults().catch(() => [])
       ]);
       setSysStatus(sys);
       setIndices(nat);
       setDq(quality);
       setSources(srcs);
+      setBacktests(tests);
     } catch (err: any) {
       setError(err.message || 'Failed to load overview data');
     } finally {
@@ -42,6 +45,7 @@ export default function OverviewPage() {
 
   const latestIndex = indices.length > 0 ? indices[indices.length - 1] : null;
   const lastIndexValue = latestIndex ? parseFloat(latestIndex.index_value) : null;
+  const latestBacktest = backtests.length > 0 ? backtests[0] : null;
 
   let dailyChange = 0;
   if (indices.length >= 2) {
@@ -122,7 +126,9 @@ export default function OverviewPage() {
             </ResponsiveContainer>
             
             <div className="absolute top-4 left-4 flex gap-2">
-              <span className="px-2 py-1 text-[10px] font-mono tracking-widest bg-accent/10 text-accent rounded border border-accent/20">LIVE DATA FEED</span>
+              <span className="px-2 py-1 text-[10px] font-mono tracking-widest bg-accent/10 text-accent rounded border border-accent/20">
+                {sysStatus?.data_mode ?? 'LOADING'} DATA
+              </span>
             </div>
           </div>
         </section>
@@ -134,7 +140,12 @@ export default function OverviewPage() {
           <MetricCard title="Active Routes" value={latestIndex?.route_count?.toString() || '---'} sub="Indexed Corridors" />
           <MetricCard title="Observations" value={totalScraped.toLocaleString()} sub="Raw Fare Points" />
           <MetricCard title="Airlines" value="4" sub="Domestic Carriers" />
-          <MetricCard title="Validation" value={dq ? (parseFloat(dq.composite_score) >= 60 ? 'PASS' : 'REVIEW') : '---'} sub="30-Day Backtest" status={dq && parseFloat(dq.composite_score) >= 60 ? 'good' : 'warn'} />
+          <MetricCard 
+            title="Validation" 
+            value={latestBacktest ? latestBacktest.status.replace('_', ' ') : '---'} 
+            sub="30-Day Backtest" 
+            status={latestBacktest?.status === 'VALIDATED' ? 'good' : (latestBacktest?.status === 'INSUFFICIENT_DATA' ? 'warn' : 'bad')} 
+          />
         </section>
 
       </StateBoundary>

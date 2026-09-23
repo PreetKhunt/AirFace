@@ -5,7 +5,7 @@ import { api } from '@/lib/api';
 import { ElementaryRouteIndex } from '@/types';
 import { StateBoundary } from '@/components/StateBoundary';
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
-import { Search, Map as MapIcon, ArrowRight } from 'lucide-react';
+import { Search, Map as MapIcon, ArrowRight, AlertCircle, TrendingUp } from 'lucide-react';
 import { clsx } from 'clsx';
 
 export default function RouteExplorerPage() {
@@ -24,6 +24,7 @@ export default function RouteExplorerPage() {
       setIndices(data);
       if (data.length > 0 && !selectedRoute) {
         setSelectedRoute(data[0].route_id);
+        setSelectedHorizon(data[0].booking_horizon);
       }
     } catch (err: any) {
       setError(err.message || 'Failed to load route indices');
@@ -38,6 +39,11 @@ export default function RouteExplorerPage() {
 
   const uniqueRoutes = useMemo(() => Array.from(new Set(indices.map(i => i.route_id))).sort(), [indices]);
   const availableHorizons = useMemo(() => Array.from(new Set(indices.map(i => i.booking_horizon))).sort(), [indices]);
+
+  const availableHorizonsForRoute = useMemo(() => {
+    if (!selectedRoute) return [];
+    return Array.from(new Set(indices.filter(i => i.route_id === selectedRoute).map(i => i.booking_horizon))).sort();
+  }, [indices, selectedRoute]);
 
   const filteredRoutes = useMemo(() => 
     uniqueRoutes.filter(r => r.toLowerCase().includes(searchQuery.toLowerCase())),
@@ -111,7 +117,14 @@ export default function RouteExplorerPage() {
                 return (
                   <button
                     key={route}
-                    onClick={() => setSelectedRoute(route)}
+                    onClick={() => {
+                      setSelectedRoute(route);
+                      // Auto-switch to a valid horizon for this route if current has no data
+                      const horizons = Array.from(new Set(indices.filter(i => i.route_id === route).map(i => i.booking_horizon))).sort();
+                      if (horizons.length > 0 && !horizons.includes(selectedHorizon)) {
+                        setSelectedHorizon(horizons[0]);
+                      }
+                    }}
                     className={clsx(
                       'w-full flex items-center justify-between px-4 py-3 rounded-lg text-sm transition-all',
                       selectedRoute === route 
@@ -172,8 +185,30 @@ export default function RouteExplorerPage() {
                 </div>
               </>
             ) : (
-              <div className="flex-1 flex flex-col items-center justify-center border border-dashed border-border rounded-xl text-muted font-mono text-sm">
-                NO DATA YIELD FOR {selectedRoute} AT HORIZON {selectedHorizon}
+              <div className="flex-1 flex flex-col items-center justify-center border border-dashed border-border rounded-xl bg-card p-8 gap-4">
+                <AlertCircle className="w-12 h-12 text-warning opacity-50" />
+                <div className="text-center">
+                  <p className="text-lg text-white font-mono mb-1">NO INDEX DATA</p>
+                  <p className="text-sm text-muted">
+                    {selectedRoute} at horizon {selectedHorizon} has no computed index observations.
+                  </p>
+                </div>
+                {availableHorizonsForRoute.length > 0 && (
+                  <div className="flex flex-col items-center gap-2">
+                    <span className="text-[10px] uppercase tracking-widest text-muted">Available Horizons</span>
+                    <div className="flex gap-2">
+                      {availableHorizonsForRoute.map(hz => (
+                        <button
+                          key={hz}
+                          onClick={() => setSelectedHorizon(hz)}
+                          className="px-3 py-1 bg-surface border border-blue/40 rounded text-xs text-blue hover:bg-blue/10 transition-colors"
+                        >
+                          Switch to {hz}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                )}
               </div>
             )}
           </div>

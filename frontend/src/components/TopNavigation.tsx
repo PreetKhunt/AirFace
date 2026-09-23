@@ -6,6 +6,7 @@ import { usePathname } from 'next/navigation';
 import { Search } from 'lucide-react';
 import { clsx } from 'clsx';
 import { twMerge } from 'tailwind-merge';
+import { api } from '@/lib/api';
 
 const topNavGroups = [
   { name: 'MARKET', href: '/' },
@@ -19,10 +20,14 @@ const topNavGroups = [
 export function TopNavigation() {
   const pathname = usePathname();
   const [dateStr, setDateStr] = useState('');
+  const [dataMode, setDataMode] = useState<string>('LOADING');
 
   useEffect(() => {
-    // Only set on client to avoid hydration mismatch
     setDateStr(new Date().toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }).toUpperCase());
+    api.getSystemStatus().then(res => {
+      if (res.data_mode.includes('HISTORICAL')) setDataMode('HISTORICAL DEMO');
+      else setDataMode(res.data_mode);
+    }).catch(() => setDataMode('DEGRADED'));
   }, []);
 
   return (
@@ -67,8 +72,8 @@ export function TopNavigation() {
         <div className="flex items-center gap-6">
           <div className="hidden md:flex flex-col items-end text-right">
             <div className="flex items-center gap-2 text-xs font-bold tracking-widest text-white">
-              LIVE
-              <span className="w-2 h-2 rounded-full bg-success animate-pulse shadow-[0_0_8px_rgba(16,185,129,0.8)]" />
+              {dataMode}
+              <span className={clsx('w-2 h-2 rounded-full shadow-[0_0_8px_rgba(16,185,129,0.8)]', dataMode === 'LIVE' ? 'bg-success animate-pulse' : (dataMode === 'DEGRADED' ? 'bg-danger' : 'bg-warning'))} />
             </div>
             <span className="text-xs text-muted font-mono">{dateStr || '...'}</span>
           </div>
