@@ -139,7 +139,7 @@ class BacktestEngine:
                 
         directional_accuracy = (da_matches / da_comparisons * 100.0) if da_comparisons > 0 else None
         
-        status = "COMPLETED"
+        status = "VALIDATED"
         if n < 3: # Need at least some pairs to be meaningful
             status = "INSUFFICIENT_DATA"
 
@@ -153,7 +153,7 @@ class BacktestEngine:
         return self._save_run(*args, None, None, None, None, None)
 
     def _save_run(self, start_date, end_date, methodology, reference_source, booking_horizon, route_id, data_mode,
-                  sample_count, match_count, coverage_pct, mape, rmse, pearson_r, mean_bias_pct, directional_accuracy, status="COMPLETED"):
+                  sample_count, match_count, coverage_pct, mape, rmse, pearson_r, mean_bias_pct, directional_accuracy, status="VALIDATED"):
         
         run = BacktestRun(
             start_date=start_date,

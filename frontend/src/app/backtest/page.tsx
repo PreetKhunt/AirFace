@@ -1,18 +1,17 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { api } from '@/lib/api';
 import { BacktestRun } from '@/types';
 import { StateBoundary } from '@/components/StateBoundary';
-import { AlertTriangle, CheckCircle2, LineChart as ChartIcon, XCircle, Info } from 'lucide-react';
-import { clsx } from 'clsx';
+import { AlertTriangle, CheckCircle2, LineChart as ChartIcon, Info } from 'lucide-react';
 
 export default function BacktestPage() {
   const [runs, setRuns] = useState<BacktestRun[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  const loadData = async () => {
+  const loadData = useCallback(async () => {
     try {
       setLoading(true);
       setError(null);
@@ -23,11 +22,11 @@ export default function BacktestPage() {
     } finally {
       setLoading(false);
     }
-  };
+  }, []);
 
   useEffect(() => {
     loadData();
-  }, []);
+  }, [loadData]);
 
   const latestRun = runs.length > 0 ? runs[0] : null;
 
@@ -37,7 +36,7 @@ export default function BacktestPage() {
         <div>
           <h2 className="text-xs font-semibold text-muted-silver tracking-[0.2em] uppercase mb-1">Index Validation</h2>
           <h1 className="text-3xl font-bold tracking-tight text-soft-white flex items-center gap-3">
-            <ChartIcon className="w-8 h-8 text-blue-400" /> Backtest Engine
+            <ChartIcon className="w-8 h-8 text-accent" /> Market Backtest
           </h1>
         </div>
       </header>
@@ -50,44 +49,52 @@ export default function BacktestPage() {
             {/* Meta Info */}
             <div className="lg:col-span-3 flex flex-col md:flex-row gap-4 p-4 bg-card border border-border rounded-xl">
               <div className="flex-1 border-r border-border pr-4">
-                <span className="text-[10px] uppercase tracking-widest text-muted block mb-1">Reference Source</span>
+                <span className="text-[10px] uppercase tracking-widest text-muted block mb-1">Reference</span>
                 <span className="text-sm font-mono text-white">{latestRun.reference_source}</span>
               </div>
               <div className="flex-1 border-r border-border px-4">
-                <span className="text-[10px] uppercase tracking-widest text-muted block mb-1">Environment Data Mode</span>
-                <span className="text-sm font-mono text-accent">{latestRun.data_mode}</span>
+                <span className="text-[10px] uppercase tracking-widest text-muted block mb-1">Data Mode</span>
+                <span className="text-sm font-mono text-accent">{latestRun.reference_source === 'DEMO_REFERENCE_BASELINE' ? 'SYNTHETIC' : latestRun.data_mode}</span>
               </div>
               <div className="flex-1 border-r border-border px-4">
                 <span className="text-[10px] uppercase tracking-widest text-muted block mb-1">Methodology</span>
                 <span className="text-sm font-mono text-white">{latestRun.methodology}</span>
               </div>
               <div className="flex-1 pl-4">
-                <span className="text-[10px] uppercase tracking-widest text-muted block mb-1">Test Period</span>
+                <span className="text-[10px] uppercase tracking-widest text-muted block mb-1">Observation Window</span>
                 <span className="text-sm font-mono text-white">{latestRun.start_date} &rarr; {latestRun.end_date}</span>
+              </div>
+              <div className="flex-1 pl-4">
+                <span className="text-[10px] uppercase tracking-widest text-muted block mb-1">Matched</span>
+                <span className="text-sm font-mono text-accent">{latestRun.match_count} / {latestRun.sample_count}</span>
               </div>
             </div>
 
             {/* Content Based on Status */}
-            {latestRun.status === 'INSUFFICIENT_DATA' ? (
+            {latestRun.status !== 'VALIDATED' ? (
               <div className="lg:col-span-3 h-[400px] bg-card border border-border rounded-xl flex flex-col items-center justify-center text-center p-8 relative overflow-hidden">
                 <div className="absolute top-0 left-0 w-full h-1 bg-warning" />
                 <AlertTriangle className="w-16 h-16 text-warning mb-6" />
-                <h2 className="text-2xl font-bold text-white mb-2 tracking-tight">REFERENCE DATA UNAVAILABLE</h2>
+                <h2 className="text-2xl font-bold text-white mb-2 tracking-tight">DATA COVERAGE INCOMPLETE</h2>
                 <p className="text-muted text-sm max-w-xl font-mono leading-relaxed">
-                  Insufficient matching observations found between the scraped index (count: {latestRun.match_count}) and the reference baseline (count: {latestRun.sample_count}). Valid statistical correlation requires strict temporal overlap without manufacturing artificial data.
+                  The backtest found {latestRun.match_count} matching observations out of {latestRun.sample_count}. Metrics remain unavailable until the backend has enough valid temporal overlap.
                 </p>
                 <div className="mt-8 px-4 py-2 bg-warning/10 border border-warning/20 text-warning text-xs font-bold tracking-widest uppercase rounded">
-                  Status: INSUFFICIENT DATA
+                  Status: {latestRun.status}
                 </div>
               </div>
             ) : (
               <>
+                <div className="lg:col-span-3 border-l-2 border-accent bg-accent/5 px-5 py-4">
+                  <div className="text-xs font-bold tracking-[0.2em] text-accent uppercase">Backtest Complete</div>
+                  <p className="text-sm text-muted mt-2">Validation metrics use the reproducible demo reference dataset. They are not an external official benchmark.</p>
+                </div>
                 <div className="lg:col-span-3 grid grid-cols-2 md:grid-cols-5 gap-4">
-                  <MetricCard title="MAPE" value={`${latestRun.mape}%`} desc="Mean Absolute Pct Error" status={parseFloat(latestRun.mape || '100') < 15 ? 'good' : 'warn'} />
-                  <MetricCard title="RMSE" value={latestRun.rmse || '---'} desc="Root Mean Square Error" />
-                  <MetricCard title="Pearson r" value={latestRun.pearson_r || '---'} desc="Linear Correlation" status={parseFloat(latestRun.pearson_r || '0') > 0.8 ? 'good' : 'warn'} />
-                  <MetricCard title="Mean Bias" value={`${latestRun.mean_bias_pct}%`} desc="Directional Bias" />
-                  <MetricCard title="Directional Accuracy" value={`${latestRun.directional_accuracy}%`} desc="Trend match" status={parseFloat(latestRun.directional_accuracy || '0') > 80 ? 'good' : 'warn'} />
+                  <MetricCard title="MAPE" value={latestRun.mape ? `${latestRun.mape}%` : '--'} desc="Mean Absolute Pct Error" status={latestRun.mape ? (parseFloat(latestRun.mape) < 15 ? 'good' : 'warn') : 'warn'} />
+                  <MetricCard title="RMSE" value={latestRun.rmse || '--'} desc="Root Mean Square Error" />
+                  <MetricCard title="Pearson r" value={latestRun.pearson_r || '--'} desc="Linear Correlation" status={latestRun.pearson_r ? (parseFloat(latestRun.pearson_r) > 0.8 ? 'good' : 'warn') : 'warn'} />
+                  <MetricCard title="Mean Bias" value={latestRun.mean_bias_pct ? `${latestRun.mean_bias_pct}%` : '--'} desc="Directional Bias" />
+                  <MetricCard title="Directional Accuracy" value={latestRun.directional_accuracy ? `${latestRun.directional_accuracy}%` : '--'} desc="Trend match" status={latestRun.directional_accuracy ? (parseFloat(latestRun.directional_accuracy) > 80 ? 'good' : 'warn') : 'warn'} />
                 </div>
 
                 <div className="lg:col-span-1 p-6 bg-card border border-border rounded-xl flex flex-col gap-6">
@@ -122,13 +129,13 @@ export default function BacktestPage() {
                 <div className="lg:col-span-2 p-6 bg-surface border border-border rounded-xl flex flex-col items-center justify-center text-center relative overflow-hidden group">
                   <div className="absolute inset-0 bg-[url('https://www.transparenttextures.com/patterns/cubes.png')] opacity-5 mix-blend-overlay"></div>
                   
-                  <Info className="w-10 h-10 text-blue mb-4 opacity-80" />
+                  <Info className="w-10 h-10 text-accent mb-4 opacity-80" />
                   <h3 className="text-sm font-bold text-white mb-2 uppercase tracking-widest">Secure Evaluation Engine</h3>
                   <p className="text-muted text-sm max-w-lg mb-6 leading-relaxed">
                     Validation metrics (RMSE, MAPE, Pearson) are evaluated strictly on the backend via Pandas and NumPy. Raw proprietary reference vectors are never exposed to the client interface for security and commercial compliance.
                   </p>
                   
-                  <div className="px-4 py-2 border border-blue/30 bg-blue/10 rounded-lg text-blue text-xs font-mono font-bold flex items-center gap-2">
+                  <div className="px-4 py-2 border border-success/30 bg-success/10 rounded-lg text-success text-xs font-mono font-bold flex items-center gap-2">
                     <CheckCircle2 className="w-4 h-4" /> STATISTICAL VALIDATION COMPLETE
                   </div>
                 </div>

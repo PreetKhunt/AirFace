@@ -10,6 +10,7 @@ import app.models.index
 import app.models.source_health
 import app.models.log
 import app.models.backtest
+from app.services.demo_reference import load_demo_reference_baseline, REFERENCE_SOURCE
 
 API_BASE = "http://127.0.0.1:8000/api/v1"
 CALC_DATE = "2026-01-14"
@@ -48,30 +49,32 @@ if __name__ == "__main__":
     # 2. Ingest Fixture Data
     run_step("Ingest Synthetic", "/ingestion/fixtures/synthetic")
     run_step("Ingest Historical", "/ingestion/fixtures/historical")
+    run_step("Ingest Historical Validation", "/ingestion/fixtures/historical-validation")
     
     # 3. Normalization
     run_step("Normalize Data", "/normalization/run")
     
     # 4. Calculate Index
     run_step("Calculate Index (SYNTHETIC)", "/index/calculate", params={"calculation_date": CALC_DATE, "base_date": BASE_DATE, "data_mode": "SYNTHETIC"})
-    run_step("Calculate Index (HISTORICAL)", "/index/calculate", params={"calculation_date": CALC_DATE, "base_date": BASE_DATE, "data_mode": "HISTORICAL"})
+    for validation_date in sorted(load_demo_reference_baseline()):
+        run_step(
+            f"Calculate Validation Index (HISTORICAL) {validation_date}",
+            "/index/calculate",
+            params={"calculation_date": validation_date, "base_date": "2026-01-14", "data_mode": "HISTORICAL"},
+        )
     
     # 5. Execute Backtest
-    # Provide a tiny synthetic reference dataset for the backtest to run against
-    import datetime
-    start_dt = date.today() - datetime.timedelta(days=30)
-    ref_data = {str(date.today() - datetime.timedelta(days=i)): 100.0 for i in range(30)}
+    ref_data = {str(observation_date): value for observation_date, value in load_demo_reference_baseline().items()}
     
-    backtest_payload_sync = {
-        "start_date": str(start_dt),
-        "end_date": CALC_DATE,
+    backtest_payload_hist = {
+        "start_date": "2026-01-15",
+        "end_date": "2026-02-13",
         "reference_data": ref_data,
-        "reference_source": "MOCK_BASELINE",
+        "reference_source": REFERENCE_SOURCE,
         "methodology": "JEVONS",
         "booking_horizon": "T+1",
-        "data_mode": "SYNTHETIC"
+        "data_mode": "HISTORICAL"
     }
-    backtest_payload_hist = {**backtest_payload_sync, "data_mode": "HISTORICAL"}
 
     def run_step_json(name, url, payload):
         print(f"[{name}] Starting...")
@@ -83,7 +86,6 @@ if __name__ == "__main__":
         except Exception as e:
             print(f"[{name}] Failed: {e}")
 
-    run_step_json("Backtest Validation (SYNTHETIC)", "/backtest/run", backtest_payload_sync)
     run_step_json("Backtest Validation (HISTORICAL)", "/backtest/run", backtest_payload_hist)
     
     print("\n[SUCCESS] Demo environment reset is complete!")

@@ -226,10 +226,10 @@ function PipelineStage({ name, count, active, isFinal = false }: { name: string,
     <div className={clsx(
       'flex flex-col gap-1 px-4 py-2 rounded-lg border min-w-[120px] flex-shrink-0 transition-colors',
       active 
-        ? (isFinal ? 'bg-success/10 border-success/40' : 'bg-blue/10 border-blue/40')
+        ? (isFinal ? 'bg-success/10 border-success/40' : 'bg-accent/10 border-accent/40')
         : 'bg-card border-border opacity-50'
     )}>
-      <span className={clsx('text-[10px] font-bold tracking-widest uppercase', active ? (isFinal ? 'text-success' : 'text-blue') : 'text-muted')}>{name}</span>
+      <span className={clsx('text-[10px] font-bold tracking-widest uppercase', active ? (isFinal ? 'text-success' : 'text-accent') : 'text-muted')}>{name}</span>
       <span className="text-xl font-mono text-white font-bold">{count.toLocaleString()}</span>
     </div>
   );

@@ -41,7 +41,7 @@ def test_perfect_reference_match(db_session):
     assert run.rmse == Decimal("0.0000")
     assert run.mean_bias_pct == Decimal("0.0000")
     assert run.pearson_r == Decimal("1.0000")
-    assert run.status == "COMPLETED"
+    assert run.status == "VALIDATED"
 
 def test_zero_reference_protection(db_session):
     start = date(2026, 1, 1)

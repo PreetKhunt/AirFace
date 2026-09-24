@@ -5,7 +5,7 @@ from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
 from app.database.session import get_db
 from app.core.enums import DataMode
-from app.scrapers.fixture_adapter import FixtureAdapter
+from app.scrapers.fixture_adapter import FixtureAdapter, ValidationFixtureAdapter
 from app.services.ingestion import run_ingestion
 from app.schemas.observation import IngestionResult
 
@@ -47,4 +47,22 @@ def ingest_synthetic_fixture(db: Session = Depends(get_db)):
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"Synthetic fixture ingestion failed: {str(e)}"
+        )
+
+
+@router.post(
+    "/fixtures/historical-validation",
+    response_model=IngestionResult,
+    status_code=status.HTTP_200_OK,
+    summary="Ingest Deterministic Historical Validation Fixture",
+    description="Loads the reproducible DEMO_REFERENCE_BASELINE validation observations.",
+)
+def ingest_historical_validation_fixture(db: Session = Depends(get_db)):
+    try:
+        result = run_ingestion(ValidationFixtureAdapter(), db)
+        return result
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Historical validation fixture ingestion failed: {str(e)}"
         )

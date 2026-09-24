@@ -218,11 +218,11 @@ export default function CinematicLandingPage() {
 
           <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
             {[
-              { label: 'BASE', value: '₹3,820', color: 'from-cyan-500 to-cyan-600' },
-              { label: 'UDF', value: '₹430', color: 'from-blue-500 to-blue-600' },
-              { label: 'ASF', value: '₹250', color: 'from-indigo-500 to-indigo-600' },
-              { label: 'GST', value: '₹682', color: 'from-violet-500 to-violet-600' },
-              { label: 'YQ', value: '₹0', color: 'from-purple-500 to-purple-600' },
+              { label: 'BASE', value: '₹3,820', color: 'from-accent to-accent/70' },
+              { label: 'UDF', value: '₹430', color: 'from-success to-success/70' },
+              { label: 'ASF', value: '₹250', color: 'from-warning to-warning/70' },
+              { label: 'GST', value: '₹682', color: 'from-info to-info/70' },
+              { label: 'YQ', value: '₹0', color: 'from-muted to-muted/70' },
             ].map((component) => (
               <GlassCard
                 key={component.label}
@@ -246,7 +246,7 @@ export default function CinematicLandingPage() {
             </p>
             <Link
               href="/data-cleaning"
-              className="inline-flex items-center gap-2 px-6 py-3 border border-cyan-500/30 text-cyan-400 rounded-full hover:bg-cyan-500/10 transition-colors"
+              className="inline-flex items-center gap-2 px-6 py-3 border border-accent/30 text-accent rounded-full hover:bg-accent/10 transition-colors"
             >
               Inspect Observation Integrity
               <Shield className="w-4 h-4" />
@@ -606,13 +606,13 @@ export default function CinematicLandingPage() {
 
           <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-8 gap-4">
             {[
-              { label: 'MARKET', icon: BarChart3, href: '/', color: 'from-electric-cyan to-cyan-500' },
-              { label: 'ROUTES', icon: Map, href: '/route-explorer', color: 'from-atmospheric-blue to-blue-500' },
+              { label: 'MARKET', icon: BarChart3, href: '/', color: 'from-accent to-accent/70' },
+              { label: 'ROUTES', icon: Map, href: '/route-explorer', color: 'from-success to-success/70' },
               { label: 'HORIZONS', icon: Clock, href: '/booking-horizon', color: 'from-amber-500 to-orange-500' },
               { label: 'COLLECTION', icon: Activity, href: '/collection-monitor', color: 'from-emerald-500 to-green-500' },
-              { label: 'QUALITY', icon: Shield, href: '/data-quality', color: 'from-violet-500 to-purple-500' },
+              { label: 'QUALITY', icon: Shield, href: '/data-quality', color: 'from-warning to-warning/70' },
               { label: 'INTEGRITY', icon: Shield, href: '/data-cleaning', color: 'from-rose-500 to-pink-500' },
-              { label: 'VALIDATION', icon: BarChart3, href: '/backtest', color: 'from-indigo-500 to-purple-500' },
+              { label: 'VALIDATION', icon: BarChart3, href: '/backtest', color: 'from-info to-info/70' },
               { label: 'PROVENANCE', icon: Network, href: '/provenance', color: 'from-teal-500 to-emerald-500' },
             ].map((module) => {
               const Icon = module.icon;

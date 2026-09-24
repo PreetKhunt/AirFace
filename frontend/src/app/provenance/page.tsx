@@ -197,7 +197,7 @@ function TimelineNode({ icon, title, subtitle, value, detail, isHash, isUrl, isL
           <div className={clsx(
             "mt-2 text-sm",
             isHash ? "font-mono text-accent font-bold" : "text-gray-300 font-mono",
-            isUrl && "text-blue break-all"
+            isUrl && "text-accent break-all"
           )}>
             {value}
           </div>

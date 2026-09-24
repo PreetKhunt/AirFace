@@ -2,7 +2,8 @@ import os
 import sys
 import httpx
 import time
-from datetime import date, timedelta
+sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
+from app.services.demo_reference import load_demo_reference_baseline, REFERENCE_SOURCE
 
 API_BASE = os.environ.get("API_BASE_URL", "https://sih-backend-kvyb.onrender.com/api/v1")
 CALC_DATE = "2026-01-14"
@@ -54,6 +55,7 @@ if __name__ == "__main__":
     # 1. Ingest Fixture Data
     run_step("Ingest Synthetic", "/ingestion/fixtures/synthetic")
     run_step("Ingest Historical", "/ingestion/fixtures/historical")
+    run_step("Ingest Historical Validation", "/ingestion/fixtures/historical-validation")
     
     # 2. Normalization & Quality
     run_step("Normalize Data & Calculate DQ", "/normalization/run")
@@ -64,36 +66,24 @@ if __name__ == "__main__":
     for d in SYNTHETIC_DATES:
         run_step(f"Calculate Index (SYNTHETIC) {d}", "/index/calculate", params={"calculation_date": d, "base_date": SYNTHETIC_BASE, "data_mode": "SYNTHETIC"})
     
-    HISTORICAL_BASE = "2025-12-13"
-    HISTORICAL_DATES = ["2025-12-13", "2025-12-25", "2025-12-28", "2026-01-06", "2026-01-09", "2026-01-11", "2026-01-14", "2026-01-21", "2026-01-26", "2026-01-29"]
-    for d in HISTORICAL_DATES:
-        run_step(f"Calculate Index (HISTORICAL) {d}", "/index/calculate", params={"calculation_date": d, "base_date": HISTORICAL_BASE, "data_mode": "HISTORICAL"})
+    VALIDATION_BASE = "2026-01-14"
+    validation_dates = list(load_demo_reference_baseline())
+    for d in validation_dates:
+        date_value = d.isoformat()
+        run_step(f"Calculate Index (HISTORICAL) {date_value}", "/index/calculate", params={"calculation_date": date_value, "base_date": VALIDATION_BASE, "data_mode": "HISTORICAL"})
     
-    # 4. Execute Backtest
-    # Use dates that match the fixtures
-    ref_data_sync = {d: 100.0 for d in SYNTHETIC_DATES}
-    backtest_payload_sync = {
-        "start_date": SYNTHETIC_DATES[0],
-        "end_date": SYNTHETIC_DATES[-1],
-        "reference_data": ref_data_sync,
-        "reference_source": "MOCK_BASELINE",
-        "methodology": "JEVONS",
-        "booking_horizon": "T+1",
-        "data_mode": "SYNTHETIC"
-    }
-
-    ref_data_hist = {d: 100.0 for d in HISTORICAL_DATES}
+    # 4. Execute the reproducible historical demo validation
+    ref_data_hist = {d.isoformat(): value for d, value in load_demo_reference_baseline().items()}
     backtest_payload_hist = {
-        "start_date": HISTORICAL_DATES[0],
-        "end_date": HISTORICAL_DATES[-1],
+        "start_date": "2026-01-15",
+        "end_date": "2026-02-13",
         "reference_data": ref_data_hist,
-        "reference_source": "MOCK_BASELINE",
+        "reference_source": REFERENCE_SOURCE,
         "methodology": "JEVONS",
         "booking_horizon": "T+1",
         "data_mode": "HISTORICAL"
     }
 
-    run_step_json("Backtest Validation (SYNTHETIC)", "/backtest/run", backtest_payload_sync)
     run_step_json("Backtest Validation (HISTORICAL)", "/backtest/run", backtest_payload_hist)
     
     print("\n[SUCCESS] Production seed complete!")

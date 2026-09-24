@@ -84,7 +84,7 @@ export default function RouteExplorerPage() {
               className={clsx(
                 'px-4 py-1.5 text-xs font-mono rounded-md transition-all',
                 selectedHorizon === h 
-                  ? 'bg-blue text-white shadow-[0_0_12px_rgba(59,130,246,0.5)]' 
+                  ? 'bg-accent text-background shadow-[0_0_12px_rgba(214,138,58,0.25)]'
                   : 'text-muted hover:text-white'
               )}
             >
@@ -128,7 +128,7 @@ export default function RouteExplorerPage() {
                     className={clsx(
                       'w-full flex items-center justify-between px-4 py-3 rounded-lg text-sm transition-all',
                       selectedRoute === route 
-                        ? 'bg-blue/10 border border-blue/30 text-white shadow-[inset_4px_0_0_rgba(59,130,246,1)]' 
+                        ? 'bg-accent/10 border border-accent/30 text-white shadow-[inset_4px_0_0_rgba(214,138,58,1)]'
                         : 'text-muted border border-transparent hover:bg-white/5 hover:text-white'
                     )}
                   >
@@ -158,7 +158,7 @@ export default function RouteExplorerPage() {
                   </div>
                   <div className="p-5 bg-card border border-border rounded-xl">
                     <p className="text-[10px] uppercase tracking-widest text-muted mb-1">Methodology</p>
-                    <p className="text-xl mt-1 font-mono text-blue">{latestPoint.methodology}</p>
+                    <p className="text-xl mt-1 font-mono text-accent">{latestPoint.methodology}</p>
                   </div>
                 </div>
 
@@ -201,7 +201,7 @@ export default function RouteExplorerPage() {
                         <button
                           key={hz}
                           onClick={() => setSelectedHorizon(hz)}
-                          className="px-3 py-1 bg-surface border border-blue/40 rounded text-xs text-blue hover:bg-blue/10 transition-colors"
+                          className="px-3 py-1 bg-surface border border-accent/40 rounded text-xs text-accent hover:bg-accent/10 transition-colors"
                         >
                           Switch to {hz}
                         </button>

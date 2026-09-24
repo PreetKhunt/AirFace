@@ -57,11 +57,11 @@ export function Scene({
 
   const backgroundClasses = {
     stars: 'bg-gradient-to-b from-midnight-navy via-obsidian to-midnight-navy',
-    clouds: 'bg-gradient-to-b from-sky-900/20 via-blue-900/10 to-midnight-navy',
+    clouds: 'bg-gradient-to-b from-surface/70 via-obsidian to-midnight-navy',
     route: 'bg-gradient-to-b from-atmospheric-blue/5 via-transparent to-midnight-navy',
-    pipeline: 'bg-gradient-to-b from-cyan-900/10 via-transparent to-midnight-navy',
+    pipeline: 'bg-gradient-to-b from-electric-cyan/10 via-transparent to-midnight-navy',
     horizon: 'bg-gradient-to-b from-amber-900/5 via-transparent to-midnight-navy',
-    map: 'bg-gradient-to-b from-indigo-900/10 via-transparent to-midnight-navy',
+    map: 'bg-gradient-to-b from-atmospheric-blue/10 via-transparent to-midnight-navy',
     provenance: 'bg-gradient-to-b from-emerald-900/5 via-transparent to-midnight-navy',
     control: 'bg-gradient-to-b from-midnight-navy via-obsidian to-obsidian',
   };

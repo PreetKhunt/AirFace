@@ -9,26 +9,27 @@ module.exports = {
     extend: {
       colors: {
         // Deep aviation-inspired palette
-        'midnight-navy': '#0a1a3a',
-        'obsidian': '#121a2d',
-        'atmospheric-blue': '#1e3a8a',
-        'electric-cyan': '#06b6d4',
-        'soft-white': '#f8fafc',
-        'muted-silver': '#94a3b8',
+        'midnight-navy': '#0D0F0E',
+        'obsidian': '#151817',
+        'atmospheric-blue': '#D68A3A',
+        'electric-cyan': '#4FA89A',
+        'soft-white': '#F3EFE5',
+        'muted-silver': '#B7B5AC',
 
         // Semantic colors (use sparingly)
-        'success': '#10b981',
-        'warning': '#f59e0b',
-        'danger': '#ef4444',
+        'success': '#5FAF82',
+        'warning': '#D6A14A',
+        'danger': '#C96B5B',
+        'info': '#9BA7A0',
 
         // Legacy compatibility (deprecated, will remove gradually)
-        'background': '#0a1a3a',
-        'card': '#121a2d',
-        'surface': '#0d1529',
-        'border': '#1e293b',
-        'accent': '#06b6d4',
-        'blue': '#1e3a8a',
-        'muted': '#94a3b8',
+        'background': '#0D0F0E',
+        'card': '#1C211F',
+        'surface': '#242621',
+        'border': '#3A3B35',
+        'accent': '#D68A3A',
+        'blue': '#D68A3A',
+        'muted': '#7F817B',
       },
       fontFamily: {
         sans: ['var(--font-inter)', 'sans-serif'],
@@ -57,22 +58,22 @@ module.exports = {
         },
         'glow-cyan': {
           '0%, 100%': {
-            'box-shadow': '0 0 20px rgba(6, 182, 212, 0.3)',
-            'text-shadow': '0 0 10px rgba(6, 182, 212, 0.5)'
+            'box-shadow': '0 0 20px rgba(79, 168, 154, 0.2)',
+            'text-shadow': '0 0 10px rgba(79, 168, 154, 0.35)'
           },
           '50%': {
-            'box-shadow': '0 0 40px rgba(6, 182, 212, 0.6)',
-            'text-shadow': '0 0 20px rgba(6, 182, 212, 0.8)'
+            'box-shadow': '0 0 40px rgba(79, 168, 154, 0.35)',
+            'text-shadow': '0 0 20px rgba(79, 168, 154, 0.5)'
           },
         },
         'glow-blue': {
           '0%, 100%': {
-            'box-shadow': '0 0 20px rgba(30, 58, 138, 0.3)',
-            'text-shadow': '0 0 10px rgba(30, 58, 138, 0.5)'
+            'box-shadow': '0 0 20px rgba(214, 138, 58, 0.2)',
+            'text-shadow': '0 0 10px rgba(214, 138, 58, 0.35)'
           },
           '50%': {
-            'box-shadow': '0 0 40px rgba(30, 58, 138, 0.6)',
-            'text-shadow': '0 0 20px rgba(30, 58, 138, 0.8)'
+            'box-shadow': '0 0 40px rgba(214, 138, 58, 0.35)',
+            'text-shadow': '0 0 20px rgba(214, 138, 58, 0.5)'
           },
         },
       },

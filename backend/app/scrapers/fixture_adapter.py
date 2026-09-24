@@ -28,6 +28,8 @@ FIXTURE_PATHS = {
     DataMode.SYNTHETIC:  PROJECT_ROOT / "data" / "fixtures" / "synthetic" / "airfare_synthetic.csv",
 }
 
+VALIDATION_FIXTURE_PATH = PROJECT_ROOT / "data" / "fixtures" / "historical" / "airfare_validation.csv"
+
 
 def _parse_time(val: str) -> Optional[time]:
     """Parse HH:MM:SS or HH:MM string to time object. Returns None on failure."""
@@ -227,3 +229,14 @@ class FixtureAdapter(BaseScraperAdapter):
         # Set provenance hash
         record.payload_sha256 = record.compute_sha256()
         return record, None
+
+
+class ValidationFixtureAdapter(FixtureAdapter):
+    """Deterministic historical fixture used only for demo validation."""
+
+    def __init__(self):
+        super().__init__(DataMode.HISTORICAL, fixture_path=VALIDATION_FIXTURE_PATH)
+
+    @property
+    def name(self) -> str:
+        return "fixture_historical_validation"

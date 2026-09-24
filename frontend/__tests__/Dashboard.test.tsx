@@ -22,39 +22,39 @@ jest.mock('recharts', () => {
 
 describe('Dashboard Component Rendering & Data Modes', () => {
   
-  test('Overview renders loading state initially', () => {
+  test('Overview renders the AirFace experience', () => {
     render(<OverviewPage />);
-    expect(screen.getByText(/Loading data.../i)).toBeTruthy();
+    expect(screen.getAllByText(/UNDERSTANDING/i).length).toBeGreaterThan(0);
   });
 
   test('Route Explorer renders correctly', () => {
     render(<RouteExplorerPage />);
-    expect(screen.getByText(/Route Explorer/i)).toBeTruthy();
+    expect(screen.getByText(/Route Intelligence/i)).toBeTruthy();
   });
 
   test('Booking Horizon renders correctly', () => {
     render(<BookingHorizonPage />);
-    expect(screen.getByText(/Booking Horizon Analysis/i)).toBeTruthy();
+    expect(screen.getByText(/Booking Horizon Escalation/i)).toBeTruthy();
   });
 
   test('Collection Monitor renders correctly', () => {
     render(<CollectionMonitorPage />);
-    expect(screen.getByText(/Data Collection Monitor/i)).toBeTruthy();
+    expect(screen.getByText(/Data Operations/i)).toBeTruthy();
   });
 
   test('Data Quality renders correctly', () => {
     render(<DataQualityPage />);
-    expect(screen.getByText(/Data Quality Scorecard/i)).toBeTruthy();
+    expect(screen.getByText(/Data Quality Scores/i)).toBeTruthy();
   });
 
   test('Data Cleaning Explorer renders correctly', () => {
     render(<DataCleaningPage />);
-    expect(screen.getByText(/Data Cleaning Explainability/i)).toBeTruthy();
+    expect(screen.getByText(/DATA CLEANING/i)).toBeTruthy();
   });
 
   test('Backtest Page renders correctly', () => {
     render(<BacktestPage />);
-    expect(screen.getByText(/30-DAY BACKTEST & VALIDATION/i)).toBeTruthy();
+    expect(screen.getByText(/Market Backtest/i)).toBeTruthy();
   });
 
   test('Provenance Explorer renders correctly', () => {

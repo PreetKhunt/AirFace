@@ -56,9 +56,9 @@ export default function MethodologyPage() {
             </ul>
           </div>
 
-          <div className="p-6 bg-card border border-border rounded-xl border-l-4 border-l-purple-500">
+          <div className="p-6 bg-card border border-border rounded-xl border-l-4 border-l-accent">
             <h3 className="text-md font-bold text-white flex items-center gap-2 mb-2">
-              <BookOpen className="w-5 h-5 text-purple-500" />
+              <BookOpen className="w-5 h-5 text-accent" />
               PROPOSED ANALYTICAL METHODOLOGY
             </h3>
             <ul className="list-disc pl-5 text-sm text-gray-300 space-y-2">

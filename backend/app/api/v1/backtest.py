@@ -7,6 +7,7 @@ from pydantic import BaseModel
 from app.database.session import get_db
 from app.services.backtest_engine import BacktestEngine
 from app.core.enums import DataMode
+from app.schemas.backtest import BacktestRunOut
 
 router = APIRouter()
 
@@ -20,7 +21,7 @@ class BacktestRequest(BaseModel):
     route_id: Optional[str] = None
     data_mode: DataMode = DataMode.LIVE
 
-@router.post("/run")
+@router.post("/run", response_model=BacktestRunOut)
 def run_backtest(
     request: BacktestRequest,
     db: Session = Depends(get_db)
@@ -40,7 +41,7 @@ def run_backtest(
     
     return run
 
-@router.get("/results")
+@router.get("/results", response_model=List[BacktestRunOut])
 def get_backtest_results(
     db: Session = Depends(get_db),
     start_date: Optional[date] = None,
@@ -58,7 +59,7 @@ def get_backtest_results(
         
     return query.all()
 
-@router.get("/results/{backtest_id}")
+@router.get("/results/{backtest_id}", response_model=BacktestRunOut)
 def get_backtest_by_id(
     backtest_id: str,
     db: Session = Depends(get_db)

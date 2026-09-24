@@ -117,3 +117,21 @@ These "no data" states are **expected and honest**:
 4. **TopNavigation data mode**: Replaced hardcoded `LIVE ●` with API-driven data mode badge.
 5. **Control Room hero badge**: Now reads `sysStatus.data_mode` instead of hardcoded `LIVE DATA FEED`.
 6. **Route empty state**: Improved UX — shows available horizons for the selected route with one-click switch buttons.
+
+## 10. Backtest Validation Data Coverage
+
+The demo reset now includes a dedicated, version-controlled validation fixture. It is not presented as official MoSPI, DGCA, or external market data.
+
+| Field | Demo validation value |
+|---|---|
+| Reference source | `DEMO_REFERENCE_BASELINE` |
+| Data mode | `HISTORICAL` pipeline observations with `DEMO / SYNTHETIC` reference values |
+| Methodology | `JEVONS` |
+| Date range | `2026-01-15` through `2026-02-13` |
+| Reference fixture | `data/fixtures/reference/demo_reference_baseline.csv` |
+| Pipeline fixture | `data/fixtures/historical/airfare_validation.csv` |
+| Overlap count | 30 daily observations |
+| Metric availability | MAPE, RMSE, Pearson correlation, mean bias, and directional accuracy are calculated by the backend engine |
+| Benchmark classification | Reproducible demo/synthetic reference, not an external official benchmark |
+
+The validation fixture contains a Jan 14 base observation and a stable flight panel repeated across the 30 target dates. The reset flow ingests it through the normal adapter, parser, normalization, DQ, and index stages before submitting the reference series to the backtest API. Re-ingestion is idempotent, and `BacktestRun.status` becomes `VALIDATED` only when the backend finds sufficient valid overlap.
