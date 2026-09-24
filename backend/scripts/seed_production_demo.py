@@ -84,6 +84,6 @@ if __name__ == "__main__":
         "data_mode": "SYNTHETIC"
     }
 
-    run_step_json("Backtest Validation (HISTORICAL)", "/backtest/run", backtest_payload_hist)
+    run_step_json("Backtest Validation (SYNTHETIC)", "/backtest/run", backtest_payload_hist)
     
     print("\n[SUCCESS] Production seed complete!")

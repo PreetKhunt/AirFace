@@ -86,6 +86,6 @@ if __name__ == "__main__":
         except Exception as e:
             print(f"[{name}] Failed: {e}")
 
-    run_step_json("Backtest Validation (HISTORICAL)", "/backtest/run", backtest_payload_hist)
+    run_step_json("Backtest Validation (SYNTHETIC)", "/backtest/run", backtest_payload_hist)
     
     print("\n[SUCCESS] Demo environment reset is complete!")
