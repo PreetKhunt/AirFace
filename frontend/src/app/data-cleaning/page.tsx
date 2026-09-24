@@ -63,9 +63,9 @@ export default function DataCleaningPage() {
     <div className="min-h-[calc(100vh-5rem)] p-6 flex flex-col gap-6 max-w-[1600px] mx-auto w-full fade-in">
       <header className="flex flex-col gap-4 border-b border-border pb-6">
         <div>
-          <h2 className="text-xs font-semibold text-muted tracking-[0.2em] uppercase mb-1">Observation Integrity Engine</h2>
-          <h1 className="text-3xl font-bold tracking-tight text-white flex items-center gap-3">
-            <ShieldAlert className="w-8 h-8 text-danger" /> DATA QUALITY
+          <h2 className="text-xs font-semibold text-muted-silver tracking-[0.2em] uppercase mb-1">Observation Integrity Engine</h2>
+          <h1 className="text-3xl font-bold tracking-tight text-soft-white flex items-center gap-3">
+            <ShieldAlert className="w-8 h-8 text-red-400" /> DATA CLEANING
           </h1>
         </div>
 
@@ -97,7 +97,7 @@ export default function DataCleaningPage() {
                   placeholder="Search by ID, route, or airline..."
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
-                  className="w-full bg-background border border-border rounded-lg pl-9 pr-4 py-2 text-sm text-white placeholder-muted focus:outline-none focus:border-accent transition-colors"
+                  className="w-full bg-background border border-border rounded-lg pl-9 pr-4 py-2 text-sm text-white placeholder-muted-silver focus:outline-none focus:border-electric-cyan transition-colors"
                 />
               </div>
             </div>

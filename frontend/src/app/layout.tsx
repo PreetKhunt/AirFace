@@ -19,8 +19,12 @@ export default function RootLayout({
   children: React.ReactNode;
 }) {
   return (
-    <html lang="en" className="dark">
-      <body className={`${inter.variable} ${jetbrainsMono.variable} font-sans bg-background text-gray-100 antialiased selection:bg-accent/30 selection:text-white flex flex-col min-h-screen`}>
+    <html lang="en">
+      <body className={`${inter.variable} ${jetbrainsMono.variable} font-sans min-h-screen flex flex-col`}>
+        <div className="fixed inset-0 bg-gradient-to-br from-midnight-navy via-obsidian to-midnight-navy/90 -z-10" />
+        <div className="fixed inset-0 bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-atmospheric-blue/10 via-transparent to-transparent -z-10" />
+        <div className="fixed inset-0 bg-[url('/grid-pattern.svg')] opacity-5 -z-10" />
+
         <TopNavigation />
         <CommandPalette />
         <main className="flex-1 w-full relative">

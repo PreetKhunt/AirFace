@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
-import { Search, Map, Clock, Activity, ShieldCheck, LineChart, Network, BookOpen, Layers } from 'lucide-react';
+import { Search, Map, Clock, Activity, ShieldCheck, LineChart, Network, BookOpen, Layers, ArrowRight } from 'lucide-react';
 import { clsx } from 'clsx';
 
 const commands = [
@@ -78,61 +78,110 @@ export function CommandPalette() {
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-start justify-center pt-[15vh] sm:pt-[20vh] px-4">
+    <div className="fixed inset-0 z-[60] flex items-start justify-center pt-[10vh] sm:pt-[15vh] px-4">
       {/* Backdrop */}
-      <div className="absolute inset-0 bg-background/80 backdrop-blur-sm transition-opacity" onClick={() => setIsOpen(false)} />
-      
+      <div
+        className="absolute inset-0 bg-midnight-navy/80 backdrop-blur-glass transition-opacity"
+        onClick={() => setIsOpen(false)}
+      />
+
       {/* Palette */}
-      <div 
-        className="relative w-full max-w-2xl bg-card border border-border rounded-xl shadow-2xl overflow-hidden transform transition-all"
+      <div
+        className="relative w-full max-w-2xl glass-heavy border border-white/20 shadow-2xl overflow-hidden transform transition-all rounded-2xl"
         role="dialog"
+        style={{
+          animation: 'fadeIn 0.2s ease-out',
+        }}
       >
-        <div className="flex items-center px-4 py-4 border-b border-border">
-          <Search className="w-5 h-5 text-muted mr-3" />
+        <div className="flex items-center px-6 py-5 border-b border-white/10">
+          <Search className="w-5 h-5 text-muted-silver mr-4" />
           <input
             ref={inputRef}
             type="text"
-            className="flex-1 bg-transparent border-none outline-none text-white placeholder-muted font-medium"
+            className="flex-1 bg-transparent border-none outline-none text-soft-white placeholder-muted-silver font-medium text-lg"
             placeholder="Navigate to a module or workspace..."
             value={query}
             onChange={(e) => setQuery(e.target.value)}
             onKeyDown={handleKeyDown}
           />
-          <kbd className="hidden sm:inline-flex items-center gap-1 font-mono text-[10px] bg-background px-1.5 py-0.5 rounded border border-border text-gray-500">
+          <kbd className="hidden sm:inline-flex items-center gap-1 font-mono text-xs px-2 py-1 rounded-lg border border-white/10 text-muted-silver bg-white/5">
             ESC
           </kbd>
         </div>
 
-        <div className="max-h-[60vh] overflow-y-auto p-2">
+        <div className="max-h-[60vh] overflow-y-auto">
           {filteredCommands.length === 0 ? (
-            <div className="p-8 text-center text-muted">
-              <p>No results found for &quot;{query}&quot;</p>
+            <div className="p-12 text-center">
+              <Search className="w-12 h-12 text-muted-silver mx-auto mb-4 opacity-50" />
+              <p className="text-muted-silver">No results found for &quot;{query}&quot;</p>
+              <p className="text-sm text-muted-silver/70 mt-2">Try a different term</p>
             </div>
           ) : (
-            <div className="space-y-1">
-              <div className="px-3 py-2 text-xs font-semibold text-muted uppercase tracking-widest">
-                Workspaces
+            <div className="p-4">
+              <div className="px-3 py-3 text-xs font-semibold text-muted-silver uppercase tracking-widest">
+                Aviation Intelligence Workspaces
               </div>
-              {filteredCommands.map((cmd, index) => {
-                const isSelected = index === selectedIndex;
-                const Icon = cmd.icon;
-                return (
-                  <button
-                    key={cmd.id}
-                    onClick={() => handleSelect(cmd.href)}
-                    onMouseEnter={() => setSelectedIndex(index)}
-                    className={clsx(
-                      'w-full flex items-center px-4 py-3 rounded-lg text-sm transition-colors',
-                      isSelected ? 'bg-accent/10 text-white' : 'text-muted hover:text-white hover:bg-white/5'
-                    )}
-                  >
-                    <Icon className={clsx('w-4 h-4 mr-3', isSelected ? 'text-accent' : 'text-gray-500')} />
-                    <span className="font-medium">{cmd.title}</span>
-                  </button>
-                );
-              })}
+              <div className="space-y-2">
+                {filteredCommands.map((cmd, index) => {
+                  const isSelected = index === selectedIndex;
+                  const Icon = cmd.icon;
+                  return (
+                    <button
+                      key={cmd.id}
+                      onClick={() => handleSelect(cmd.href)}
+                      onMouseEnter={() => setSelectedIndex(index)}
+                      className={clsx(
+                        'w-full flex items-center px-5 py-4 rounded-xl transition-all duration-200',
+                        isSelected
+                          ? 'bg-gradient-to-r from-electric-cyan/10 to-atmospheric-blue/10 border border-electric-cyan/30 shadow-[0_0_20px_rgba(6,182,212,0.1)]'
+                          : 'border border-transparent hover:border-white/10 hover:bg-white/5'
+                      )}
+                    >
+                      <div className={clsx(
+                        'w-10 h-10 rounded-lg flex items-center justify-center mr-4 transition-colors',
+                        isSelected
+                          ? 'bg-gradient-to-r from-electric-cyan to-atmospheric-blue text-soft-white'
+                          : 'bg-white/5 text-muted-silver'
+                      )}>
+                        <Icon className="w-5 h-5" />
+                      </div>
+                      <div className="text-left flex-1">
+                        <div className={clsx(
+                          'font-medium transition-colors',
+                          isSelected ? 'text-soft-white' : 'text-muted-silver'
+                        )}>
+                          {cmd.title}
+                        </div>
+                        <div className={clsx(
+                          'text-xs transition-colors',
+                          isSelected ? 'text-electric-cyan' : 'text-muted-silver/70'
+                        )}>
+                          {cmd.id.replace('-', ' ').toUpperCase()}
+                        </div>
+                      </div>
+                      <ArrowRight className={clsx(
+                        'w-4 h-4 transition-opacity',
+                        isSelected ? 'opacity-100 text-electric-cyan' : 'opacity-0'
+                      )} />
+                    </button>
+                  );
+                })}
+              </div>
             </div>
           )}
+        </div>
+
+        {/* Footer */}
+        <div className="px-6 py-4 border-t border-white/10 bg-obsidian/50">
+          <div className="flex items-center justify-between text-xs text-muted-silver">
+            <div className="flex items-center gap-4">
+              <span>↑↓ Navigate</span>
+              <span>↵ Select</span>
+            </div>
+            <div className="font-mono">
+              {filteredCommands.length} workspace{filteredCommands.length !== 1 ? 's' : ''}
+            </div>
+          </div>
         </div>
       </div>
     </div>

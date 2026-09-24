@@ -2,20 +2,169 @@
 @tailwind components;
 @tailwind utilities;
 
-:root {
-  --foreground-rgb: 255, 255, 255;
-  --background-start-rgb: 10, 13, 20;
-  --background-end-rgb: 18, 24, 36;
+/* Hide scrollbars but keep functionality */
+.scrollbar-hide {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+.scrollbar-hide::-webkit-scrollbar {
+  display: none;
 }
 
-body {
-  color: rgb(var(--foreground-rgb));
-  background: linear-gradient(
-      to bottom,
-      transparent,
-      rgb(var(--background-end-rgb))
-    )
-    rgb(var(--background-start-rgb));
-  min-height: 100vh;
-  font-family: ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+/* Smooth scroll behavior */
+html {
+  scroll-behavior: smooth;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html {
+    scroll-behavior: auto;
+  }
+}
+
+@layer base {
+  :root {
+    /* Atmospheric aviation color palette */
+    --color-midnight-navy: 10 26 58;    /* #0a1a3a */
+    --color-obsidian: 18 26 45;         /* #121a2d */
+    --color-atmospheric-blue: 30 58 138; /* #1e3a8a */
+    --color-electric-cyan: 6 182 212;   /* #06b6d4 */
+    --color-soft-white: 248 250 252;    /* #f8fafc */
+    --color-muted-silver: 148 163 184;  /* #94a3b8 */
+    --foreground-rgb: 248, 250, 252;
+    --background-start-rgb: 10, 26, 58;
+    --background-end-rgb: 18, 32, 80;
+  }
+
+  body {
+    @apply text-soft-white antialiased;
+    background:
+      radial-gradient(
+        circle at 20% 30%,
+        rgba(30, 58, 138, 0.15) 0%,
+        transparent 40%
+      ),
+      radial-gradient(
+        circle at 80% 70%,
+        rgba(6, 182, 212, 0.1) 0%,
+        transparent 40%
+      ),
+      linear-gradient(
+        to bottom,
+        rgb(var(--background-start-rgb)) 0%,
+        rgb(var(--background-end-rgb)) 100%
+      );
+    min-height: 100vh;
+    overflow-x: hidden;
+    position: relative;
+  }
+
+  body::before {
+    content: '';
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background-image: url("data:image/svg+xml,%3Csvg width='100' height='100' viewBox='0 0 100 100' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M11 18c3.866 0 7-3.134 7-7s-3.134-7-7-7-7 3.134-7 7 3.134 7 7 7zm48 25c3.866 0 7-3.134 7-7s-3.134-7-7-7-7 3.134-7 7 3.134 7 7 7zm-43-7c1.657 0 3-1.343 3-3s-1.343-3-3-3-3 1.343-3 3 1.343 3 3 3zm63 31c1.657 0 3-1.343 3-3s-1.343-3-3-3-3 1.343-3 3 1.343 3 3 3zM34 90c1.657 0 3-1.343 3-3s-1.343-3-3-3-3 1.343-3 3 1.343 3 3 3zm56-76c1.657 0 3-1.343 3-3s-1.343-3-3-3-3 1.343-3 3 1.343 3 3 3zM12 86c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm28-65c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm23-11c2.76 0 5-2.24 5-5s-2.24-5-5-5-5 2.24-5 5 2.24 5 5 5zm-6 60c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm29 22c2.76 0 5-2.24 5-5s-2.24-5-5-5-5 2.24-5 5 2.24 5 5 5zM32 63c2.76 0 5-2.24 5-5s-2.24-5-5-5-5 2.24-5 5 2.24 5 5 5zm57-13c2.76 0 5-2.24 5-5s-2.24-5-5-5-5 2.24-5 5 2.24 5 5 5zm-9-21c1.105 0 2-.895 2-2s-.895-2-2-2-2 .895-2 2 .895 2 2 2zM60 91c1.105 0 2-.895 2-2s-.895-2-2-2-2 .895-2 2 .895 2 2 2zM35 41c1.105 0 2-.895 2-2s-.895-2-2-2-2 .895-2 2 .895 2 2 2zM12 60c1.105 0 2-.895 2-2s-.895-2-2-2-2 .895-2 2 .895 2 2 2z' fill='%231e3a8a' fill-opacity='0.03' fill-rule='evenodd'/%3E%3C/svg%3E");
+    opacity: 0.3;
+    z-index: -1;
+    pointer-events: none;
+  }
+
+  /* Glass effect base */
+  .glass-surface {
+    @apply backdrop-blur-glass bg-white/5 border border-white/10;
+    background: linear-gradient(
+      135deg,
+      rgba(255, 255, 255, 0.05) 0%,
+      rgba(255, 255, 255, 0.02) 100%
+    );
+  }
+
+  .glass-heavy {
+    @apply backdrop-blur-glass-heavy bg-white/10 border border-white/15;
+  }
+
+  /* Selection styling */
+  ::selection {
+    @apply bg-electric-cyan/30 text-soft-white;
+  }
+
+  /* Focus styles for accessibility */
+  :focus-visible {
+    @apply outline-2 outline-electric-cyan outline-offset-2;
+  }
+
+  /* Reduced motion support */
+  @media (prefers-reduced-motion: reduce) {
+    *,
+    *::before,
+    *::after {
+      animation-duration: 0.01ms !important;
+      animation-iteration-count: 1 !important;
+      transition-duration: 0.01ms !important;
+    }
+  }
+}
+
+@layer utilities {
+  /* Typography utilities */
+  .hero-title {
+    @apply text-7xl md:text-8xl lg:text-9xl font-light tracking-tighter leading-none;
+    font-variation-settings: 'wght' 100;
+  }
+
+  .hero-subtitle {
+    @apply text-lg md:text-xl lg:text-2xl text-muted-silver font-light tracking-widest uppercase mt-4;
+    letter-spacing: 0.3em;
+  }
+
+  .section-label {
+    @apply text-xs tracking-[0.3em] uppercase text-muted-silver font-semibold;
+  }
+
+  /* Animation utilities */
+  .animate-float {
+    animation: float 20s ease-in-out infinite;
+  }
+
+  .animate-glow-cyan {
+    animation: glow-cyan 4s ease-in-out infinite;
+  }
+
+  .animate-glow-blue {
+    animation: glow-blue 4s ease-in-out infinite;
+  }
+
+  /* Layout utilities */
+  .section-padding {
+    @apply px-4 sm:px-6 md:px-8 lg:px-12;
+  }
+
+  /* Scroll snap for cinematic scenes */
+  .snap-scroll {
+    scroll-snap-type: y mandatory;
+  }
+
+  .snap-section {
+    scroll-snap-align: start;
+    scroll-snap-stop: always;
+  }
+
+  /* Fade in animation */
+  .fade-in {
+    animation: fadeIn 0.8s ease-out forwards;
+  }
+
+  @keyframes fadeIn {
+    from {
+      opacity: 0;
+      transform: translateY(20px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
 }

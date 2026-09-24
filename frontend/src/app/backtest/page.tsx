@@ -35,9 +35,9 @@ export default function BacktestPage() {
     <div className="min-h-[calc(100vh-5rem)] p-6 flex flex-col gap-6 max-w-[1600px] mx-auto w-full fade-in">
       <header className="flex flex-col md:flex-row md:items-end justify-between gap-4 border-b border-border pb-6">
         <div>
-          <h2 className="text-xs font-semibold text-muted tracking-[0.2em] uppercase mb-1">Index Validation</h2>
-          <h1 className="text-3xl font-bold tracking-tight text-white flex items-center gap-3">
-            <ChartIcon className="w-8 h-8 text-accent" /> Backtest Engine
+          <h2 className="text-xs font-semibold text-muted-silver tracking-[0.2em] uppercase mb-1">Index Validation</h2>
+          <h1 className="text-3xl font-bold tracking-tight text-soft-white flex items-center gap-3">
+            <ChartIcon className="w-8 h-8 text-blue-400" /> Backtest Engine
           </h1>
         </div>
       </header>

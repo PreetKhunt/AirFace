@@ -20,8 +20,8 @@ export function StateBoundary({
   if (loading) {
     return (
       <div className="flex flex-col items-center justify-center p-12 h-full min-h-[200px]">
-        <Loader2 className="w-8 h-8 text-accent animate-spin mb-4" />
-        <p className="text-sm text-gray-400">Loading data...</p>
+        <Loader2 className="w-8 h-8 text-electric-cyan animate-spin mb-4" />
+        <p className="text-sm text-muted-silver">Loading data...</p>
       </div>
     );
   }
