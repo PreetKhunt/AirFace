@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState, useMemo } from 'react';
+import { useCallback, useEffect, useState, useMemo } from 'react';
 import { api } from '@/lib/api';
 import { ElementaryRouteIndex } from '@/types';
 import { StateBoundary } from '@/components/StateBoundary';
@@ -16,13 +16,13 @@ export default function RouteExplorerPage() {
   const [selectedHorizon, setSelectedHorizon] = useState<string>('T+1');
   const [searchQuery, setSearchQuery] = useState('');
 
-  const loadData = async () => {
+  const loadData = useCallback(async (currentRoute: string | null = null) => {
     try {
       setLoading(true);
       setError(null);
       const data = await api.getRouteIndices();
       setIndices(data);
-      if (data.length > 0 && !selectedRoute) {
+      if (data.length > 0 && !currentRoute) {
         setSelectedRoute(data[0].route_id);
         setSelectedHorizon(data[0].booking_horizon);
       }
@@ -31,11 +31,11 @@ export default function RouteExplorerPage() {
     } finally {
       setLoading(false);
     }
-  };
+  }, []);
 
   useEffect(() => {
     loadData();
-  }, []);
+  }, [loadData]);
 
   const uniqueRoutes = useMemo(() => Array.from(new Set(indices.map(i => i.route_id))).sort(), [indices]);
   const availableHorizons = useMemo(() => Array.from(new Set(indices.map(i => i.booking_horizon))).sort(), [indices]);
@@ -94,7 +94,7 @@ export default function RouteExplorerPage() {
         </div>
       </header>
 
-      <StateBoundary loading={loading} error={error} onRetry={loadData} isEmpty={!loading && indices.length === 0}>
+      <StateBoundary loading={loading} error={error} onRetry={() => loadData(selectedRoute)} isEmpty={!loading && indices.length === 0}>
         <div className="grid grid-cols-1 lg:grid-cols-4 gap-6 h-[600px]">
           
           {/* Route List Sidebar */}

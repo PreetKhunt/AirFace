@@ -482,7 +482,7 @@ export default function CinematicLandingPage() {
           <p className="text-muted-silver max-w-2xl mx-auto mb-8">
             The Jevons geometric mean aggregates thousands of route-level observations
             into a single national indicator. Weighted by DGCA passenger volumes,
-            it represents the true price movement of India's domestic air travel.
+            it represents the true price movement of India&apos;s domestic air travel.
           </p>
 
           <div className="flex flex-col sm:flex-row gap-4 justify-center">
@@ -636,7 +636,7 @@ export default function CinematicLandingPage() {
 
           <div className="mt-12 text-center">
             <p className="text-muted-silver mb-6">
-              Ready to explore India's airfare intelligence?
+              Ready to explore India&apos;s airfare intelligence?
             </p>
             <div className="flex flex-col sm:flex-row gap-4 justify-center">
               <Link
