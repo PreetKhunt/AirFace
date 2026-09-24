@@ -2,16 +2,19 @@ from app.services.demo_reference import load_demo_reference_baseline, REFERENCE_
 
 
 def test_demo_validation_pipeline_produces_full_metrics(client):
-    first_ingest = client.post("/api/v1/ingestion/fixtures/historical-validation")
+    first_ingest = client.post("/api/v1/ingestion/fixtures/synthetic-validation")
     assert first_ingest.status_code == 200
     assert first_ingest.json()["parsed_ingested"] == 31
 
-    second_ingest = client.post("/api/v1/ingestion/fixtures/historical-validation")
+    second_ingest = client.post("/api/v1/ingestion/fixtures/synthetic-validation")
     assert second_ingest.status_code == 200
     assert second_ingest.json()["duplicates_skipped"] == 31
 
     normalization = client.post("/api/v1/normalization/run")
     assert normalization.status_code == 200
+    normalized = client.get("/api/v1/normalized-observations?page=1&page_size=100")
+    assert normalized.status_code == 200
+    assert normalized.json()["total"] == 31
 
     reference_data = load_demo_reference_baseline()
     for observation_date in reference_data:
@@ -20,10 +23,17 @@ def test_demo_validation_pipeline_produces_full_metrics(client):
             params={
                 "calculation_date": observation_date.isoformat(),
                 "base_date": "2026-01-14",
-                "data_mode": "HISTORICAL",
+                "data_mode": "SYNTHETIC",
             },
         )
         assert response.status_code == 200
+
+    national_indices = client.get(
+        "/api/v1/index/national?methodology=JEVONS&data_mode=SYNTHETIC"
+    )
+    assert national_indices.status_code == 200
+    index_dates = {row["calculation_date"] for row in national_indices.json()}
+    assert len(index_dates.intersection({str(key) for key in reference_data})) == 30
 
     backtest = client.post(
         "/api/v1/backtest/run",
@@ -34,7 +44,7 @@ def test_demo_validation_pipeline_produces_full_metrics(client):
             "reference_source": REFERENCE_SOURCE,
             "methodology": "JEVONS",
             "booking_horizon": "T+1",
-            "data_mode": "HISTORICAL",
+            "data_mode": "SYNTHETIC",
         },
     )
 

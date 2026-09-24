@@ -124,14 +124,18 @@ The demo reset now includes a dedicated, version-controlled validation fixture. 
 
 | Field | Demo validation value |
 |---|---|
-| Reference source | `DEMO_REFERENCE_BASELINE` |
-| Data mode | `HISTORICAL` pipeline observations with `DEMO / SYNTHETIC` reference values |
+| Reference source | `MOCK_BASELINE` |
+| Data mode | `SYNTHETIC` |
 | Methodology | `JEVONS` |
 | Date range | `2026-01-15` through `2026-02-13` |
-| Reference fixture | `data/fixtures/reference/demo_reference_baseline.csv` |
-| Pipeline fixture | `data/fixtures/historical/airfare_validation.csv` |
-| Overlap count | 30 daily observations |
+| Reference fixture | `data/fixtures/reference/demo_reference_baseline.csv` (`DEMO_SYNTHETIC`) |
+| Pipeline fixture | `data/fixtures/synthetic/airfare_validation.csv` |
+| Raw / parsed observations | 31 / 31 |
+| Normalized observations | 31 valid-for-index rows |
+| Daily Jevons index observations | 30 national rows |
+| Reference observations | 30 daily values |
+| Overlap count | 30 matching daily observations |
 | Metric availability | MAPE, RMSE, Pearson correlation, mean bias, and directional accuracy are calculated by the backend engine |
 | Benchmark classification | Reproducible demo/synthetic reference, not an external official benchmark |
 
-The validation fixture contains a Jan 14 base observation and a stable flight panel repeated across the 30 target dates. The reset flow ingests it through the normal adapter, parser, normalization, DQ, and index stages before submitting the reference series to the backtest API. Re-ingestion is idempotent, and `BacktestRun.status` becomes `VALIDATED` only when the backend finds sufficient valid overlap.
+The validation fixture contains a Jan 14 base observation and a stable flight panel repeated across the 30 target dates. The reset flow ingests it through the normal adapter, parser, normalization, DQ, and index stages before submitting the reference series to the backtest API. Re-ingestion is idempotent, and `BacktestRun.status` becomes `VALIDATED` only when the backend finds sufficient valid overlap. A clean reset test records 31 raw/parsed rows, 31 normalized rows, 30 index rows, 30 reference rows, and 30 matched pairs.

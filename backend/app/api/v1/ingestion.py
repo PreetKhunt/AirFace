@@ -51,11 +51,11 @@ def ingest_synthetic_fixture(db: Session = Depends(get_db)):
 
 
 @router.post(
-    "/fixtures/historical-validation",
+    "/fixtures/synthetic-validation",
     response_model=IngestionResult,
     status_code=status.HTTP_200_OK,
     summary="Ingest Deterministic Historical Validation Fixture",
-    description="Loads the reproducible DEMO_REFERENCE_BASELINE validation observations.",
+    description="Loads the reproducible MOCK_BASELINE synthetic validation observations.",
 )
 def ingest_historical_validation_fixture(db: Session = Depends(get_db)):
     try:
@@ -64,5 +64,5 @@ def ingest_historical_validation_fixture(db: Session = Depends(get_db)):
     except Exception as e:
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Historical validation fixture ingestion failed: {str(e)}"
+            detail=f"Synthetic validation fixture ingestion failed: {str(e)}"
         )

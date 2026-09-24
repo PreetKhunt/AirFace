@@ -49,7 +49,7 @@ if __name__ == "__main__":
     # 2. Ingest Fixture Data
     run_step("Ingest Synthetic", "/ingestion/fixtures/synthetic")
     run_step("Ingest Historical", "/ingestion/fixtures/historical")
-    run_step("Ingest Historical Validation", "/ingestion/fixtures/historical-validation")
+    run_step("Ingest Synthetic Validation", "/ingestion/fixtures/synthetic-validation")
     
     # 3. Normalization
     run_step("Normalize Data", "/normalization/run")
@@ -58,9 +58,9 @@ if __name__ == "__main__":
     run_step("Calculate Index (SYNTHETIC)", "/index/calculate", params={"calculation_date": CALC_DATE, "base_date": BASE_DATE, "data_mode": "SYNTHETIC"})
     for validation_date in sorted(load_demo_reference_baseline()):
         run_step(
-            f"Calculate Validation Index (HISTORICAL) {validation_date}",
+            f"Calculate Validation Index (SYNTHETIC) {validation_date}",
             "/index/calculate",
-            params={"calculation_date": validation_date, "base_date": "2026-01-14", "data_mode": "HISTORICAL"},
+            params={"calculation_date": validation_date, "base_date": "2026-01-14", "data_mode": "SYNTHETIC"},
         )
     
     # 5. Execute Backtest
@@ -73,7 +73,7 @@ if __name__ == "__main__":
         "reference_source": REFERENCE_SOURCE,
         "methodology": "JEVONS",
         "booking_horizon": "T+1",
-        "data_mode": "HISTORICAL"
+        "data_mode": "SYNTHETIC"
     }
 
     def run_step_json(name, url, payload):

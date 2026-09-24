@@ -55,7 +55,7 @@ if __name__ == "__main__":
     # 1. Ingest Fixture Data
     run_step("Ingest Synthetic", "/ingestion/fixtures/synthetic")
     run_step("Ingest Historical", "/ingestion/fixtures/historical")
-    run_step("Ingest Historical Validation", "/ingestion/fixtures/historical-validation")
+    run_step("Ingest Synthetic Validation", "/ingestion/fixtures/synthetic-validation")
     
     # 2. Normalization & Quality
     run_step("Normalize Data & Calculate DQ", "/normalization/run")
@@ -70,9 +70,9 @@ if __name__ == "__main__":
     validation_dates = list(load_demo_reference_baseline())
     for d in validation_dates:
         date_value = d.isoformat()
-        run_step(f"Calculate Index (HISTORICAL) {date_value}", "/index/calculate", params={"calculation_date": date_value, "base_date": VALIDATION_BASE, "data_mode": "HISTORICAL"})
+        run_step(f"Calculate Index (SYNTHETIC) {date_value}", "/index/calculate", params={"calculation_date": date_value, "base_date": VALIDATION_BASE, "data_mode": "SYNTHETIC"})
     
-    # 4. Execute the reproducible historical demo validation
+    # 4. Execute the reproducible synthetic demo validation
     ref_data_hist = {d.isoformat(): value for d, value in load_demo_reference_baseline().items()}
     backtest_payload_hist = {
         "start_date": "2026-01-15",
@@ -81,7 +81,7 @@ if __name__ == "__main__":
         "reference_source": REFERENCE_SOURCE,
         "methodology": "JEVONS",
         "booking_horizon": "T+1",
-        "data_mode": "HISTORICAL"
+        "data_mode": "SYNTHETIC"
     }
 
     run_step_json("Backtest Validation (HISTORICAL)", "/backtest/run", backtest_payload_hist)

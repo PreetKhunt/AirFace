@@ -28,7 +28,7 @@ FIXTURE_PATHS = {
     DataMode.SYNTHETIC:  PROJECT_ROOT / "data" / "fixtures" / "synthetic" / "airfare_synthetic.csv",
 }
 
-VALIDATION_FIXTURE_PATH = PROJECT_ROOT / "data" / "fixtures" / "historical" / "airfare_validation.csv"
+VALIDATION_FIXTURE_PATH = PROJECT_ROOT / "data" / "fixtures" / "synthetic" / "airfare_validation.csv"
 
 
 def _parse_time(val: str) -> Optional[time]:
@@ -235,8 +235,8 @@ class ValidationFixtureAdapter(FixtureAdapter):
     """Deterministic historical fixture used only for demo validation."""
 
     def __init__(self):
-        super().__init__(DataMode.HISTORICAL, fixture_path=VALIDATION_FIXTURE_PATH)
+        super().__init__(DataMode.SYNTHETIC, fixture_path=VALIDATION_FIXTURE_PATH)
 
     @property
     def name(self) -> str:
-        return "fixture_historical_validation"
+        return "fixture_synthetic_validation"
