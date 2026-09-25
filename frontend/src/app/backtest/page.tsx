@@ -6,6 +6,19 @@ import { BacktestRun } from '@/types';
 import { StateBoundary } from '@/components/StateBoundary';
 import { AlertTriangle, CheckCircle2, LineChart as ChartIcon, Info } from 'lucide-react';
 
+const REFERENCE_DISCLOSURE =
+  'Official first-party historical DGCA airfare micro-data was not verified as a downloadable time series for this prototype. The displayed validation results therefore demonstrate the validation pipeline against a version-controlled reference series and should not be interpreted as official DGCA benchmark accuracy.';
+
+function isReferenceValidationComplete(status: string): boolean {
+  return status === 'VALIDATED' || status === 'REFERENCE_VALIDATED';
+}
+
+function referenceValidationLabel(status: string): string {
+  if (isReferenceValidationComplete(status)) return 'Prototype Reference Validation';
+  if (status === 'INSUFFICIENT_DATA') return 'Insufficient Reference Overlap';
+  return status.replace(/_/g, ' ');
+}
+
 export default function BacktestPage() {
   const [runs, setRuns] = useState<BacktestRun[]>([]);
   const [loading, setLoading] = useState(true);
@@ -29,6 +42,7 @@ export default function BacktestPage() {
   }, [loadData]);
 
   const latestRun = runs.length > 0 ? runs[0] : null;
+  const validationComplete = latestRun ? isReferenceValidationComplete(latestRun.status) : false;
 
   return (
     <div className="min-h-[calc(100vh-5rem)] p-6 flex flex-col gap-6 max-w-[1600px] mx-auto w-full fade-in">
@@ -36,7 +50,7 @@ export default function BacktestPage() {
         <div>
           <h2 className="text-xs font-semibold text-muted-silver tracking-[0.2em] uppercase mb-1">Index Validation</h2>
           <h1 className="text-3xl font-bold tracking-tight text-soft-white flex items-center gap-3">
-            <ChartIcon className="w-8 h-8 text-accent" /> Market Backtest
+            <ChartIcon className="w-8 h-8 text-accent" /> Prototype Reference Validation
           </h1>
         </div>
       </header>
@@ -49,18 +63,22 @@ export default function BacktestPage() {
             {/* Meta Info */}
             <div className="lg:col-span-3 flex flex-col md:flex-row gap-4 p-4 bg-card border border-border rounded-xl">
               <div className="flex-1 border-r border-border pr-4">
-                <span className="text-[10px] uppercase tracking-widest text-muted block mb-1">Reference</span>
+                <span className="text-[10px] uppercase tracking-widest text-muted block mb-1">Reference Source</span>
                 <span className="text-sm font-mono text-white">{latestRun.reference_source}</span>
               </div>
               <div className="flex-1 border-r border-border px-4">
+                <span className="text-[10px] uppercase tracking-widest text-muted block mb-1">Reference Type</span>
+                <span className="text-sm font-mono text-accent">Prototype / version-controlled reference dataset</span>
+              </div>
+              <div className="flex-1 border-r border-border px-4">
                 <span className="text-[10px] uppercase tracking-widest text-muted block mb-1">Data Mode</span>
-                <span className="text-sm font-mono text-accent">{latestRun.reference_source === 'DEMO_REFERENCE_BASELINE' ? 'SYNTHETIC' : latestRun.data_mode}</span>
+                <span className="text-sm font-mono text-white">{latestRun.data_mode}</span>
               </div>
               <div className="flex-1 border-r border-border px-4">
                 <span className="text-[10px] uppercase tracking-widest text-muted block mb-1">Methodology</span>
                 <span className="text-sm font-mono text-white">{latestRun.methodology}</span>
               </div>
-              <div className="flex-1 pl-4">
+              <div className="flex-1 border-r border-border px-4">
                 <span className="text-[10px] uppercase tracking-widest text-muted block mb-1">Observation Window</span>
                 <span className="text-sm font-mono text-white">{latestRun.start_date} &rarr; {latestRun.end_date}</span>
               </div>
@@ -70,8 +88,14 @@ export default function BacktestPage() {
               </div>
             </div>
 
+            {/* Disclosure */}
+            <div className="lg:col-span-3 border-l-2 border-warning bg-warning/5 px-5 py-4">
+              <div className="text-xs font-bold tracking-[0.2em] text-warning uppercase mb-2">Validation Provenance Disclosure</div>
+              <p className="text-sm text-muted leading-relaxed">{REFERENCE_DISCLOSURE}</p>
+            </div>
+
             {/* Content Based on Status */}
-            {latestRun.status !== 'VALIDATED' ? (
+            {!validationComplete ? (
               <div className="lg:col-span-3 h-[400px] bg-card border border-border rounded-xl flex flex-col items-center justify-center text-center p-8 relative overflow-hidden">
                 <div className="absolute top-0 left-0 w-full h-1 bg-warning" />
                 <AlertTriangle className="w-16 h-16 text-warning mb-6" />
@@ -80,14 +104,16 @@ export default function BacktestPage() {
                   The backtest found {latestRun.match_count} matching observations out of {latestRun.sample_count}. Metrics remain unavailable until the backend has enough valid temporal overlap.
                 </p>
                 <div className="mt-8 px-4 py-2 bg-warning/10 border border-warning/20 text-warning text-xs font-bold tracking-widest uppercase rounded">
-                  Status: {latestRun.status}
+                  Status: {referenceValidationLabel(latestRun.status)}
                 </div>
               </div>
             ) : (
               <>
                 <div className="lg:col-span-3 border-l-2 border-accent bg-accent/5 px-5 py-4">
-                  <div className="text-xs font-bold tracking-[0.2em] text-accent uppercase">Backtest Complete</div>
-                  <p className="text-sm text-muted mt-2">Validation metrics use the reproducible demo reference dataset. They are not an external official benchmark.</p>
+                  <div className="text-xs font-bold tracking-[0.2em] text-accent uppercase">Validation Against Version-Controlled Reference Series</div>
+                  <p className="text-sm text-muted mt-2">
+                    Metrics below evaluate pipeline fidelity against the configured prototype reference baseline — not official DGCA historical airfare micro-data.
+                  </p>
                 </div>
                 <div className="lg:col-span-3 grid grid-cols-2 md:grid-cols-5 gap-4">
                   <MetricCard title="MAPE" value={latestRun.mape ? `${latestRun.mape}%` : '--'} desc="Mean Absolute Pct Error" status={latestRun.mape ? (parseFloat(latestRun.mape) < 15 ? 'good' : 'warn') : 'warn'} />
@@ -135,8 +161,8 @@ export default function BacktestPage() {
                     Validation metrics (RMSE, MAPE, Pearson) are evaluated strictly on the backend via Pandas and NumPy. Raw proprietary reference vectors are never exposed to the client interface for security and commercial compliance.
                   </p>
                   
-                  <div className="px-4 py-2 border border-success/30 bg-success/10 rounded-lg text-success text-xs font-mono font-bold flex items-center gap-2">
-                    <CheckCircle2 className="w-4 h-4" /> STATISTICAL VALIDATION COMPLETE
+                  <div className="px-4 py-2 border border-accent/30 bg-accent/10 rounded-lg text-accent text-xs font-mono font-bold flex items-center gap-2">
+                    <CheckCircle2 className="w-4 h-4" /> {referenceValidationLabel(latestRun.status).toUpperCase()}
                   </div>
                 </div>
               </>

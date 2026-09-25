@@ -82,9 +82,8 @@ def normalize_airfare(raw_obs: RawObservation) -> NormalizedObservation:
         flat_convenience_fee = raw_obs.source_metadata.default_convenience_fee or 0.0
         comparable_fare = raw_obs.raw_displayed_total - flat_convenience_fee
     
-    # Enforce minimum economic threshold bound
-    if comparable_fare < 500.0:
-        raise InvalidFareException("Normalized fare below absolute domestic floor ₹500")
+    # No arbitrary fare floor is applied. A low fare remains eligible when its
+    # components and displayed total are structurally valid.
 
     return NormalizedObservation(
         comparable_index_fare=round(comparable_fare, 2),

@@ -8,6 +8,8 @@ import BacktestPage from '@/app/backtest/page';
 import ProvenanceExplorerPage from '@/app/provenance/page';
 import MethodologyPage from '@/app/methodology/page';
 import DataCleaningPage from '@/app/data-cleaning/page';
+import SystemStatusPage from '@/app/system-status/page';
+import IndexAnalyticsPage from '@/app/index-analytics/page';
 
 // Mock recharts to avoid rendering issues in JSDOM
 jest.mock('recharts', () => {
@@ -17,6 +19,7 @@ jest.mock('recharts', () => {
     ResponsiveContainer: ({ children }: any) => <div>{children}</div>,
     LineChart: () => <div>LineChart Mock</div>,
     BarChart: () => <div>BarChart Mock</div>,
+    AreaChart: () => <div>AreaChart Mock</div>,
   };
 });
 
@@ -37,6 +40,11 @@ describe('Dashboard Component Rendering & Data Modes', () => {
     expect(screen.getByText(/Booking Horizon Escalation/i)).toBeTruthy();
   });
 
+  test('Index Analytics renders correctly', () => {
+    render(<IndexAnalyticsPage />);
+    expect(screen.getByText(/Index Aggregation Engine/i)).toBeTruthy();
+  });
+
   test('Collection Monitor renders correctly', () => {
     render(<CollectionMonitorPage />);
     expect(screen.getByText(/Data Operations/i)).toBeTruthy();
@@ -54,19 +62,23 @@ describe('Dashboard Component Rendering & Data Modes', () => {
 
   test('Backtest Page renders correctly', () => {
     render(<BacktestPage />);
-    expect(screen.getByText(/Market Backtest/i)).toBeTruthy();
+    expect(screen.getByText(/Prototype Reference Validation/i)).toBeTruthy();
   });
 
   test('Provenance Explorer renders correctly', () => {
     render(<ProvenanceExplorerPage />);
     expect(screen.getByText(/Provenance Explorer/i)).toBeTruthy();
-    expect(screen.getByText(/Loading data.../i)).toBeTruthy();
+  });
+
+  test('System Status renders correctly', () => {
+    render(<SystemStatusPage />);
+    expect(screen.getByText(/System Status & Health/i)).toBeTruthy();
   });
 
   test('Methodology Page renders correctly', () => {
     render(<MethodologyPage />);
-    expect(screen.getByText(/Methodology & Architecture/i)).toBeTruthy();
-    expect(screen.getByText(/Jevons Elementary Index/i)).toBeTruthy();
+    expect(screen.getByText(/Methodology & Mathematical Framework/i)).toBeTruthy();
+    expect(screen.getByText(/Tier 1 Elementary Jevons Index/i)).toBeTruthy();
   });
 
 });

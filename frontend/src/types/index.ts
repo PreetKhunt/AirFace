@@ -66,9 +66,12 @@ export interface BacktestRun {
   created_at: string;
 }
 
+export type AdapterType = 'FIXTURE' | 'LIVE';
+
 export interface SourceHealth {
   source_id: string;
   source_name: string;
+  adapter_type: AdapterType;
   last_collection_time: string | null;
   status: string;
   success_rate: string;

@@ -4,9 +4,10 @@ import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { Scene, SceneTransition } from '@/components/CinematicTransition';
 import { GlassSurface, GlassCard, GlassMetric } from '@/components/GlassSurface';
-import { ArrowRight, Cloud, Network, TrendingUp, Shield, BarChart3, Map, Clock, Activity } from 'lucide-react';
+import { ArrowRight, Cloud, Network, TrendingUp, Shield, BarChart3, Map, Clock, Activity, Cpu } from 'lucide-react';
 import { api } from '@/lib/api';
-import { SystemStatusResponse, NationalAggregateIndex, DataQualityLog, SourceHealth } from '@/types';
+import { getAdapterOperationalStatus } from '@/lib/adapterStatus';
+import { SystemStatusResponse, NationalAggregateIndex, DataQualityLog, SourceHealth, NormalizedIndexObservation, ProvenanceAuditTrail } from '@/types';
 import { clsx } from 'clsx';
 
 export default function CinematicLandingPage() {
@@ -14,20 +15,36 @@ export default function CinematicLandingPage() {
   const [indices, setIndices] = useState<NationalAggregateIndex[]>([]);
   const [dq, setDq] = useState<DataQualityLog | null>(null);
   const [sources, setSources] = useState<SourceHealth[]>([]);
+  const [sampleNorm, setSampleNorm] = useState<NormalizedIndexObservation | null>(null);
+  const [sampleProv, setSampleProv] = useState<ProvenanceAuditTrail | null>(null);
+  const [totalObservations, setTotalObservations] = useState(0);
+  const [airlineCount, setAirlineCount] = useState(0);
   const [loading, setLoading] = useState(true);
 
   const loadData = async () => {
     try {
-      const [sys, nat, quality, srcs] = await Promise.all([
+      const [sys, nat, quality, srcs, normData] = await Promise.all([
         api.getSystemStatus().catch(() => null),
         api.getNationalIndices().catch(() => []),
         api.getQualityScore().catch(() => null),
         api.getSources().catch(() => []),
+        api.getNormalizedObservations(undefined, undefined, true, 500).catch(() => ({ items: [], total: 0 })),
       ]);
       setSysStatus(sys);
       setIndices(nat);
       setDq(quality);
       setSources(srcs);
+      setTotalObservations(normData.total);
+      setAirlineCount(new Set(normData.items.map((item) => item.parsed?.airline_code).filter(Boolean)).size);
+
+      if (normData.items.length > 0) {
+        const item = normData.items[0];
+        setSampleNorm(item);
+        if (item.parsed?.observation_id) {
+          const prov = await api.getProvenance(item.parsed.observation_id).catch(() => null);
+          setSampleProv(prov);
+        }
+      }
     } catch (err) {
       console.error('Failed to load landing data:', err);
     } finally {
@@ -40,8 +57,11 @@ export default function CinematicLandingPage() {
   }, []);
 
   const latestIndex = indices.length > 0 ? indices[indices.length - 1] : null;
-  const totalScraped = sources.reduce((sum, s) => sum + s.total_records_scraped, 0);
-  const healthySources = sources.filter(s => s.status === 'HEALTHY').length;
+  const fixtureSources = sources.filter(s => getAdapterOperationalStatus(s) === 'HISTORICAL/FIXTURE FALLBACK').length;
+  const activeMode = sysStatus?.data_mode || (latestIndex?.data_mode) || 'HISTORICAL';
+
+  const formatFare = (value: string | null | undefined) =>
+    value == null ? 'NO DATA' : `₹${parseFloat(value).toLocaleString('en-IN', { maximumFractionDigits: 2 })}`;
 
   return (
     <div className="snap-scroll">
@@ -64,6 +84,12 @@ export default function CinematicLandingPage() {
                 THE PRICE OF INDIA&apos;S SKIES
               </div>
             </div>
+          </div>
+
+          <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-surface/80 border border-white/10 mb-8 font-mono text-xs text-muted-silver">
+            <span className="w-2 h-2 rounded-full bg-accent animate-pulse" />
+            <span>OPERATIONAL MODE:</span>
+            <span className="text-soft-white font-bold">{activeMode}</span>
           </div>
 
           <p className="text-xl text-muted-silver max-w-2xl mx-auto mb-12 leading-relaxed">
@@ -120,23 +146,22 @@ export default function CinematicLandingPage() {
             <div className="grid grid-cols-2 gap-4">
               <GlassMetric
                 label="Active Corridors"
-                value={latestIndex?.route_count || 12}
+                value={latestIndex?.route_count ?? 'NO DATA'}
                 size="sm"
               />
               <GlassMetric
                 label="Coverage"
-                value={latestIndex?.coverage_pct || '87.4'}
-                unit="%"
+                value={latestIndex ? `${latestIndex.coverage_pct}%` : 'NO DATA'}
                 size="sm"
               />
               <GlassMetric
                 label="Airlines"
-                value="4"
+                value={airlineCount || 'NO DATA'}
                 size="sm"
               />
               <GlassMetric
                 label="Observations"
-                value={totalScraped.toLocaleString()}
+                value={totalObservations > 0 ? totalObservations.toLocaleString() : 'NO DATA'}
                 size="sm"
               />
             </div>
@@ -149,19 +174,19 @@ export default function CinematicLandingPage() {
               <div className="relative h-96">
                 <div className="absolute inset-0 border border-atmospheric-blue/20 rounded-2xl" />
 
-                {/* Mock route lines (would be dynamic with real data) */}
+                {/* Route lines */}
                 <div className="absolute top-1/4 left-1/4 w-1/2 h-px bg-gradient-to-r from-transparent via-electric-cyan to-transparent" />
                 <div className="absolute top-1/3 right-1/4 w-1/3 h-px bg-gradient-to-r from-transparent via-atmospheric-blue to-transparent transform rotate-12" />
                 <div className="absolute bottom-1/3 left-1/3 w-2/5 h-px bg-gradient-to-r from-transparent via-cyan-400 to-transparent transform -rotate-6" />
 
                 {/* Route nodes */}
                 {[
-                  { label: 'DEL', x: '15%', y: '25%' },
-                  { label: 'BOM', x: '85%', y: '25%' },
-                  { label: 'BLR', x: '40%', y: '60%' },
-                  { label: 'MAA', x: '60%', y: '75%' },
-                  { label: 'CCU', x: '25%', y: '75%' },
-                  { label: 'HYD', x: '75%', y: '45%' },
+                  { label: 'DEL', x: '20%', y: '25%' },
+                  { label: 'BOM', x: '80%', y: '28%' },
+                  { label: 'BLR', x: '45%', y: '65%' },
+                  { label: 'MAA', x: '65%', y: '75%' },
+                  { label: 'CCU', x: '30%', y: '75%' },
+                  { label: 'HYD', x: '75%', y: '48%' },
                 ].map((node) => (
                   <div
                     key={node.label}
@@ -202,27 +227,27 @@ export default function CinematicLandingPage() {
           <GlassSurface className="p-8 mb-12">
             <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
               <div className="text-center">
-                <div className="text-2xl font-mono text-muted-silver mb-2">DEL → BOM</div>
-                <div className="text-sm text-muted-silver">T+7</div>
+                <div className="text-2xl font-mono text-muted-silver mb-2">{sampleNorm?.route_id || 'NO DATA'}</div>
+                <div className="text-sm text-muted-silver">{sampleNorm?.booking_horizon || 'NO DATA'}</div>
               </div>
               <div className="text-center">
-                <div className="text-5xl font-mono font-bold text-electric-cyan mb-2">₹4,582</div>
-                <div className="text-sm text-muted-silver">Comparable Fare</div>
+                <div className="text-5xl font-mono font-bold text-electric-cyan mb-2">{formatFare(sampleNorm?.comparable_index_fare)}</div>
+                <div className="text-sm text-muted-silver">Comparable Fare (P_comparable)</div>
               </div>
               <div className="text-center">
-                <div className="text-lg font-mono text-muted-silver">Indigo 6E-205</div>
-                <div className="text-sm text-muted-silver">Direct · 2h 15m</div>
+                <div className="text-lg font-mono text-muted-silver">{sampleNorm?.parsed ? `${sampleNorm.parsed.airline_code} ${sampleNorm.parsed.flight_number}` : 'NO DATA'}</div>
+                <div className="text-sm text-muted-silver">{sampleNorm?.parsed ? `${sampleNorm.parsed.cabin_class || 'NO CABIN'} · ${sampleNorm.parsed.fare_family || 'NO FARE FAMILY'}` : 'NO DATA'}</div>
               </div>
             </div>
           </GlassSurface>
 
           <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
             {[
-              { label: 'BASE', value: '₹3,820', color: 'from-accent to-accent/70' },
-              { label: 'UDF', value: '₹430', color: 'from-success to-success/70' },
-              { label: 'ASF', value: '₹250', color: 'from-warning to-warning/70' },
-              { label: 'GST', value: '₹682', color: 'from-info to-info/70' },
-              { label: 'YQ', value: '₹0', color: 'from-muted to-muted/70' },
+              { label: 'BASE', value: formatFare(sampleNorm?.parsed?.base_fare), color: 'from-accent to-accent/70' },
+              { label: 'UDF', value: formatFare(sampleNorm?.parsed?.udf_fee), color: 'from-success to-success/70' },
+              { label: 'ASF', value: formatFare(sampleNorm?.parsed?.asf_fee), color: 'from-warning to-warning/70' },
+              { label: 'GST', value: formatFare(sampleNorm?.parsed?.gst_tax), color: 'from-info to-info/70' },
+              { label: 'YQ', value: formatFare(sampleNorm?.parsed?.yq_surcharge), color: 'from-muted to-muted/70' },
             ].map((component) => (
               <GlassCard
                 key={component.label}
@@ -241,8 +266,8 @@ export default function CinematicLandingPage() {
           <div className="mt-12 text-center">
             <p className="text-muted-silver max-w-2xl mx-auto mb-6">
               Each fare component is parsed, validated, and normalized to create
-              comparable index observations. No hidden fees, no optional extras—just
-              the true cost of air travel.
+              comparable index observations: P_comp = Base + UDF + ASF + GST + YQ.
+              Convenience fees and optional add-ons are strictly excluded.
             </p>
             <Link
               href="/data-cleaning"
@@ -267,11 +292,11 @@ export default function CinematicLandingPage() {
         <div className="max-w-6xl mx-auto">
           <div className="flex flex-col md:flex-row items-center justify-between gap-8 mb-12">
             {[
-              { stage: 'RAW', icon: '📥', desc: 'HTML/JSON payloads', count: totalScraped },
-              { stage: 'PARSED', icon: '🔍', desc: 'Fare extraction', count: 0 },
-              { stage: 'NORMALIZED', icon: '⚖️', desc: 'Currency alignment', count: 0 },
-              { stage: 'QUALITY', icon: '🛡️', desc: '8-factor scoring', count: 0 },
-              { stage: 'INDEX', icon: '📊', desc: 'Jevons aggregation', count: indices.length },
+              { stage: 'RAW', icon: '📥', desc: 'HTML/JSON payloads', count: totalObservations || 'NO DATA' },
+              { stage: 'PARSED', icon: '🔍', desc: 'Fare extraction', count: totalObservations || 'NO DATA' },
+              { stage: 'NORMALIZED', icon: '⚖️', desc: 'Currency alignment', count: totalObservations || 'NO DATA' },
+              { stage: 'QUALITY', icon: '🛡️', desc: '8-factor scoring', count: dq ? `${dq.composite_score}%` : 'NO DATA' },
+              { stage: 'INDEX', icon: '📊', desc: 'Jevons aggregation', count: indices.length || 'NO DATA' },
             ].map((stage, index) => (
               <div key={stage.stage} className="flex items-center">
                 <div className="relative">
@@ -280,7 +305,7 @@ export default function CinematicLandingPage() {
                     <div className="text-xs font-bold text-soft-white mt-1">{stage.stage}</div>
                   </div>
                   <div className="absolute -bottom-6 left-1/2 -translate-x-1/2 text-xs text-muted-silver text-center w-24">
-                    {stage.count.toLocaleString()}
+                    {typeof stage.count === 'number' ? stage.count.toLocaleString() : stage.count}
                   </div>
                 </div>
                 {index < 4 && (
@@ -297,32 +322,27 @@ export default function CinematicLandingPage() {
                   <div className="text-6xl font-mono font-bold text-electric-cyan mb-2">
                     {dq.composite_score}
                   </div>
-                  <div className="text-sm text-muted-silver">Composite Score</div>
+                  <div className="text-sm text-muted-silver">Empirical DQ Score (/100)</div>
                   <div className="mt-4 text-xs text-muted-silver">
-                    Based on completeness, validity, consistency, timeliness, reliability,
+                    Evaluated across completeness, validity, consistency, timeliness, reliability,
                     deduplication, outlier cleanliness, and availability coverage.
                   </div>
                 </div>
               ) : (
                 <div className="text-center py-8 text-muted-silver">
-                  Quality scoring available after pipeline execution
+                  Quality scoring calculated dynamically from database observations.
                 </div>
               )}
             </GlassCard>
 
-            <GlassCard title="Collection Health" subtitle="Scraper Adapter Status">
+            <GlassCard title="Collection Health" subtitle="Scraper Adapter Operational Status">
               <div className="py-6">
                 <div className="flex items-center justify-between mb-4">
                   <div className="text-3xl font-mono font-bold text-soft-white">
-                    {healthySources}/{sources.length}
+                    {sources.length || 0}
                   </div>
-                  <div className={clsx(
-                    'px-3 py-1 rounded-full text-xs font-bold',
-                    healthySources === sources.length
-                      ? 'bg-success/10 text-success border border-success/20'
-                      : 'bg-warning/10 text-warning border border-warning/20'
-                  )}>
-                    {healthySources === sources.length ? 'ALL SYSTEMS GO' : 'DEGRADED'}
+                  <div className="px-3 py-1 rounded-full text-xs font-bold bg-surface text-muted-silver border border-border">
+                    {fixtureSources > 0 ? 'FIXTURE-BACKED DEMO' : 'NOT CONFIGURED'}
                   </div>
                 </div>
                 <div className="space-y-3">
@@ -330,10 +350,7 @@ export default function CinematicLandingPage() {
                     <div key={source.source_id} className="flex items-center justify-between">
                       <span className="text-sm text-muted-silver">{source.source_name}</span>
                       <div className="flex items-center gap-2">
-                        <div className={clsx(
-                          'w-2 h-2 rounded-full',
-                          source.status === 'HEALTHY' ? 'bg-success animate-pulse' : 'bg-warning'
-                        )} />
+                        <span className="text-[10px] font-mono text-muted-silver uppercase">{getAdapterOperationalStatus(source)}</span>
                         <span className="text-xs text-muted-silver">{source.success_rate}%</span>
                       </div>
                     </div>
@@ -351,31 +368,18 @@ export default function CinematicLandingPage() {
       <Scene
         id="horizon"
         title="The Horizon"
-        subtitle="Booking time changes the airfare signal"
+        subtitle="Advance purchase window changes the airfare signal"
         background="horizon"
       >
         <div className="max-w-6xl mx-auto">
-          <div className="flex justify-center mb-12 overflow-x-auto pb-4">
-            <div className="flex gap-2">
-              {['T+1', 'T+7', 'T+15', 'T+30', 'T+45'].map((horizon) => (
-                <button
-                  key={horizon}
-                  className="px-6 py-3 rounded-full border border-amber-500/30 text-amber-400 hover:bg-amber-500/10 transition-colors"
-                >
-                  {horizon}
-                </button>
-              ))}
-            </div>
-          </div>
-
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
             <GlassCard>
               <div className="text-center py-8">
                 <Clock className="w-12 h-12 text-amber-400 mx-auto mb-4" />
-                <h4 className="text-lg font-semibold text-soft-white mb-2">Advance Purchase Window</h4>
+                <h4 className="text-lg font-semibold text-soft-white mb-2">5 Advance Horizons</h4>
                 <p className="text-muted-silver text-sm">
-                  Fares evolve dramatically as departure approaches.
-                  Our system captures this temporal dimension across 5 strategic horizons.
+                  Airfares exhibit steep escalation as departure approaches.
+                  AirFace stratifies indices into T+1, T+7, T+15, T+30, and T+45 windows.
                 </p>
               </div>
             </GlassCard>
@@ -383,23 +387,20 @@ export default function CinematicLandingPage() {
             <GlassCard>
               <div className="py-8">
                 <div className="text-center mb-6">
-                  <div className="text-4xl font-mono font-bold text-soft-white">+28.4%</div>
-                  <div className="text-sm text-muted-silver">Average escalation T+45 → T+1</div>
+                  <div className="text-4xl font-mono font-bold text-soft-white">T+1 ... T+45</div>
+                  <div className="text-sm text-muted-silver">Horizon Stratification</div>
                 </div>
                 <div className="space-y-3">
                   {[
-                    { horizon: 'T+45', value: '100.0', change: '+0%' },
-                    { horizon: 'T+30', value: '108.2', change: '+8.2%' },
-                    { horizon: 'T+15', value: '119.7', change: '+19.7%' },
-                    { horizon: 'T+7', value: '125.4', change: '+25.4%' },
-                    { horizon: 'T+1', value: '128.4', change: '+28.4%' },
+                    { horizon: 'T+1', desc: 'Last-minute emergency / business travel' },
+                    { horizon: 'T+7', desc: 'Short-lead domestic bookings' },
+                    { horizon: 'T+15', desc: 'Standard leisure / corporate travel' },
+                    { horizon: 'T+30', desc: 'Advance planned domestic travel' },
+                    { horizon: 'T+45', desc: 'Early bird baseline window' },
                   ].map((item) => (
                     <div key={item.horizon} className="flex items-center justify-between">
-                      <span className="text-sm text-muted-silver">{item.horizon}</span>
-                      <div className="flex items-center gap-4">
-                        <span className="font-mono text-soft-white">{item.value}</span>
-                        <span className="text-xs text-amber-400">{item.change}</span>
-                      </div>
+                      <span className="font-mono text-amber-400 font-bold text-sm">{item.horizon}</span>
+                      <span className="text-xs text-muted-silver">{item.desc}</span>
                     </div>
                   ))}
                 </div>
@@ -409,10 +410,10 @@ export default function CinematicLandingPage() {
             <GlassCard>
               <div className="text-center py-8">
                 <TrendingUp className="w-12 h-12 text-electric-cyan mx-auto mb-4" />
-                <h4 className="text-lg font-semibold text-soft-white mb-2">Strategic Insight</h4>
+                <h4 className="text-lg font-semibold text-soft-white mb-2">Macroeconomic Insight</h4>
                 <p className="text-muted-silver text-sm mb-6">
-                  Understanding horizon-based pricing enables better policy decisions,
-                  corporate travel planning, and consumer protection.
+                  Stratifying by advance booking window prevents temporal composition bias
+                  and yields unbiased CPI price relatives.
                 </p>
                 <Link
                   href="/booking-horizon"
@@ -441,56 +442,48 @@ export default function CinematicLandingPage() {
             <div className="absolute -inset-8 bg-gradient-to-r from-electric-cyan/10 to-atmospheric-blue/10 blur-3xl rounded-full" />
             <div className="relative">
               <div className="text-8xl md:text-9xl font-light tracking-tighter text-soft-white mb-2">
-                {latestIndex?.index_value || '104.82'}
+                {latestIndex?.index_value ? parseFloat(latestIndex.index_value.toString()).toFixed(2) : 'NO DATA'}
               </div>
               <div className="text-xl text-muted-silver uppercase tracking-widest">
-                NATIONAL AIRFARE PRICE INDEX
+                NATIONAL AIRFARE PRICE INDEX ({activeMode})
               </div>
             </div>
           </div>
 
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-12">
             <GlassMetric
-              label="Base = 100"
-              value="100.00"
+              label="Base Period"
+              value={latestIndex?.base_date || 'NO DATA'}
               size="sm"
             />
             <GlassMetric
-              label="Daily Change"
-              value="+0.42"
-              unit="%"
-              trend="up"
-              trendValue="+0.42%"
+              label="Calculation Date"
+              value={latestIndex?.calculation_date || 'NO DATA'}
               size="sm"
             />
             <GlassMetric
-              label="Monthly Change"
-              value="+2.18"
-              unit="%"
-              trend="up"
-              trendValue="+2.18%"
+              label="Horizon"
+              value={latestIndex?.booking_horizon || 'NO DATA'}
               size="sm"
             />
             <GlassMetric
               label="Coverage"
-              value={latestIndex?.coverage_pct || '87.4'}
-              unit="%"
+              value={latestIndex ? `${latestIndex.coverage_pct}%` : 'NO DATA'}
               size="sm"
             />
           </div>
 
-          <p className="text-muted-silver max-w-2xl mx-auto mb-8">
-            The Jevons geometric mean aggregates thousands of route-level observations
-            into a single national indicator. Weighted by DGCA passenger volumes,
-            it represents the true price movement of India&apos;s domestic air travel.
+          <p className="text-muted-silver max-w-2xl mx-auto mb-8 text-sm">
+            Experimental airfare price indicator derived from the configured route basket and methodology.
+            Tier 1 elementary indices use the Jevons geometric mean, aggregated via DGCA passenger volume weights.
           </p>
 
           <div className="flex flex-col sm:flex-row gap-4 justify-center">
             <Link
-              href="/"
+              href="/index-analytics"
               className="px-8 py-4 bg-gradient-to-r from-atmospheric-blue to-electric-cyan text-soft-white font-semibold rounded-full hover:shadow-[0_0_40px_rgba(30,58,138,0.4)] transition-all duration-300"
             >
-              Enter Control Room
+              Open Index Analytics
             </Link>
             <Link
               href="/methodology"
@@ -508,66 +501,40 @@ export default function CinematicLandingPage() {
       <Scene
         id="trust"
         title="Trust"
-        subtitle="Every number has a trail"
+        subtitle="Every number has a cryptographic trail"
         background="provenance"
       >
         <div className="max-w-6xl mx-auto">
-          <div className="flex flex-col md:flex-row items-center justify-between gap-8 mb-12">
-            {[
-              { label: 'NATIONAL INDEX', value: latestIndex?.index_value || '104.82' },
-              { label: 'ROUTE', value: 'DEL-BOM' },
-              { label: 'BOOKING HORIZON', value: 'T+7' },
-              { label: 'INDEX OBSERVATION', value: '₹4,582' },
-              { label: 'NORMALIZED OBSERVATION', value: 'obs_8f2e...' },
-              { label: 'PARSED OBSERVATION', value: 'obs_8f2e...' },
-              { label: 'RAW OBSERVATION', value: 'raw_a1b2...' },
-              { label: 'SHA-256', value: 'e3b0c4...' },
-            ].map((node, index) => (
-              <div key={node.label} className="flex flex-col items-center">
-                <div className="w-16 h-16 rounded-full bg-gradient-to-br from-emerald-500/20 to-emerald-600/20 border border-emerald-500/30 flex items-center justify-center mb-2">
-                  <div className="text-xs font-bold text-emerald-400 text-center px-1">{node.label.split(' ')[0]}</div>
-                </div>
-                <div className="text-xs text-muted-silver text-center mt-2">{node.value}</div>
-                {index < 7 && (
-                  <div className="hidden md:block absolute left-1/2 transform -translate-x-1/2 mt-16 w-8 h-1 bg-gradient-to-r from-emerald-500/20 to-emerald-600/20" />
-                )}
-              </div>
-            ))}
-          </div>
-
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
             <GlassCard title="Cryptographic Audit Trail" subtitle="Immutable Verification">
               <div className="py-6">
-                <div className="font-mono text-sm text-emerald-400 break-all bg-obsidian p-4 rounded-lg mb-4">
-                  8f2e4a9b1c3d5e7f89101112131415161718192021222324252627282930
+                <div className="font-mono text-xs text-emerald-400 break-all bg-obsidian p-4 rounded-lg mb-4 border border-emerald-500/20">
+                  {sampleProv?.payload_sha256_hash || 'NO DATA'}
                 </div>
                 <p className="text-sm text-muted-silver">
-                  Each index value is cryptographically linked to its source data through
-                  SHA-256 hashing. This creates an immutable audit trail from final
-                  aggregation back to raw scraper payloads.
+                  Each index observation is cryptographically linked to its raw scraper payload
+                  through deterministic SHA-256 hashing, enabling tamper-evident audit trails.
                 </p>
               </div>
             </GlassCard>
 
-            <GlassCard title="Data Provenance" subtitle="Complete Lineage">
-              <div className="py-6">
-                <div className="space-y-4">
-                  <div className="flex items-center justify-between">
-                    <span className="text-sm text-muted-silver">Index Calculation</span>
-                    <span className="text-xs font-mono text-emerald-400">Jevons Geometric Mean</span>
-                  </div>
-                  <div className="flex items-center justify-between">
-                    <span className="text-sm text-muted-silver">Data Quality Score</span>
-                    <span className="text-xs font-mono text-emerald-400">{dq?.composite_score || 'N/A'}</span>
-                  </div>
-                  <div className="flex items-center justify-between">
-                    <span className="text-sm text-muted-silver">Source Integrity</span>
-                    <span className="text-xs font-mono text-emerald-400">SHA-256 Verified</span>
-                  </div>
-                  <div className="flex items-center justify-between">
-                    <span className="text-sm text-muted-silver">Temporal Coverage</span>
-                    <span className="text-xs font-mono text-emerald-400">{indices.length} Days</span>
-                  </div>
+            <GlassCard title="Data Provenance" subtitle="Lineage Snapshot">
+              <div className="py-6 space-y-4">
+                <div className="flex items-center justify-between">
+                  <span className="text-sm text-muted-silver">Observation ID</span>
+                  <span className="text-xs font-mono text-emerald-400">{sampleNorm?.observation_id ? `${sampleNorm.observation_id.slice(0, 16)}...` : 'NO DATA'}</span>
+                </div>
+                <div className="flex items-center justify-between">
+                  <span className="text-sm text-muted-silver">Source Portal</span>
+                  <span className="text-xs font-mono text-emerald-400">{sampleProv?.source_portal || 'NO DATA'}</span>
+                </div>
+                <div className="flex items-center justify-between">
+                  <span className="text-sm text-muted-silver">Index Methodology</span>
+                  <span className="text-xs font-mono text-emerald-400">Jevons Elementary</span>
+                </div>
+                <div className="flex items-center justify-between">
+                  <span className="text-sm text-muted-silver">Data Mode</span>
+                  <span className="text-xs font-mono text-emerald-400">{activeMode}</span>
                 </div>
               </div>
             </GlassCard>
@@ -599,21 +566,22 @@ export default function CinematicLandingPage() {
               Aviation Intelligence Control Room
             </h2>
             <p className="text-xl text-muted-silver max-w-3xl mx-auto">
-              Where MARKET, ROUTES, HORIZONS, COLLECTION, QUALITY, VALIDATION, and PROVENANCE
-              become accessible. The operational heart of AirFace.
+              Access the 10 interconnected modules of the AIRFACE pipeline.
             </p>
           </div>
 
-          <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-8 gap-4">
+          <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
             {[
-              { label: 'MARKET', icon: BarChart3, href: '/', color: 'from-accent to-accent/70' },
-              { label: 'ROUTES', icon: Map, href: '/route-explorer', color: 'from-success to-success/70' },
+              { label: 'OVERVIEW', icon: BarChart3, href: '/', color: 'from-accent to-accent/70' },
+              { label: 'ROUTE INTEL', icon: Map, href: '/route-explorer', color: 'from-success to-success/70' },
               { label: 'HORIZONS', icon: Clock, href: '/booking-horizon', color: 'from-amber-500 to-orange-500' },
+              { label: 'INDEX ANALYTICS', icon: BarChart3, href: '/index-analytics', color: 'from-blue to-atmospheric-blue' },
+              { label: 'DATA QUALITY', icon: Shield, href: '/data-quality', color: 'from-warning to-warning/70' },
+              { label: 'CLEANING ENGINE', icon: Shield, href: '/data-cleaning', color: 'from-rose-500 to-pink-500' },
               { label: 'COLLECTION', icon: Activity, href: '/collection-monitor', color: 'from-emerald-500 to-green-500' },
-              { label: 'QUALITY', icon: Shield, href: '/data-quality', color: 'from-warning to-warning/70' },
-              { label: 'INTEGRITY', icon: Shield, href: '/data-cleaning', color: 'from-rose-500 to-pink-500' },
               { label: 'VALIDATION', icon: BarChart3, href: '/backtest', color: 'from-info to-info/70' },
               { label: 'PROVENANCE', icon: Network, href: '/provenance', color: 'from-teal-500 to-emerald-500' },
+              { label: 'SYSTEM STATUS', icon: Cpu, href: '/system-status', color: 'from-purple-500 to-indigo-500' },
             ].map((module) => {
               const Icon = module.icon;
               return (
@@ -623,11 +591,11 @@ export default function CinematicLandingPage() {
                   className="group"
                 >
                   <GlassSurface className="p-6 text-center hover:scale-105 transition-transform duration-300">
-                    <div className={`w-16 h-16 rounded-full bg-gradient-to-br ${module.color} flex items-center justify-center mx-auto mb-4 group-hover:shadow-lg transition-shadow`}>
-                      <Icon className="w-8 h-8 text-soft-white" />
+                    <div className={`w-14 h-14 rounded-full bg-gradient-to-br ${module.color} flex items-center justify-center mx-auto mb-3 group-hover:shadow-lg transition-shadow`}>
+                      <Icon className="w-7 h-7 text-soft-white" />
                     </div>
-                    <div className="text-sm font-semibold text-soft-white">{module.label}</div>
-                    <div className="text-xs text-muted-silver mt-1">Workspace</div>
+                    <div className="text-xs font-semibold text-soft-white tracking-wider">{module.label}</div>
+                    <div className="text-[10px] text-muted-silver mt-1">Module</div>
                   </GlassSurface>
                 </Link>
               );
@@ -635,9 +603,6 @@ export default function CinematicLandingPage() {
           </div>
 
           <div className="mt-12 text-center">
-            <p className="text-muted-silver mb-6">
-              Ready to explore India&apos;s airfare intelligence?
-            </p>
             <div className="flex flex-col sm:flex-row gap-4 justify-center">
               <Link
                 href="/route-explorer"

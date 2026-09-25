@@ -4,8 +4,9 @@ import { useEffect, useState, useRef } from 'react';
 import { api } from '@/lib/api';
 import { SourceHealth } from '@/types';
 import { StateBoundary } from '@/components/StateBoundary';
-import { Server, Activity, Terminal, Play, CheckCircle2, AlertTriangle, AlertCircle } from 'lucide-react';
+import { Activity, Terminal, Play, CheckCircle2, AlertTriangle } from 'lucide-react';
 import { clsx } from 'clsx';
+import { getAdapterOperationalStatus, operationalStatusTone } from '@/lib/adapterStatus';
 
 export default function CollectionMonitorPage() {
   const [sources, setSources] = useState<SourceHealth[]>([]);
@@ -108,7 +109,10 @@ export default function CollectionMonitorPage() {
           {/* Main Monitor (Server Racks) */}
           <div className="lg:col-span-2 flex flex-col gap-6">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              {sources.map(source => (
+              {sources.map(source => {
+                const opStatus = getAdapterOperationalStatus(source);
+                const tone = operationalStatusTone(opStatus);
+                return (
                 <div key={source.source_id} className="bg-card border border-border rounded-xl p-5 flex flex-col relative overflow-hidden group">
                   <div className="absolute top-0 left-0 w-1 h-full bg-border group-hover:bg-accent transition-colors" />
                   
@@ -116,13 +120,17 @@ export default function CollectionMonitorPage() {
                     <div>
                       <h3 className="text-sm font-bold text-white font-mono">{source.source_name}</h3>
                       <div className="flex items-center gap-2 mt-1">
-                        <span className={clsx('w-2 h-2 rounded-full', source.status === 'HEALTHY' ? 'bg-success shadow-[0_0_8px_rgba(16,185,129,0.8)]' : 'bg-warning')} />
+                        <span className={clsx(
+                          'w-2 h-2 rounded-full',
+                          tone === 'success' ? 'bg-success shadow-[0_0_8px_rgba(16,185,129,0.8)]' :
+                          tone === 'warning' ? 'bg-warning' : 'bg-muted'
+                        )} />
                         <span className="text-[10px] tracking-widest uppercase text-muted">
-                          {source.source_name.toLowerCase().includes('fixture') ? 'FIXTURE / DEMO' : 'LIVE'}
+                          {opStatus}
                         </span>
                       </div>
                     </div>
-                    {source.status === 'HEALTHY' ? <CheckCircle2 className="w-5 h-5 text-success" /> : <AlertTriangle className="w-5 h-5 text-warning" />}
+                    {tone === 'success' ? <CheckCircle2 className="w-5 h-5 text-success" /> : <AlertTriangle className="w-5 h-5 text-warning" />}
                   </div>
 
                   <div className="grid grid-cols-2 gap-4 mb-4">
@@ -151,7 +159,7 @@ export default function CollectionMonitorPage() {
                     </span>
                   </div>
                 </div>
-              ))}
+              );})}
             </div>
           </div>
 
@@ -180,9 +188,9 @@ export default function CollectionMonitorPage() {
               {runResult && runResult.index && runResult.normalization && (
                 <div className="mt-4 p-3 bg-accent/10 border border-accent/20 rounded text-accent">
                   <div className="font-bold mb-2">INDEXING COMPLETE</div>
-                  <div>- Tier 1 Routes Generated: {runResult.index.elementary_indices_generated ?? 0}</div>
-                  <div>- Tier 2 National Generated: {runResult.index.national_indices_generated ?? 0}</div>
-                  <div>- Normalization Records Processed: {runResult.normalization.total_normalized_created ?? 0}</div>
+                  <div>- Tier 1 Routes Generated: {runResult.index.elementary_indices_generated ?? 'NO DATA'}</div>
+                  <div>- Tier 2 National Generated: {runResult.index.national_indices_generated ?? 'NO DATA'}</div>
+                  <div>- Normalization Records Processed: {runResult.normalization.total_normalized_created ?? 'NO DATA'}</div>
                 </div>
               )}
               <div ref={logsEndRef} />
