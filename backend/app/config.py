@@ -35,6 +35,16 @@ class Settings(BaseSettings):
                     pass
             return [i.strip() for i in v.split(",")]
         return v
+
+    @field_validator("DATABASE_URL")
+    @classmethod
+    def normalize_postgres_driver(cls, v: str) -> str:
+        """Use the PostgreSQL driver installed by backend/requirements.txt."""
+        if v.startswith("postgres://"):
+            return v.replace("postgres://", "postgresql+psycopg2://", 1)
+        if v.startswith("postgresql://"):
+            return v.replace("postgresql://", "postgresql+psycopg2://", 1)
+        return v
     
     # Operational Data Mode & Scraping Flags
     SCRAPER_ENABLED: bool = True
