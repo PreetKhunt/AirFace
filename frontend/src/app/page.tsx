@@ -7,7 +7,7 @@ import { GlassSurface, GlassCard, GlassMetric } from '@/components/GlassSurface'
 import { ArrowRight, Cloud, Network, TrendingUp, Shield, BarChart3, Map, Clock, Activity, Cpu } from 'lucide-react';
 import { api } from '@/lib/api';
 import { getAdapterOperationalStatus } from '@/lib/adapterStatus';
-import { SystemStatusResponse, NationalAggregateIndex, DataQualityLog, SourceHealth, NormalizedIndexObservation, ProvenanceAuditTrail } from '@/types';
+import { SystemStatusResponse, NationalAggregateIndex, DataQualityLog, SourceHealth, NormalizedIndexObservation, ProvenanceAuditTrail, HorizonSummaryResponse, PipelineStatus } from '@/types';
 import { clsx } from 'clsx';
 
 export default function CinematicLandingPage() {
@@ -15,27 +15,34 @@ export default function CinematicLandingPage() {
   const [indices, setIndices] = useState<NationalAggregateIndex[]>([]);
   const [dq, setDq] = useState<DataQualityLog | null>(null);
   const [sources, setSources] = useState<SourceHealth[]>([]);
+  const [horizonSummary, setHorizonSummary] = useState<HorizonSummaryResponse | null>(null);
+  const [pipelineStatus, setPipelineStatus] = useState<PipelineStatus | null>(null);
   const [sampleNorm, setSampleNorm] = useState<NormalizedIndexObservation | null>(null);
   const [sampleProv, setSampleProv] = useState<ProvenanceAuditTrail | null>(null);
   const [totalObservations, setTotalObservations] = useState(0);
-  const [airlineCount, setAirlineCount] = useState(0);
+  const [routeIds, setRouteIds] = useState<string[]>([]);
   const [loading, setLoading] = useState(true);
 
   const loadData = async () => {
     try {
-      const [sys, nat, quality, srcs, normData] = await Promise.all([
+      const [sys, nat, quality, srcs, normData, pipeline, horizons, routeIndices] = await Promise.all([
         api.getSystemStatus().catch(() => null),
         api.getNationalIndices().catch(() => []),
         api.getQualityScore().catch(() => null),
         api.getSources().catch(() => []),
         api.getNormalizedObservations(undefined, undefined, true, 500).catch(() => ({ items: [], total: 0 })),
+        api.getPipelineStatus().catch(() => null),
+        api.getHorizonSummary().catch(() => null),
+        api.getRouteIndices().catch(() => []),
       ]);
       setSysStatus(sys);
       setIndices(nat);
       setDq(quality);
       setSources(srcs);
+      setPipelineStatus(pipeline);
+      setHorizonSummary(horizons);
+      setRouteIds(Array.from(new Set(routeIndices.map(route => route.route_id))));
       setTotalObservations(normData.total);
-      setAirlineCount(new Set(normData.items.map((item) => item.parsed?.airline_code).filter(Boolean)).size);
 
       if (normData.items.length > 0) {
         const item = normData.items[0];
@@ -58,7 +65,13 @@ export default function CinematicLandingPage() {
 
   const latestIndex = indices.length > 0 ? indices[indices.length - 1] : null;
   const fixtureSources = sources.filter(s => getAdapterOperationalStatus(s) === 'HISTORICAL/FIXTURE FALLBACK').length;
-  const activeMode = sysStatus?.data_mode || (latestIndex?.data_mode) || 'HISTORICAL';
+  const activeMode = sysStatus?.data_mode || latestIndex?.data_mode || 'DATA MODE UNAVAILABLE';
+  const airlineCount = pipelineStatus?.counts.airlines ?? 0;
+  const networkAirports = Array.from(new Set(routeIds.flatMap(route => route.split('-')))).slice(0, 6);
+  const networkPositions = [
+    { x: '20%', y: '25%' }, { x: '80%', y: '28%' }, { x: '45%', y: '65%' },
+    { x: '65%', y: '75%' }, { x: '30%', y: '75%' }, { x: '75%', y: '48%' },
+  ];
 
   const formatFare = (value: string | null | undefined) =>
     value == null ? 'NO DATA' : `₹${parseFloat(value).toLocaleString('en-IN', { maximumFractionDigits: 2 })}`;
@@ -93,7 +106,7 @@ export default function CinematicLandingPage() {
           </div>
 
           <p className="text-xl text-muted-silver max-w-2xl mx-auto mb-12 leading-relaxed">
-            Every flight leaves a signal. AirFace transforms millions of airfare observations
+            Every flight leaves a signal. AirFace transforms persisted airfare observations
             into measurable intelligence for India&apos;s economic landscape.
           </p>
 
@@ -128,7 +141,7 @@ export default function CinematicLandingPage() {
       <Scene
         id="network"
         title="The Network"
-        subtitle="Thousands of airfare observations form a picture of India's skies"
+        subtitle="Persisted airfare observations form a picture of India's skies"
         background="route"
       >
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
@@ -180,24 +193,18 @@ export default function CinematicLandingPage() {
                 <div className="absolute bottom-1/3 left-1/3 w-2/5 h-px bg-gradient-to-r from-transparent via-cyan-400 to-transparent transform -rotate-6" />
 
                 {/* Route nodes */}
-                {[
-                  { label: 'DEL', x: '20%', y: '25%' },
-                  { label: 'BOM', x: '80%', y: '28%' },
-                  { label: 'BLR', x: '45%', y: '65%' },
-                  { label: 'MAA', x: '65%', y: '75%' },
-                  { label: 'CCU', x: '30%', y: '75%' },
-                  { label: 'HYD', x: '75%', y: '48%' },
-                ].map((node) => (
+                {networkAirports.map((label, index) => (
                   <div
-                    key={node.label}
+                    key={label}
                     className="absolute w-12 h-12 flex items-center justify-center"
-                    style={{ left: node.x, top: node.y, transform: 'translate(-50%, -50%)' }}
+                    style={{ ...networkPositions[index], transform: 'translate(-50%, -50%)' }}
                   >
                     <div className="w-10 h-10 rounded-full bg-gradient-to-br from-atmospheric-blue to-electric-cyan flex items-center justify-center text-xs font-bold text-soft-white shadow-lg">
-                      {node.label}
+                      {label}
                     </div>
                   </div>
                 ))}
+                {networkAirports.length === 0 && <div className="absolute inset-0 flex items-center justify-center text-xs font-mono text-muted-silver">NO ROUTE INDEX DATA</div>}
               </div>
 
               <div className="mt-8 text-center">
@@ -292,9 +299,9 @@ export default function CinematicLandingPage() {
         <div className="max-w-6xl mx-auto">
           <div className="flex flex-col md:flex-row items-center justify-between gap-8 mb-12">
             {[
-              { stage: 'RAW', icon: '📥', desc: 'HTML/JSON payloads', count: totalObservations || 'NO DATA' },
-              { stage: 'PARSED', icon: '🔍', desc: 'Fare extraction', count: totalObservations || 'NO DATA' },
-              { stage: 'NORMALIZED', icon: '⚖️', desc: 'Currency alignment', count: totalObservations || 'NO DATA' },
+              { stage: 'RAW', icon: '📥', desc: 'HTML/JSON payloads', count: pipelineStatus?.counts.raw ?? 'NO DATA' },
+              { stage: 'PARSED', icon: '🔍', desc: 'Fare extraction', count: pipelineStatus?.counts.parsed ?? 'NO DATA' },
+              { stage: 'NORMALIZED', icon: '⚖️', desc: 'Currency alignment', count: pipelineStatus?.counts.normalized ?? 'NO DATA' },
               { stage: 'QUALITY', icon: '🛡️', desc: '8-factor scoring', count: dq ? `${dq.composite_score}%` : 'NO DATA' },
               { stage: 'INDEX', icon: '📊', desc: 'Jevons aggregation', count: indices.length || 'NO DATA' },
             ].map((stage, index) => (
@@ -387,22 +394,17 @@ export default function CinematicLandingPage() {
             <GlassCard>
               <div className="py-8">
                 <div className="text-center mb-6">
-                  <div className="text-4xl font-mono font-bold text-soft-white">T+1 ... T+45</div>
-                  <div className="text-sm text-muted-silver">Horizon Stratification</div>
+                  <div className="text-4xl font-mono font-bold text-soft-white">{horizonSummary?.horizons.filter(h => h.availability_state === 'AVAILABLE').length ?? 'NO DATA'} / {horizonSummary?.horizons.length ?? 'NO DATA'}</div>
+                  <div className="text-sm text-muted-silver">Horizons with Index Data</div>
                 </div>
                 <div className="space-y-3">
-                  {[
-                    { horizon: 'T+1', desc: 'Last-minute emergency / business travel' },
-                    { horizon: 'T+7', desc: 'Short-lead domestic bookings' },
-                    { horizon: 'T+15', desc: 'Standard leisure / corporate travel' },
-                    { horizon: 'T+30', desc: 'Advance planned domestic travel' },
-                    { horizon: 'T+45', desc: 'Early bird baseline window' },
-                  ].map((item) => (
-                    <div key={item.horizon} className="flex items-center justify-between">
+                  {(horizonSummary?.horizons ?? []).map((item) => (
+                    <div key={item.horizon} className="flex items-center justify-between gap-3">
                       <span className="font-mono text-amber-400 font-bold text-sm">{item.horizon}</span>
-                      <span className="text-xs text-muted-silver">{item.desc}</span>
+                      <span className="text-xs text-muted-silver">{item.availability_state === 'AVAILABLE' ? `${item.observation_count} observations · ${item.route_count} routes` : 'DATA NOT AVAILABLE'}</span>
                     </div>
                   ))}
+                  {horizonSummary?.horizons.length === 0 && <div className="text-xs text-muted-silver">No horizon summary is available.</div>}
                 </div>
               </div>
             </GlassCard>

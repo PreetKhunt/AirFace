@@ -48,7 +48,7 @@ class Settings(BaseSettings):
     
     # Operational Data Mode & Scraping Flags
     SCRAPER_ENABLED: bool = True
-    DATA_MODE: DataMode = DataMode.LIVE
+    DATA_MODE: DataMode = DataMode.HISTORICAL
     
     model_config = SettingsConfigDict(
         env_file=".env",

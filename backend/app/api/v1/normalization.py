@@ -6,7 +6,9 @@ from uuid import UUID
 from fastapi import APIRouter, Depends, HTTPException, Query, status
 from sqlalchemy.orm import Session
 from app.database.session import get_db
-from app.models.observation import NormalizedIndexObservation, ParsedAirfareObservation
+from app.core.enums import DataMode
+from app.models.observation import NormalizedIndexObservation, ParsedAirfareObservation, RawAirfareObservation
+from app.services.index_engine import get_active_data_mode
 from app.schemas.normalization import (
     NormalizedObservationOut,
     NormalizedObservationListResponse,
@@ -49,12 +51,23 @@ def list_normalized_observations(
     valid_for_index: Optional[bool] = Query(None, description="Filter by index eligibility"),
     is_outlier: Optional[bool] = Query(None, description="Filter by outlier flag"),
     normalization_status: Optional[str] = Query(None, description="Filter by normalization status"),
+    data_mode: Optional[DataMode] = Query(None, description="Filter by persisted dataset mode"),
     include_parsed: bool = Query(False, description="Embed parsed fare breakdown in each result"),
     page: int = Query(1, ge=1, description="Page number"),
     page_size: int = Query(50, ge=1, le=500, description="Page size limit"),
     db: Session = Depends(get_db),
 ):
     query = db.query(NormalizedIndexObservation)
+    mode = data_mode or get_active_data_mode(db)
+
+    if mode:
+        query = (
+            query.join(ParsedAirfareObservation, ParsedAirfareObservation.observation_id == NormalizedIndexObservation.observation_id)
+            .join(RawAirfareObservation, RawAirfareObservation.raw_id == ParsedAirfareObservation.raw_id)
+            .filter(RawAirfareObservation.collection_mode == mode)
+        )
+    else:
+        query = query.filter(False)
 
     if route_id:
         query = query.filter(NormalizedIndexObservation.route_id == route_id.upper())
@@ -82,6 +95,13 @@ def list_normalized_observations(
                 ParsedAirfareObservation.observation_id.in_(obs_ids)
             ).all()
             parsed_map = {str(p.observation_id): p for p in parsed_rows}
+            raw_ids = [row.raw_id for row in parsed_rows]
+            source_map = {
+                str(raw_id): source_name
+                for raw_id, source_name in db.query(RawAirfareObservation.raw_id, RawAirfareObservation.source_name)
+                .filter(RawAirfareObservation.raw_id.in_(raw_ids))
+                .all()
+            }
 
         results_with_parsed = []
         for norm in norm_rows:
@@ -89,6 +109,8 @@ def list_normalized_observations(
             parsed_embedded = ParsedObservationEmbedded.model_validate(parsed_row) if parsed_row else None
             item = NormalizedObservationWithParsedOut.model_validate(norm)
             item.parsed = parsed_embedded
+            if item.parsed:
+                item.parsed.source_name = source_map.get(str(parsed_row.raw_id))
             results_with_parsed.append(item)
 
         return NormalizedObservationWithParsedListResponse(

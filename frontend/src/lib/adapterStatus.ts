@@ -20,7 +20,7 @@ export function getAdapterOperationalStatus(source: SourceHealth): AdapterOperat
   }
 
   if (name.includes('indigo') || name.includes('live')) {
-    if (source.total_records_scraped > 0 && source.status === 'HEALTHY') {
+    if ((source.total_records_scraped ?? 0) > 0 && source.status === 'HEALTHY') {
       return 'LIVE VERIFIED';
     }
     if (source.status === 'DISABLED' || source.status === 'UNAVAILABLE') {
@@ -29,7 +29,7 @@ export function getAdapterOperationalStatus(source: SourceHealth): AdapterOperat
     return 'IMPLEMENTED ADAPTER';
   }
 
-  if (source.total_records_scraped > 0 && source.adapter_type === 'LIVE') {
+  if ((source.total_records_scraped ?? 0) > 0 && source.adapter_type === 'LIVE') {
     return 'LIVE VERIFIED';
   }
 

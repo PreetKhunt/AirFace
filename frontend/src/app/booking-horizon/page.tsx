@@ -2,7 +2,7 @@
 
 import { useEffect, useState, useMemo } from 'react';
 import { api } from '@/lib/api';
-import { NationalAggregateIndex } from '@/types';
+import { HorizonSummary, HorizonSummaryResponse, NationalAggregateIndex } from '@/types';
 import { StateBoundary } from '@/components/StateBoundary';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Cell, LabelList } from 'recharts';
 import { Clock } from 'lucide-react';
@@ -10,6 +10,7 @@ import { clsx } from 'clsx';
 
 export default function BookingHorizonPage() {
   const [indices, setIndices] = useState<NationalAggregateIndex[]>([]);
+  const [horizonSummary, setHorizonSummary] = useState<HorizonSummaryResponse | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [selectedHorizon, setSelectedHorizon] = useState<string | null>(null);
@@ -18,7 +19,11 @@ export default function BookingHorizonPage() {
     try {
       setLoading(true);
       setError(null);
-      const data = await api.getNationalIndices(); // Gets all horizons
+      const [summary, data] = await Promise.all([
+        api.getHorizonSummary(),
+        api.getNationalIndices(),
+      ]);
+      setHorizonSummary(summary);
       setIndices(data.filter(i => i.methodology === 'JEVONS'));
     } catch (err: any) {
       setError(err.message || 'Failed to load horizon data');
@@ -31,11 +36,8 @@ export default function BookingHorizonPage() {
     loadData();
   }, []);
 
-  const availableHorizons = useMemo(() => Array.from(new Set(indices.map(i => i.booking_horizon))).sort((a,b) => {
-    const na = parseInt(a.replace('T+',''));
-    const nb = parseInt(b.replace('T+',''));
-    return na - nb;
-  }), [indices]);
+  const horizons = useMemo(() => horizonSummary?.horizons ?? [], [horizonSummary]);
+  const availableHorizons = useMemo(() => horizons.map(item => item.horizon), [horizons]);
 
   useEffect(() => {
     if (availableHorizons.length > 0 && !selectedHorizon) {
@@ -43,42 +45,29 @@ export default function BookingHorizonPage() {
     }
   }, [availableHorizons, selectedHorizon]);
 
-  const latestDateStr = useMemo(() => {
-    if (indices.length === 0) return null;
-    return indices.map(i => i.calculation_date).sort().pop();
-  }, [indices]);
-
   const chartData = useMemo(() => {
-    if (!latestDateStr) return [];
-    const latestByHorizon = indices.filter(i => i.calculation_date === latestDateStr);
-    
-    // Sort reverse for waterfall escalation visual (from far to near)
-    const reversedHorizons = [...availableHorizons].reverse();
-
-    return reversedHorizons.map((h, i) => {
-      const match = latestByHorizon.find(idx => idx.booking_horizon === h);
-      const val = match ? parseFloat(match.index_value) : 0;
-      
-      // Calculate escalation step (delta from previous further horizon)
-      const prevMatch = i > 0 ? latestByHorizon.find(idx => idx.booking_horizon === reversedHorizons[i-1]) : null;
-      const prevVal = prevMatch ? parseFloat(prevMatch.index_value) : 0;
-      const delta = i === 0 ? val : val - prevVal;
-      
-      return {
-        name: h,
-        value: val,
-        delta: delta,
-        base: prevVal,
-        coverage: match ? match.coverage_pct : "0.00",
-        observations: 0,
-        routes: match ? match.route_count : 0
+    const ordered = [...horizons].reverse().filter(item => item.availability_state === 'AVAILABLE');
+    let previousValue = 0;
+    return ordered.flatMap((item: HorizonSummary) => {
+      const index = indices.filter(row => row.booking_horizon === item.horizon).pop();
+      if (!index) return [];
+      const value = parseFloat(index.index_value);
+      const row = {
+        name: item.horizon,
+        value,
+        delta: value - previousValue,
+        base: previousValue,
+        coverage: item.coverage_pct ?? 'NO DATA',
+        observations: item.observation_count,
+        routes: item.route_count,
       };
-    }).filter(d => d.value > 0);
-  }, [indices, availableHorizons, latestDateStr]);
+      previousValue = value;
+      return [row];
+    });
+  }, [horizons, indices]);
 
-  const selectedData = useMemo(() => {
-    return chartData.find(d => d.name === selectedHorizon) || null;
-  }, [chartData, selectedHorizon]);
+  const selectedSummary = horizons.find(item => item.horizon === selectedHorizon) ?? null;
+  const selectedData = chartData.find(d => d.name === selectedHorizon) ?? null;
 
   return (
     <div className="min-h-[calc(100vh-5rem)] p-6 flex flex-col gap-6 max-w-[1600px] mx-auto w-full fade-in">
@@ -91,7 +80,7 @@ export default function BookingHorizonPage() {
         </div>
       </header>
 
-      <StateBoundary loading={loading} error={error} onRetry={loadData} isEmpty={!loading && chartData.length === 0}>
+      <StateBoundary loading={loading} error={error} onRetry={loadData}>
         <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
           
           {/* Timeline and Details */}
@@ -100,26 +89,27 @@ export default function BookingHorizonPage() {
             
             <div className="flex items-center w-full max-w-4xl relative">
               <div className="absolute top-1/2 left-0 w-full h-[1px] bg-border -z-10" />
-              {availableHorizons.map((h, idx) => (
-                <div key={h} className="flex-1 flex justify-center relative">
+              {horizons.map((item, idx) => (
+                <div key={item.horizon} className="flex-1 flex justify-center relative">
                   <button
-                    onClick={() => setSelectedHorizon(h)}
+                    onClick={() => setSelectedHorizon(item.horizon)}
                     className={clsx(
                       'flex flex-col items-center gap-2 group outline-none',
                     )}
                   >
                     <div className={clsx(
                       'w-4 h-4 rounded-full border-2 transition-all duration-300',
-                      selectedHorizon === h 
+                      selectedHorizon === item.horizon 
                         ? 'bg-warning border-warning shadow-[0_0_12px_rgba(245,158,11,0.8)] scale-125' 
                         : 'bg-background border-border group-hover:border-warning/50'
                     )} />
                     <span className={clsx(
                       'text-xs font-mono transition-colors mt-2',
-                      selectedHorizon === h ? 'text-warning font-bold' : 'text-muted group-hover:text-white'
+                      selectedHorizon === item.horizon ? 'text-warning font-bold' : 'text-muted group-hover:text-white'
                     )}>
-                      {h}
+                      {item.horizon}
                     </span>
+                    <span className="text-[9px] font-mono text-muted">{item.availability_state === 'AVAILABLE' ? 'AVAILABLE' : 'NO DATA'}</span>
                   </button>
                 </div>
               ))}
@@ -127,7 +117,7 @@ export default function BookingHorizonPage() {
           </div>
 
           <div className="lg:col-span-1 flex flex-col gap-4">
-            {selectedData ? (
+            {selectedData && selectedSummary?.availability_state === 'AVAILABLE' ? (
               <>
                 <div className="bg-card border border-border p-6 rounded-xl flex flex-col gap-1">
                   <span className="text-[10px] uppercase tracking-widest text-muted">Index Level</span>
@@ -145,7 +135,7 @@ export default function BookingHorizonPage() {
                 </div>
                 <div className="grid grid-cols-2 gap-4">
                   <div className="bg-card border border-border p-5 rounded-xl flex flex-col gap-1">
-                    <span className="text-[10px] uppercase tracking-widest text-muted">Obs</span>
+                    <span className="text-[10px] uppercase tracking-widest text-muted">Observations</span>
                     <span className="text-xl font-mono text-white">{selectedData.observations}</span>
                   </div>
                   <div className="bg-card border border-border p-5 rounded-xl flex flex-col gap-1">
@@ -153,10 +143,16 @@ export default function BookingHorizonPage() {
                     <span className="text-xl font-mono text-white">{selectedData.routes}</span>
                   </div>
                 </div>
+                <div className="bg-card border border-border p-5 rounded-xl flex flex-col gap-1">
+                  <span className="text-[10px] uppercase tracking-widest text-muted">Index Observations</span>
+                  <span className="text-xl font-mono text-white">{selectedSummary.index_observation_count}</span>
+                  <span className="text-[10px] text-muted">Date range: {selectedSummary.date_range.start ?? 'NO DATA'} to {selectedSummary.date_range.end ?? 'NO DATA'}</span>
+                </div>
               </>
             ) : (
-              <div className="h-full flex items-center justify-center border border-dashed border-border rounded-xl text-muted font-mono text-sm p-6 text-center">
-                Select a horizon to view detailed metrics.
+              <div className="h-full flex flex-col items-center justify-center border border-dashed border-border rounded-xl text-muted font-mono text-sm p-6 text-center gap-3">
+                <span className="text-warning font-bold">DATA NOT AVAILABLE</span>
+                <span>{selectedSummary?.reason ?? 'Select a horizon to view its data state.'}</span>
               </div>
             )}
           </div>
@@ -165,6 +161,12 @@ export default function BookingHorizonPage() {
           <div className="lg:col-span-3 bg-card border border-border rounded-xl p-6 flex flex-col">
             <h3 className="text-xs font-semibold text-muted tracking-[0.2em] uppercase mb-6">Price Escalation Curve</h3>
             <div className="flex-1 w-full h-[400px]">
+              {chartData.length === 0 ? (
+                <div className="h-full flex flex-col items-center justify-center text-center text-muted font-mono text-sm gap-3">
+                  <span className="text-warning font-bold">DATA NOT AVAILABLE</span>
+                  <span>{selectedSummary?.reason ?? 'No national index observations are available for the active dataset.'}</span>
+                </div>
+              ) : (
               <ResponsiveContainer width="100%" height="100%">
                 <BarChart data={chartData} margin={{ top: 30, right: 0, left: -20, bottom: 0 }}>
                   <CartesianGrid strokeDasharray="3 3" stroke="#27272a" vertical={false} />
@@ -186,6 +188,7 @@ export default function BookingHorizonPage() {
                   </Bar>
                 </BarChart>
               </ResponsiveContainer>
+              )}
             </div>
           </div>
         </div>

@@ -47,8 +47,8 @@ def test_synthetic_fixture_endpoint(client):
     data = res.json()
     assert data["source_name"] == "fixture_synthetic"
     assert data["collection_mode"] == "SYNTHETIC"
-    assert data["raw_ingested"] == 90
-    assert data["parsed_ingested"] == 90
+    assert data["raw_ingested"] == 162
+    assert data["parsed_ingested"] == 162
 
 
 def test_observation_not_found(client):

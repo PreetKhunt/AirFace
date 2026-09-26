@@ -7,14 +7,14 @@ import { StateBoundary } from '@/components/StateBoundary';
 import { AlertTriangle, CheckCircle2, LineChart as ChartIcon, Info } from 'lucide-react';
 
 const REFERENCE_DISCLOSURE =
-  'Official first-party historical DGCA airfare micro-data was not verified as a downloadable time series for this prototype. The displayed validation results therefore demonstrate the validation pipeline against a version-controlled reference series and should not be interpreted as official DGCA benchmark accuracy.';
+  'Official first-party historical DGCA/MoSPI airfare micro-data is not available as a verified reference series for this prototype. External validation status is REFERENCE_UNAVAILABLE. The displayed metrics evaluate the pipeline against the version-controlled DEMO SYNTHETIC BENCHMARK and are not official benchmark accuracy.';
 
 function isReferenceValidationComplete(status: string): boolean {
   return status === 'VALIDATED' || status === 'REFERENCE_VALIDATED';
 }
 
 function referenceValidationLabel(status: string): string {
-  if (isReferenceValidationComplete(status)) return 'Prototype Reference Validation';
+  if (isReferenceValidationComplete(status)) return 'DEMO SYNTHETIC BENCHMARK';
   if (status === 'INSUFFICIENT_DATA') return 'Insufficient Reference Overlap';
   return status.replace(/_/g, ' ');
 }
@@ -68,7 +68,7 @@ export default function BacktestPage() {
               </div>
               <div className="flex-1 border-r border-border px-4">
                 <span className="text-[10px] uppercase tracking-widest text-muted block mb-1">Reference Type</span>
-                <span className="text-sm font-mono text-accent">Prototype / version-controlled reference dataset</span>
+                <span className="text-sm font-mono text-accent">DEMO SYNTHETIC BENCHMARK</span>
               </div>
               <div className="flex-1 border-r border-border px-4">
                 <span className="text-[10px] uppercase tracking-widest text-muted block mb-1">Data Mode</span>
@@ -158,7 +158,7 @@ export default function BacktestPage() {
                   <Info className="w-10 h-10 text-accent mb-4 opacity-80" />
                   <h3 className="text-sm font-bold text-white mb-2 uppercase tracking-widest">Secure Evaluation Engine</h3>
                   <p className="text-muted text-sm max-w-lg mb-6 leading-relaxed">
-                    Validation metrics (RMSE, MAPE, Pearson) are evaluated strictly on the backend via Pandas and NumPy. Raw proprietary reference vectors are never exposed to the client interface for security and commercial compliance.
+                    Validation metrics (MAPE, RMSE, Pearson r, mean bias, and directional accuracy) are calculated by the backend from persisted index observations and the configured synthetic reference series.
                   </p>
                   
                   <div className="px-4 py-2 border border-accent/30 bg-accent/10 rounded-lg text-accent text-xs font-mono font-bold flex items-center gap-2">

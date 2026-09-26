@@ -30,12 +30,16 @@ export function TopNavigation() {
   useEffect(() => {
     setDateStr(new Date().toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }).toUpperCase());
     api.getSystemStatus().then(res => {
-      const mode = res.data_mode || 'HISTORICAL';
+      const mode = res.data_mode;
+      if (!mode) {
+        setDataMode('DATA MODE UNAVAILABLE');
+        return;
+      }
       if (mode === 'LIVE') setDataMode('LIVE');
       else if (mode.includes('HISTORICAL')) setDataMode('HISTORICAL DEMO');
       else if (mode.includes('SYNTHETIC')) setDataMode('SYNTHETIC DEMO');
       else setDataMode(mode);
-    }).catch(() => setDataMode('HISTORICAL DEMO'));
+    }).catch(() => setDataMode('DATA MODE UNAVAILABLE'));
   }, []);
 
   const isLive = dataMode === 'LIVE';

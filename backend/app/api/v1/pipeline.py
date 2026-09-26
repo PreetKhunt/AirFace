@@ -3,15 +3,48 @@ from sqlalchemy.orm import Session
 from sqlalchemy import func
 from app.database.session import get_db
 from app.models.observation import RawAirfareObservation
+from app.models.observation import ParsedAirfareObservation, NormalizedIndexObservation
 from app.scrapers.fixture_adapter import FixtureAdapter
 from app.services.ingestion import run_ingestion
 from app.services.phase_c_pipeline import run_phase_c_normalization
-from app.services.index_engine import IndexEngine
+from app.services.index_engine import IndexEngine, get_active_data_mode
 from app.core.enums import DataMode
 from pydantic import BaseModel
 from typing import Dict, Any
 
 router = APIRouter(tags=["Pipeline"])
+
+
+@router.get("/pipeline/status")
+def get_pipeline_status(db: Session = Depends(get_db)):
+    mode = get_active_data_mode(db)
+    if not mode:
+        return {
+            "data_mode": None,
+            "counts": {"raw": 0, "parsed": 0, "normalized": 0, "dq": 0, "index_ready": 0, "airlines": 0, "routes": 0},
+        }
+
+    parsed = db.query(func.count(ParsedAirfareObservation.observation_id)).join(
+        RawAirfareObservation, RawAirfareObservation.raw_id == ParsedAirfareObservation.raw_id
+    ).filter(RawAirfareObservation.collection_mode == mode)
+    normalized = db.query(NormalizedIndexObservation).join(
+        ParsedAirfareObservation, ParsedAirfareObservation.observation_id == NormalizedIndexObservation.observation_id
+    ).join(
+        RawAirfareObservation, RawAirfareObservation.raw_id == ParsedAirfareObservation.raw_id
+    ).filter(RawAirfareObservation.collection_mode == mode)
+
+    return {
+        "data_mode": mode.value,
+        "counts": {
+            "raw": db.query(func.count(RawAirfareObservation.raw_id)).filter(RawAirfareObservation.collection_mode == mode).scalar() or 0,
+            "parsed": parsed.scalar() or 0,
+            "normalized": normalized.count(),
+            "dq": normalized.filter(NormalizedIndexObservation.dq_score.is_not(None)).count(),
+            "index_ready": normalized.filter(NormalizedIndexObservation.valid_for_index == True).count(),
+            "airlines": parsed.with_entities(func.count(func.distinct(ParsedAirfareObservation.airline_code))).scalar() or 0,
+            "routes": normalized.with_entities(func.count(func.distinct(NormalizedIndexObservation.route_id))).scalar() or 0,
+        },
+    }
 
 class PipelineRunResponse(BaseModel):
     status: str

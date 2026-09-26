@@ -95,7 +95,7 @@ function ProvenanceContent() {
   });
 
   const parsedData = selectedNorm?.parsed;
-  const sourceUrl = provenance?.source_url || (parsedData ? `fixture://${selectedNorm?.route_id}/${parsedData.airline_code}/${parsedData.travel_date}` : null);
+  const sourceUrl = provenance?.source_url || null;
 
   return (
     <div className="min-h-[calc(100vh-5rem)] p-6 flex flex-col gap-6 max-w-[1600px] mx-auto w-full fade-in">
@@ -164,8 +164,8 @@ function ProvenanceContent() {
                 icon={<Database />}
                 title="NATIONAL INDEX"
                 subtitle="Root Aggregate"
-                value={nat?.index_value ? `${parseFloat(nat.index_value.toString()).toFixed(2)} (${nat.booking_horizon})` : '100.00'}
-                detail={`Methodology: ${nat?.methodology || 'JEVONS'}`}
+                value={nat?.index_value ? `${parseFloat(nat.index_value.toString()).toFixed(2)} (${nat.booking_horizon})` : 'NO DATA'}
+                detail={`Methodology: ${nat?.methodology || 'NO DATA'}`}
               />
               <TimelineNode
                 icon={<Map />}

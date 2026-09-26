@@ -2,7 +2,7 @@
 
 import { useEffect, useState, useMemo } from 'react';
 import { api } from '@/lib/api';
-import { NormalizedIndexObservation, ProvenanceAuditTrail } from '@/types';
+import { NormalizedIndexObservation, PipelineStatus } from '@/types';
 import { StateBoundary } from '@/components/StateBoundary';
 import { ShieldAlert, CheckCircle2, AlertTriangle, ArrowRight, XCircle, Search } from 'lucide-react';
 import { clsx } from 'clsx';
@@ -10,6 +10,7 @@ import Link from 'next/link';
 
 export default function DataCleaningPage() {
   const [observations, setObservations] = useState<NormalizedIndexObservation[]>([]);
+  const [pipelineStatus, setPipelineStatus] = useState<PipelineStatus | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [selectedObs, setSelectedObs] = useState<NormalizedIndexObservation | null>(null);
@@ -19,8 +20,12 @@ export default function DataCleaningPage() {
     try {
       setLoading(true);
       setError(null);
-      const data = await api.getNormalizedObservations(undefined, undefined, true);
+      const [data, status] = await Promise.all([
+        api.getNormalizedObservations(undefined, undefined, true, 500),
+        api.getPipelineStatus(),
+      ]);
       setObservations(data.items);
+      setPipelineStatus(status);
       if (data.items.length > 0) {
         setSelectedObs(data.items[0]);
       }
@@ -46,11 +51,12 @@ export default function DataCleaningPage() {
   }, [observations, searchQuery]);
 
   // Aggregate Pipeline Counts
-  const rawCount = observations.length;
-  const parsedCount = observations.filter(o => o.parsed !== null).length;
-  const normalizedCount = observations.filter(o => ['VALID', 'PARTIAL_COMPONENTS', 'INCONSISTENT_TOTAL'].includes(o.normalization_status)).length;
-  const dqCount = observations.length; // DQ runs on all
-  const indexReadyCount = observations.filter(o => o.valid_for_index).length;
+  const stageCounts = pipelineStatus?.counts;
+  const rawCount = stageCounts?.raw ?? 0;
+  const parsedCount = stageCounts?.parsed ?? 0;
+  const normalizedCount = stageCounts?.normalized ?? 0;
+  const dqCount = stageCounts?.dq ?? 0;
+  const indexReadyCount = stageCounts?.index_ready ?? 0;
 
   const computeComparableFromComponents = (obs: NormalizedIndexObservation): number | null => {
     const p = obs.parsed;
@@ -156,7 +162,7 @@ export default function DataCleaningPage() {
                     <InspectorItem label="Route" value={selectedObs.route_id} />
                     <InspectorItem label="Airline" value={selectedObs.parsed?.airline_name ?? selectedObs.parsed?.airline_code ?? '---'} />
                     <InspectorItem label="Flight" value={selectedObs.parsed ? `${selectedObs.parsed.airline_code} ${selectedObs.parsed.flight_number}` : '---'} />
-                    <InspectorItem label="Source" value={selectedObs.parsed?.raw_id ? 'Fixture / Adapter' : '---'} />
+                    <InspectorItem label="Source" value={selectedObs.parsed?.source_name ?? 'NO DATA'} />
                     <InspectorItem label="Travel Date" value={selectedObs.parsed?.travel_date ?? '---'} />
                     <InspectorItem label="Booking Horizon" value={selectedObs.booking_horizon} />
                     <InspectorItem label="Availability" value={selectedObs.availability_status} />
@@ -172,7 +178,7 @@ export default function DataCleaningPage() {
                         <div className="flex justify-between text-muted"><span>ASF</span> <span>₹{selectedObs.parsed?.asf_fee ?? '---'}</span></div>
                         <div className="flex justify-between text-muted"><span>GST</span> <span>₹{selectedObs.parsed?.gst_tax ?? '---'}</span></div>
                         <div className="flex justify-between text-muted"><span>YQ</span> <span>₹{selectedObs.parsed?.yq_surcharge ?? '---'}</span></div>
-                        <div className="flex justify-between text-muted"><span>Other Mandatory Charges</span> <span>₹0.00</span></div>
+                        <div className="flex justify-between text-muted"><span>Other Mandatory Charges</span> <span>NO DATA</span></div>
                         <div className="flex justify-between text-muted/70 text-xs"><span>Excluded: Convenience Fee</span> <span>{selectedObs.parsed?.convenience_fee != null ? `₹${selectedObs.parsed.convenience_fee}` : 'NO DATA'}</span></div>
                         <div className="flex justify-between border-t border-border pt-2 text-white font-bold">
                           <span>Comparable Fare (Backend)</span> 

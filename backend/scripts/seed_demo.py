@@ -92,7 +92,7 @@ def ingest_fixtures(db):
     print("  [3/7] Ingesting airfare observations from verified fixture sources...")
     
     # 1. Synthetic Fixture
-    syn_adapter = FixtureAdapter(DataMode.SYNTHETIC)
+    syn_adapter = FixtureAdapter(DataMode.SYNTHETIC, include_synthetic_base_period=True)
     syn_res = run_ingestion(syn_adapter, db)
     print(f"        [OK] SYNTHETIC Fixture: {syn_res.raw_ingested} raw, {syn_res.parsed_ingested} parsed, {syn_res.duplicates_skipped} dupes.")
     

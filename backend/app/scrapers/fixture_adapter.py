@@ -10,7 +10,9 @@ from __future__ import annotations
 
 import csv
 import logging
+from dataclasses import replace
 from datetime import date, time, datetime, timezone, timedelta
+from decimal import Decimal, ROUND_HALF_UP
 from typing import Optional
 from pathlib import Path
 
@@ -29,6 +31,7 @@ FIXTURE_PATHS = {
 }
 
 VALIDATION_FIXTURE_PATH = PROJECT_ROOT / "data" / "fixtures" / "synthetic" / "airfare_validation.csv"
+SYNTHETIC_BASE_DATE = date(2026, 1, 15)
 
 
 def _parse_time(val: str) -> Optional[time]:
@@ -68,7 +71,12 @@ class FixtureAdapter(BaseScraperAdapter):
     - collection_mode in CSV must match the adapter's declared mode
     """
 
-    def __init__(self, data_mode: DataMode, fixture_path: Optional[Path] = None):
+    def __init__(
+        self,
+        data_mode: DataMode,
+        fixture_path: Optional[Path] = None,
+        include_synthetic_base_period: bool = False,
+    ):
         if data_mode == DataMode.LIVE:
             raise ValueError(
                 "FixtureAdapter cannot operate in LIVE mode. "
@@ -76,6 +84,7 @@ class FixtureAdapter(BaseScraperAdapter):
             )
         self._mode = data_mode
         self._path = fixture_path or FIXTURE_PATHS[data_mode]
+        self._include_synthetic_base_period = include_synthetic_base_period
 
     @property
     def name(self) -> str:
@@ -92,6 +101,7 @@ class FixtureAdapter(BaseScraperAdapter):
         Never raises unhandled exceptions.
         """
         records: list[RawObservationRecord] = []
+        synthetic_base_records: list[RawObservationRecord] = []
         invalid_count = 0
 
         if not self._path.exists():
@@ -111,16 +121,68 @@ class FixtureAdapter(BaseScraperAdapter):
                         invalid_count += 1
                         continue
                     records.append(record)
+                    if (
+                        self._include_synthetic_base_period
+                        and
+                        self._mode == DataMode.SYNTHETIC
+                        and self._path.resolve() == FIXTURE_PATHS[DataMode.SYNTHETIC].resolve()
+                        and record.booking_window_days != 45
+                    ):
+                        base_record = self._make_synthetic_base_observation(record)
+                        if base_record:
+                            synthetic_base_records.append(base_record)
 
         except Exception as exc:
             logger.error("FixtureAdapter.collect() failed: %s", exc, exc_info=True)
             return []
 
+        records.extend(synthetic_base_records)
         logger.info(
-            "FixtureAdapter[%s] loaded %d records, %d invalid/skipped from %s",
-            self._mode.value, len(records), invalid_count, self._path,
+            "FixtureAdapter[%s] loaded %d records (%d synthetic base-period rows), %d invalid/skipped from %s",
+            self._mode.value, len(records), len(synthetic_base_records), invalid_count, self._path,
         )
         return records
+
+    def _make_synthetic_base_observation(
+        self, target: RawObservationRecord
+    ) -> Optional[RawObservationRecord]:
+        if target.base_fare is None:
+            return None
+
+        base_fare = (Decimal(str(target.base_fare)) * Decimal("0.90")).quantize(
+            Decimal("0.01"), rounding=ROUND_HALF_UP
+        )
+        udf_fee = Decimal(str(target.udf_fee or 0)).quantize(Decimal("0.01"))
+        asf_fee = Decimal(str(target.asf_fee or 0)).quantize(Decimal("0.01"))
+        gst_tax = (base_fare * Decimal("0.05")).quantize(Decimal("0.01"), rounding=ROUND_HALF_UP)
+        yq_surcharge = (base_fare * Decimal("0.06")).quantize(Decimal("0.01"), rounding=ROUND_HALF_UP)
+        total_fare = base_fare + udf_fee + asf_fee + gst_tax + yq_surcharge
+        travel_date = SYNTHETIC_BASE_DATE + timedelta(days=target.booking_window_days)
+        base_record = replace(
+            target,
+            source_url=(
+                f"fixture://synthetic-base/{target.origin}-{target.destination}/"
+                f"{target.airline_code}/{target.flight_number}/{travel_date.isoformat()}"
+            ),
+            collection_timestamp=datetime(
+                SYNTHETIC_BASE_DATE.year,
+                SYNTHETIC_BASE_DATE.month,
+                SYNTHETIC_BASE_DATE.day,
+                tzinfo=timezone.utc,
+            ),
+            travel_date=travel_date,
+            raw_total_fare=float(total_fare),
+            raw_displayed_price_text=f"INR {float(total_fare):,.2f}",
+            base_fare=float(base_fare),
+            udf_fee=float(udf_fee),
+            asf_fee=float(asf_fee),
+            gst_tax=float(gst_tax),
+            yq_surcharge=float(yq_surcharge),
+            comparable_fare=float(total_fare),
+            payload_sha256=None,
+        )
+        base_record.payload_sha256 = base_record.compute_sha256()
+        return base_record
 
     def _parse_row(self, row: dict, row_num: int):
         """

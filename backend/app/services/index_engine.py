@@ -12,6 +12,19 @@ from app.models.route import Route
 from app.core.enums import DataMode
 
 
+def get_active_data_mode(db: Session) -> Optional[DataMode]:
+    """Return the mode of the most recently persisted airfare observation."""
+    latest_mode = (
+        db.query(RawAirfareObservation.collection_mode)
+        .order_by(
+            RawAirfareObservation.created_at.desc(),
+            RawAirfareObservation.collection_timestamp.desc(),
+        )
+        .first()
+    )
+    return latest_mode[0] if latest_mode else None
+
+
 class IndexEngine:
     """
     Index Engine Subsystem (Phase D).
@@ -158,16 +171,20 @@ class IndexEngine:
             
         results = []
         for horizon, indices in horizons.items():
+            observed_weight = sum(
+                float(normalized_weights.get(idx.route_id, 0)) for idx in indices
+            )
+            if observed_weight <= 0:
+                continue
+
             if methodology == "YOUNG_MODIFIED_LASPEYRES":
-                # Weighted arithmetic mean
                 national_val = sum(
-                    float(idx.index_value) * float(normalized_weights.get(idx.route_id, 0))
+                    float(idx.index_value) * float(normalized_weights.get(idx.route_id, 0)) / observed_weight
                     for idx in indices
                 )
             elif methodology == "JEVONS":
-                # Weighted geometric mean
                 log_sum = sum(
-                    math.log(float(idx.index_value)) * float(normalized_weights.get(idx.route_id, 0))
+                    math.log(float(idx.index_value)) * float(normalized_weights.get(idx.route_id, 0)) / observed_weight
                     for idx in indices if float(idx.index_value) > 0
                 )
                 national_val = math.exp(log_sum)
@@ -195,7 +212,7 @@ class IndexEngine:
                 data_mode=data_mode,
                 index_value=Decimal(str(national_val)).quantize(Decimal('0.0000'), rounding=ROUND_HALF_UP),
                 route_count=len(indices),
-                coverage_pct=Decimal(str((len(indices) / len(routes)) * 100)).quantize(Decimal('0.00')),
+                coverage_pct=Decimal(str(observed_weight * 100)).quantize(Decimal('0.00')),
                 dq_score=dq_val,
                 base_date=base_date
             )

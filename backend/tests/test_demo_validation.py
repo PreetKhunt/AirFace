@@ -44,13 +44,13 @@ def test_demo_validation_pipeline_produces_full_metrics(client):
             "reference_source": REFERENCE_SOURCE,
             "methodology": "JEVONS",
             "booking_horizon": "T+1",
-            "data_mode": "SYNTHETIC",
         },
     )
 
     assert backtest.status_code == 200
     result = backtest.json()
     assert result["status"] == "VALIDATED"
+    assert result["data_mode"] == "SYNTHETIC"
     assert result["sample_count"] == 30
     assert result["match_count"] == 30
     assert result["coverage_pct"] == "100.00"

@@ -52,6 +52,7 @@ class ParsedObservationEmbedded(BaseModel):
     """Parsed airfare observation fields embedded inside a normalized observation response."""
     observation_id: UUID
     raw_id: UUID
+    source_name: Optional[str] = None
     origin: str
     destination: str
     airline_code: str

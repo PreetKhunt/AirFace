@@ -165,6 +165,28 @@ def test_national_aggregation_young_and_jevons(db_session, setup_routes):
     expected_jevons = math.exp(0.4 * math.log(110) + 0.6 * math.log(120))
     assert float(jevons_results[0].index_value) == pytest.approx(expected_jevons, 0.001)
 
+def test_national_aggregation_renormalizes_observed_route_weights(db_session, setup_routes):
+    d_base = date(2026, 1, 1)
+    d_calc = date(2026, 1, 2)
+
+    _create_obs(db_session, "DEL-BOM", "6E-100", d_base, Decimal("1000"))
+    _create_obs(db_session, "DEL-BOM", "6E-100", d_calc, Decimal("1100"))
+
+    engine = IndexEngine(db_session)
+    elementary = engine.calculate_elementary_route_indices(d_calc, d_base)
+    young = engine.calculate_national_aggregate_indices(
+        d_calc, d_base, methodology="YOUNG_MODIFIED_LASPEYRES"
+    )
+    jevons = engine.calculate_national_aggregate_indices(
+        d_calc, d_base, methodology="JEVONS"
+    )
+
+    assert len(elementary) == 1
+    assert young[0].index_value == elementary[0].index_value
+    assert jevons[0].index_value == elementary[0].index_value
+    assert young[0].coverage_pct == Decimal("40.00")
+    assert jevons[0].coverage_pct == Decimal("40.00")
+
 def test_data_mode_isolation(db_session, setup_routes):
     d_base = date(2026, 1, 1)
     d_calc = date(2026, 1, 2)

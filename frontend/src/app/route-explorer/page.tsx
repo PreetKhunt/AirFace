@@ -13,7 +13,7 @@ export default function RouteExplorerPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [selectedRoute, setSelectedRoute] = useState<string | null>(null);
-  const [selectedHorizon, setSelectedHorizon] = useState<string>('T+1');
+  const [selectedHorizon, setSelectedHorizon] = useState<string>('');
   const [searchQuery, setSearchQuery] = useState('');
 
   const loadData = useCallback(async (currentRoute: string | null = null) => {
@@ -38,11 +38,12 @@ export default function RouteExplorerPage() {
   }, [loadData]);
 
   const uniqueRoutes = useMemo(() => Array.from(new Set(indices.map(i => i.route_id))).sort(), [indices]);
-  const availableHorizons = useMemo(() => Array.from(new Set(indices.map(i => i.booking_horizon))).sort(), [indices]);
+  const sortHorizons = (values: string[]) => values.sort((a, b) => parseInt(a.replace('T+', '')) - parseInt(b.replace('T+', '')));
+  const availableHorizons = useMemo(() => sortHorizons(Array.from(new Set(indices.map(i => i.booking_horizon)))), [indices]);
 
   const availableHorizonsForRoute = useMemo(() => {
     if (!selectedRoute) return [];
-    return Array.from(new Set(indices.filter(i => i.route_id === selectedRoute).map(i => i.booking_horizon))).sort();
+    return sortHorizons(Array.from(new Set(indices.filter(i => i.route_id === selectedRoute).map(i => i.booking_horizon))));
   }, [indices, selectedRoute]);
 
   const filteredRoutes = useMemo(() => 
@@ -149,11 +150,11 @@ export default function RouteExplorerPage() {
               <>
                 <div className="grid grid-cols-3 gap-4">
                   <div className="p-5 bg-card border border-border rounded-xl">
-                    <p className="text-[10px] uppercase tracking-widest text-muted mb-1">Current Index</p>
+                    <p className="text-[10px] uppercase tracking-widest text-muted mb-1">Latest Index · {latestPoint.date}</p>
                     <p className="text-3xl font-mono text-white">{latestPoint.value.toFixed(2)}</p>
                   </div>
                   <div className="p-5 bg-card border border-border rounded-xl">
-                    <p className="text-[10px] uppercase tracking-widest text-muted mb-1">Observations</p>
+                    <p className="text-[10px] uppercase tracking-widest text-muted mb-1">Observations in Latest Index</p>
                     <p className="text-3xl font-mono text-white">{latestPoint.observations}</p>
                   </div>
                   <div className="p-5 bg-card border border-border rounded-xl">
@@ -163,6 +164,9 @@ export default function RouteExplorerPage() {
                 </div>
 
                 <div className="flex-1 bg-card border border-border rounded-xl p-6 relative overflow-hidden">
+                  <div className="text-xs font-semibold text-muted-silver tracking-[0.2em] uppercase mb-4">
+                    Historical index trajectory · {selectedRouteData[0]?.date ?? 'NO DATA'} to {latestPoint.date}
+                  </div>
                   <ResponsiveContainer width="100%" height="100%">
                     <AreaChart data={selectedRouteData} margin={{ top: 10, right: 0, left: -20, bottom: 0 }}>
                       <defs>

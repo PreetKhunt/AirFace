@@ -36,11 +36,11 @@ def ingest_historical_fixture(db: Session = Depends(get_db)):
     response_model=IngestionResult,
     status_code=status.HTTP_200_OK,
     summary="Ingest Synthetic Fixture Dataset",
-    description="Loads 90 synthetic demo observations from data/fixtures/synthetic/airfare_synthetic.csv",
+    description="Loads the synthetic demo observations and base-period rows from the version-controlled fixture.",
 )
 def ingest_synthetic_fixture(db: Session = Depends(get_db)):
     try:
-        adapter = FixtureAdapter(data_mode=DataMode.SYNTHETIC)
+        adapter = FixtureAdapter(data_mode=DataMode.SYNTHETIC, include_synthetic_base_period=True)
         result = run_ingestion(adapter, db)
         return result
     except Exception as e:
@@ -55,7 +55,7 @@ def ingest_synthetic_fixture(db: Session = Depends(get_db)):
     response_model=IngestionResult,
     status_code=status.HTTP_200_OK,
     summary="Ingest Deterministic Historical Validation Fixture",
-    description="Loads the reproducible MOCK_BASELINE synthetic validation observations.",
+    description="Loads the reproducible DEMO SYNTHETIC BENCHMARK validation observations.",
 )
 def ingest_historical_validation_fixture(db: Session = Depends(get_db)):
     try:

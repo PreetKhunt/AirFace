@@ -5,6 +5,7 @@ from app.config import settings
 from app.database.session import get_db
 from app.schemas.health import HealthResponse, SystemStatusResponse
 from app.core.logging import logger
+from app.services.index_engine import get_active_data_mode
 
 router = APIRouter()
 
@@ -64,5 +65,5 @@ def get_system_status(db: Session = Depends(get_db)):
         version=settings.VERSION,
         database_connected=db_connected,
         redis_connected=redis_connected,
-        data_mode=settings.DATA_MODE
+        data_mode=get_active_data_mode(db)
     )

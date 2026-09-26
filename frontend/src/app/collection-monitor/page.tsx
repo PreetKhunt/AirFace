@@ -50,26 +50,14 @@ export default function CollectionMonitorPage() {
     setIsRunning(true);
     setRunResult(null);
     setRunLogs([]);
-    addLog('INITIATING PIPELINE ENGINE...');
-    addLog('Connecting to backend orchestrator -> POST /api/v1/pipeline/run');
-    
-    // Simulate initial stages for UI feedback since the API is synchronous and atomic
-    setTimeout(() => addLog('[STAGE 1/6] COLLECT: Dispatching scraper adapters...'), 500);
-    setTimeout(() => addLog('[STAGE 2/6] PARSE: Extracting raw HTML payloads...'), 1500);
-    setTimeout(() => addLog('[STAGE 3/6] NORMALIZE: Aligning currencies and fees...'), 2500);
-    setTimeout(() => addLog('[STAGE 4/6] QUALITY: Running anomaly detection heuristics...'), 3500);
-    setTimeout(() => addLog('[STAGE 5/6] INDEX: Calculating Jevons aggregate...'), 4500);
-    setTimeout(() => addLog('[STAGE 6/6] VALIDATION: Checking coverage thresholds...'), 5500);
-
     try {
-      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/pipeline/run`, {
-        method: 'POST'
-      });
-      if (!res.ok) throw new Error('Pipeline invocation failed');
-      const data = await res.json();
-      
-      addLog('PIPELINE SUCCESS');
-      addLog(`Payload: ${JSON.stringify(data)}`);
+      addLog('Submitting pipeline run to backend...');
+      const data = await api.runPipeline();
+      addLog(`PIPELINE ${data.status ?? 'COMPLETED'}`);
+      addLog(`Ingestion records: ${data.ingestion?.raw_ingested ?? 'NO DATA'}`);
+      addLog(`Normalized records: ${data.normalization?.total_normalized_created ?? 'NO DATA'}`);
+      addLog(`Elementary indices: ${data.index?.elementary_indices_generated ?? 'NO DATA'}`);
+      addLog(`National indices: ${data.index?.national_indices_generated ?? 'NO DATA'}`);
       setRunResult(data);
     } catch (err: any) {
       addLog(`[ERROR] ${err.message}`);
@@ -136,19 +124,19 @@ export default function CollectionMonitorPage() {
                   <div className="grid grid-cols-2 gap-4 mb-4">
                     <div>
                       <span className="block text-[10px] tracking-widest text-muted uppercase">Success Rate</span>
-                      <span className="text-xl font-mono text-white">{source.success_rate}%</span>
+                      <span className="text-xl font-mono text-white">{source.success_rate == null ? 'NO DATA' : `${source.success_rate}%`}</span>
                     </div>
                     <div>
                       <span className="block text-[10px] tracking-widest text-muted uppercase">Latency</span>
-                      <span className="text-xl font-mono text-white">{source.average_latency_ms}ms</span>
+                      <span className="text-xl font-mono text-white">{source.average_latency_ms == null ? 'NO DATA' : `${source.average_latency_ms}ms`}</span>
                     </div>
                     <div>
                       <span className="block text-[10px] tracking-widest text-muted uppercase">Scraped</span>
-                      <span className="text-xl font-mono text-white">{source.total_records_scraped.toLocaleString()}</span>
+                      <span className="text-xl font-mono text-white">{source.total_records_scraped == null ? 'NO DATA' : source.total_records_scraped.toLocaleString()}</span>
                     </div>
                     <div>
                       <span className="block text-[10px] tracking-widest text-muted uppercase">Errors</span>
-                      <span className={clsx('text-xl font-mono', source.error_count > 0 ? 'text-danger' : 'text-white')}>{source.error_count}</span>
+                      <span className={clsx('text-xl font-mono', (source.error_count ?? 0) > 0 ? 'text-danger' : 'text-white')}>{source.error_count ?? 'NO DATA'}</span>
                     </div>
                   </div>
 

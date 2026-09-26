@@ -8,7 +8,6 @@ from decimal import Decimal
 
 
 def test_normalization_api_endpoints(client):
-    # 1. Ingest synthetic fixture
     ingest_res = client.post("/api/v1/ingestion/fixtures/synthetic")
     assert ingest_res.status_code == 200
 
@@ -17,13 +16,13 @@ def test_normalization_api_endpoints(client):
     assert norm_res.status_code == 200
     norm_data = norm_res.json()
     assert norm_data["status"] == "SUCCESS"
-    assert norm_data["total_normalized_created"] == 90
+    assert norm_data["total_normalized_created"] == 162
 
     # 3. Query normalized observations
     list_res = client.get("/api/v1/normalized-observations?page=1&page_size=10")
     assert list_res.status_code == 200
     list_data = list_res.json()
-    assert list_data["total"] == 90
+    assert list_data["total"] == 162
     assert len(list_data["results"]) == 10
 
     # 4. Filter by route and horizon
@@ -50,6 +49,37 @@ def test_normalization_api_endpoints(client):
     dq_hist = client.get("/api/v1/quality/history")
     assert dq_hist.status_code == 200
     assert dq_hist.json()["total"] >= 1
+
+    system_status = client.get("/api/v1/health/system").json()
+    assert system_status["data_mode"] == "SYNTHETIC"
+
+    horizon_summary = client.get("/api/v1/index/horizons").json()
+    assert horizon_summary["data_mode"] == "SYNTHETIC"
+    assert [item["horizon"] for item in horizon_summary["horizons"]] == [
+        "T+1", "T+7", "T+15", "T+30", "T+45"
+    ]
+    assert [item["observation_count"] for item in horizon_summary["horizons"]] == [36, 36, 36, 36, 18]
+    assert all(item["availability_state"] == "DATA_NOT_AVAILABLE" for item in horizon_summary["horizons"])
+    assert all(item["reason"] for item in horizon_summary["horizons"])
+
+    pipeline_status = client.get("/api/v1/pipeline/status").json()
+    assert pipeline_status["data_mode"] == "SYNTHETIC"
+    assert pipeline_status["counts"]["raw"] == 162
+    assert pipeline_status["counts"]["parsed"] == 162
+    assert pipeline_status["counts"]["normalized"] == 162
+    assert pipeline_status["counts"]["dq"] == 162
+
+    route_weights = client.get("/api/v1/index/weights").json()
+    assert len(route_weights["routes"]) == 9
+    normalized_weight_total = sum(float(route["normalized_weight_pct"]) for route in route_weights["routes"])
+    assert abs(normalized_weight_total - 100) < 0.01
+
+    calculated = client.post(
+        "/api/v1/index/calculate",
+        params={"calculation_date": "2026-02-28", "base_date": "2026-02-28"},
+    )
+    assert calculated.status_code == 200
+    assert calculated.json()["data_mode"] == "SYNTHETIC"
 
 
 @patch("app.tasks.normalization_tasks.run_phase_c_normalization")

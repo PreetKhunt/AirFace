@@ -13,3 +13,4 @@ def test_system_status_endpoint(client):
     assert data["service"] == "airfare-index-api"
     assert "database_connected" in data
     assert "data_mode" in data
+    assert data["data_mode"] is None

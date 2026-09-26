@@ -52,7 +52,7 @@ export default function SystemStatusPage() {
   const isBackendHealthy = !!health && health.status === 'ok';
   const isDbHealthy = !!sysStatus && sysStatus.database_connected;
   const isRedisHealthy = !!sysStatus && sysStatus.redis_connected;
-  const activeMode = sysStatus?.data_mode || 'HISTORICAL';
+  const activeMode = sysStatus?.data_mode || 'DATA NOT AVAILABLE';
 
   const services: Array<{ name: string; category: string; status: ServiceStatus; detail: string; icon: typeof Server }> = [
     {
@@ -156,7 +156,7 @@ export default function SystemStatusPage() {
                 AIRFACE Core Systems: {overallStatus}
               </h3>
               <p className="text-xs text-muted-silver">
-                Active Operational Mode: <span className="font-mono text-soft-white font-bold">{activeMode}</span>
+                DATA MODE: <span className="font-mono text-soft-white font-bold">{activeMode}</span>
               </p>
             </div>
           </div>
@@ -250,9 +250,9 @@ export default function SystemStatusPage() {
                           {s.status}
                         </span>
                       </td>
-                      <td className="py-3">{s.success_rate}%</td>
-                      <td className="py-3">{s.total_records_scraped.toLocaleString()}</td>
-                      <td className="py-3">{s.average_latency_ms}ms</td>
+                      <td className="py-3">{s.success_rate == null ? 'NO DATA' : `${s.success_rate}%`}</td>
+                      <td className="py-3">{s.total_records_scraped == null ? 'NO DATA' : s.total_records_scraped.toLocaleString()}</td>
+                      <td className="py-3">{s.average_latency_ms == null ? 'NO DATA' : `${s.average_latency_ms}ms`}</td>
                     </tr>
                   );
                 })}

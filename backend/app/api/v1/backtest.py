@@ -7,6 +7,7 @@ from pydantic import BaseModel
 from app.database.session import get_db
 from app.services.backtest_engine import BacktestEngine
 from app.core.enums import DataMode
+from app.services.index_engine import get_active_data_mode
 from app.schemas.backtest import BacktestRunOut
 
 router = APIRouter()
@@ -19,13 +20,16 @@ class BacktestRequest(BaseModel):
     methodology: str = "JEVONS"
     booking_horizon: str
     route_id: Optional[str] = None
-    data_mode: DataMode = DataMode.LIVE
+    data_mode: Optional[DataMode] = None
 
 @router.post("/run", response_model=BacktestRunOut)
 def run_backtest(
     request: BacktestRequest,
     db: Session = Depends(get_db)
 ):
+    mode = request.data_mode or get_active_data_mode(db)
+    if mode is None:
+        raise HTTPException(status_code=409, detail="Cannot run validation without persisted airfare observations.")
     engine = BacktestEngine(db)
     
     run = engine.run_backtest(
@@ -36,7 +40,7 @@ def run_backtest(
         methodology=request.methodology,
         booking_horizon=request.booking_horizon,
         route_id=request.route_id,
-        data_mode=request.data_mode
+        data_mode=mode
     )
     
     return run
@@ -54,10 +58,13 @@ def get_backtest_results(
         query = query.filter(BacktestRun.start_date >= start_date)
     if methodology:
         query = query.filter(BacktestRun.methodology == methodology)
-    if data_mode:
-        query = query.filter(BacktestRun.data_mode == data_mode)
+    mode = data_mode or get_active_data_mode(db)
+    if mode:
+        query = query.filter(BacktestRun.data_mode == mode)
+    else:
+        query = query.filter(False)
         
-    return query.all()
+    return query.order_by(BacktestRun.created_at.desc()).all()
 
 @router.get("/results/{backtest_id}", response_model=BacktestRunOut)
 def get_backtest_by_id(
