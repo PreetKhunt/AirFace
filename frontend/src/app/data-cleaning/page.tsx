@@ -48,7 +48,7 @@ export default function DataCleaningPage() {
   // Aggregate Pipeline Counts
   const rawCount = observations.length;
   const parsedCount = observations.filter(o => o.parsed !== null).length;
-  const normalizedCount = observations.filter(o => o.normalization_status === 'SUCCESS').length;
+  const normalizedCount = observations.filter(o => ['VALID', 'PARTIAL_COMPONENTS', 'INCONSISTENT_TOTAL'].includes(o.normalization_status)).length;
   const dqCount = observations.length; // DQ runs on all
   const indexReadyCount = observations.filter(o => o.valid_for_index).length;
 
@@ -202,7 +202,7 @@ export default function DataCleaningPage() {
                     <div className="absolute top-1/2 left-0 w-full h-[1px] bg-border -z-10" />
                     <ProvenanceNode label="RAW" active={true} />
                     <ProvenanceNode label="PARSED" active={selectedObs.parsed !== null} />
-                    <ProvenanceNode label="NORMALIZED" active={selectedObs.normalization_status === 'SUCCESS'} />
+                    <ProvenanceNode label="NORMALIZED" active={['VALID', 'PARTIAL_COMPONENTS', 'INCONSISTENT_TOTAL'].includes(selectedObs.normalization_status)} />
                     <ProvenanceNode label="DQ DECISION" active={true} />
                     <ProvenanceNode label="INDEX" active={selectedObs.valid_for_index} />
                   </div>

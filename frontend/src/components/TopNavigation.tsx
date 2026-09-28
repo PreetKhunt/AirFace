@@ -10,11 +10,16 @@ import { api } from '@/lib/api';
 
 const topNavGroups = [
   { name: 'MARKET', href: '/' },
-  { name: 'ROUTE INTELLIGENCE', href: '/route-explorer' },
-  { name: 'COLLECTION', href: '/collection-monitor' },
+  { name: 'ROUTES', href: '/route-explorer' },
+  { name: 'HORIZONS', href: '/booking-horizon' },
+  { name: 'ANALYTICS', href: '/index-analytics' },
   { name: 'QUALITY', href: '/data-quality' },
+  { name: 'CLEANING', href: '/data-cleaning' },
+  { name: 'COLLECTION', href: '/collection-monitor' },
   { name: 'VALIDATION', href: '/backtest' },
   { name: 'PROVENANCE', href: '/provenance' },
+  { name: 'STATUS', href: '/system-status' },
+  { name: 'METHODOLOGY', href: '/methodology' },
 ];
 
 export function TopNavigation() {
@@ -25,10 +30,17 @@ export function TopNavigation() {
   useEffect(() => {
     setDateStr(new Date().toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }).toUpperCase());
     api.getSystemStatus().then(res => {
-      if (res.data_mode.includes('HISTORICAL')) setDataMode('HISTORICAL DEMO');
-      else setDataMode(res.data_mode);
-    }).catch(() => setDataMode('DEGRADED'));
+      const mode = res.data_mode || 'HISTORICAL';
+      if (mode === 'LIVE') setDataMode('LIVE');
+      else if (mode.includes('HISTORICAL')) setDataMode('HISTORICAL DEMO');
+      else if (mode.includes('SYNTHETIC')) setDataMode('SYNTHETIC DEMO');
+      else setDataMode(mode);
+    }).catch(() => setDataMode('HISTORICAL DEMO'));
   }, []);
+
+  const isLive = dataMode === 'LIVE';
+  const isHistorical = dataMode === 'HISTORICAL DEMO';
+  const isSynthetic = dataMode === 'SYNTHETIC DEMO';
 
   return (
     <header className="sticky top-0 z-50 glass-heavy border-b border-white/10">
@@ -56,7 +68,7 @@ export function TopNavigation() {
         </div>
 
         {/* Center Nav */}
-        <nav className="hidden lg:flex items-center gap-1 absolute left-1/2 -translate-x-1/2">
+        <nav className="hidden xl:flex items-center gap-1">
           {topNavGroups.map(group => {
             const isActive = pathname === group.href || (group.href !== '/' && pathname.startsWith(group.href));
             return (
@@ -64,7 +76,7 @@ export function TopNavigation() {
                 key={group.name}
                 href={group.href}
                 className={twMerge(clsx(
-                  'px-4 py-2 text-xs font-semibold tracking-[0.2em] transition-all relative group/nav',
+                  'px-3 py-1.5 text-[11px] font-semibold tracking-[0.15em] transition-all relative group/nav',
                   isActive
                     ? 'text-electric-cyan'
                     : 'text-muted-silver hover:text-soft-white'
@@ -72,9 +84,9 @@ export function TopNavigation() {
               >
                 {group.name}
                 {isActive ? (
-                  <span className="absolute bottom-0 left-1/2 -translate-x-1/2 w-8 h-0.5 bg-gradient-to-r from-electric-cyan to-atmospheric-blue rounded-full shadow-[0_0_12px_rgba(6,182,212,0.6)]" />
+                  <span className="absolute bottom-0 left-1/2 -translate-x-1/2 w-6 h-0.5 bg-gradient-to-r from-electric-cyan to-atmospheric-blue rounded-full shadow-[0_0_12px_rgba(6,182,212,0.6)]" />
                 ) : (
-                  <span className="absolute bottom-0 left-1/2 -translate-x-1/2 w-0 h-0.5 bg-gradient-to-r from-electric-cyan to-atmospheric-blue rounded-full transition-all duration-300 group-hover/nav:w-8" />
+                  <span className="absolute bottom-0 left-1/2 -translate-x-1/2 w-0 h-0.5 bg-gradient-to-r from-electric-cyan to-atmospheric-blue rounded-full transition-all duration-300 group-hover/nav:w-6" />
                 )}
               </Link>
             );
@@ -85,21 +97,21 @@ export function TopNavigation() {
         <div className="flex items-center gap-4">
           <div className="hidden md:flex items-center gap-3">
             <div className={clsx(
-              'px-3 py-1.5 rounded-full border text-xs font-mono font-semibold',
-              dataMode === 'LIVE'
+              'px-3 py-1 rounded-full border text-xs font-mono font-semibold',
+              isLive
                 ? 'bg-gradient-to-r from-emerald-500/10 to-emerald-600/10 border-emerald-500/30 text-emerald-400'
-                : dataMode === 'HISTORICAL DEMO'
+                : isHistorical
                 ? 'bg-gradient-to-r from-amber-500/10 to-amber-600/10 border-amber-500/30 text-amber-400'
+                : isSynthetic
+                ? 'bg-gradient-to-r from-purple-500/10 to-purple-600/10 border-purple-500/30 text-purple-400'
                 : 'bg-gradient-to-r from-danger/10 to-danger/20 border-danger/30 text-danger'
             )}>
               <div className="flex items-center gap-2">
                 <span className={clsx(
                   'w-1.5 h-1.5 rounded-full',
-                  dataMode === 'LIVE'
-                    ? 'bg-emerald-400 animate-pulse'
-                    : dataMode === 'HISTORICAL DEMO'
-                    ? 'bg-amber-400'
-                    : 'bg-danger'
+                  isLive ? 'bg-emerald-400 animate-pulse' :
+                  isHistorical ? 'bg-amber-400' :
+                  isSynthetic ? 'bg-purple-400' : 'bg-danger'
                 )} />
                 {dataMode}
               </div>
@@ -124,8 +136,8 @@ export function TopNavigation() {
         </div>
       </div>
 
-      {/* Mobile Navigation */}
-      <nav className="lg:hidden border-t border-white/10 bg-obsidian/95 backdrop-blur-glass">
+      {/* Mobile / Overflow Navigation */}
+      <nav className="xl:hidden border-t border-white/10 bg-obsidian/95 backdrop-blur-glass">
         <div className="max-w-[1920px] mx-auto px-4 py-2 overflow-x-auto scrollbar-hide">
           <div className="flex items-center gap-1 min-w-max">
             {topNavGroups.map(group => {
