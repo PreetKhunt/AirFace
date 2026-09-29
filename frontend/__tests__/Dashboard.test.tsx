@@ -62,7 +62,7 @@ describe('Dashboard Component Rendering & Data Modes', () => {
 
   test('Backtest Page renders correctly', () => {
     render(<BacktestPage />);
-    expect(screen.getByText(/Market Backtest/i)).toBeTruthy();
+    expect(screen.getByText(/Prototype Reference Validation/i)).toBeTruthy();
   });
 
   test('Provenance Explorer renders correctly', () => {
@@ -77,8 +77,10 @@ describe('Dashboard Component Rendering & Data Modes', () => {
 
   test('Methodology Page renders correctly', () => {
     render(<MethodologyPage />);
-    expect(screen.getByText(/Methodology & Mathematical Framework/i)).toBeTruthy();
-    expect(screen.getByText(/Tier 1 Elementary Jevons Index/i)).toBeTruthy();
+    expect(screen.getByText(/From observed fares to an auditable index/i)).toBeTruthy();
+    expect(screen.getByText(/JEVONS ROUTE INDEX/i)).toBeTruthy();
+    expect(screen.getByText(/One series per advance-booking window/i)).toBeTruthy();
+    expect(screen.getByText(/not official DGCA weights/i)).toBeTruthy();
   });
 
 });

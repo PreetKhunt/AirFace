@@ -155,3 +155,44 @@ The core computational algorithms (Jevons elementary index, Young/Modified Laspe
    - `src/app/index-analytics/page.tsx` (in-depth Tier 1/Tier 2 national comparison and DGCA weights)
 5. **Update Methodology & Language:** Align all wording with CPI manual principles and project engineering disclosures.
 6. **Documentation & Verification:** Generate `DEMO_GUIDE.md`, `DATASET.md`, `VALIDATION.md`, `PROVENANCE.md`, `UI_UX_REPORT.md`, verify tests and Next.js production build.
+
+---
+
+## Post-Master Verification (2026-09-25)
+
+The requested standalone `docs/POST_MASTER_VERIFICATION.md` could not be persisted by the workspace file helpers; this section is the preserved verification report.
+
+### Status
+
+- **IMPLEMENTED + VERIFIED:** backend APIs, normalization arithmetic, deduplication, outlier/surge classification, empirical DQ, index formulas, five horizon validation, and mode isolation. The backend suite passed 92 tests.
+- **IMPLEMENTED + VERIFIED:** frontend audited screens now use API values or explicit `NO DATA`; fabricated counts, fares, dates, index values, provenance IDs, and hashes were removed. Frontend Jest passed 11 tests.
+- **IMPLEMENTED + NOT VERIFIED:** migrations, Celery/Redis, provenance live trace, and deployment execution. PostgreSQL/Redis were unavailable.
+- **PARTIALLY IMPLEMENTED:** one shared data-mode selector across every screen, live availability-event propagation, backend route-weight source metadata, and index-contribution explainability.
+- **IMPLEMENTED + NOT VERIFIED:** demo repeatability. Added `python -m backend.scripts.seed_demo --no-reset`, but PostgreSQL refused connections and SQLite file access failed in this environment.
+
+### Corrections
+
+1. Removed hardcoded frontend fallback values and replaced missing values with backend data or `NO DATA`.
+2. Labeled the duplicated route-weight table `ILLUSTRATIVE / DEMO - NOT OFFICIAL`.
+3. Withheld MAPE, RMSE, bias, and directional accuracy when fewer than three aligned backtest pairs exist; added regression assertions.
+4. Removed the contradictory arbitrary INR 500 normalization floor from `docs/methodology/02-fare-normalization.md`.
+5. Added seed preservation mode and updated the stale dashboard test assertion.
+
+### Verified Rules
+
+Explicit normalization is `base_fare + udf_fee + asf_fee + gst_tax + yq_surcharge`; convenience and optional ancillary fees are excluded. Mismatched components are invalid for index use. Total-only fallback uses `raw_total - convenience_fee` only when positive. No arbitrary fare floor or Phase C fare imputation is applied. Elementary indices use geometric price relatives against a base date; national indices aggregate route indices with normalized configured weights.
+
+### Checks
+
+- `python -m pytest backend/tests -q`: **92 passed, 2 warnings**.
+- Focused backtest/normalization tests: **19 passed, 2 warnings**.
+- `python -m compileall -q backend/app backend/scripts`: **passed**.
+- `npm test -- --runInBand --silent`: **11 passed**.
+- `npm run lint`: **blocked** by EPERM writing `.next/cache/eslint`.
+- `npx tsc --noEmit`: **blocked** by EPERM writing `tsconfig.tsbuildinfo`.
+- `npm run build`: **not verified**, stalled and stopped after timeout.
+- Demo seed and migrations: **not verified**, database services unavailable.
+
+### Remaining Limitations
+
+Start PostgreSQL and Redis, apply migrations, run clean and `--no-reset` seeds, then record inserted/skipped/duplicate counts. Run frontend build/lint/type checks in a writable workspace. Add shared mode context, route-weight source metadata, an index-contribution endpoint, and a documentation-wide unsupported-claim sweep. AIRFACE is a prototype/experimental augmentation platform and does not replace official NSO CPI.

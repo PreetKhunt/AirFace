@@ -6,31 +6,44 @@ import { Scene, SceneTransition } from '@/components/CinematicTransition';
 import { GlassSurface, GlassCard, GlassMetric } from '@/components/GlassSurface';
 import { ArrowRight, Cloud, Network, TrendingUp, Shield, BarChart3, Map, Clock, Activity, Cpu } from 'lucide-react';
 import { api } from '@/lib/api';
-import { SystemStatusResponse, NationalAggregateIndex, DataQualityLog, SourceHealth, NormalizedIndexObservation, ProvenanceAuditTrail } from '@/types';
+import { getAdapterOperationalStatus } from '@/lib/adapterStatus';
+import { SystemStatusResponse, NationalAggregateIndex, DataQualityLog, SourceHealth, NormalizedIndexObservation, ProvenanceAuditTrail, HorizonSummaryResponse, PipelineStatus } from '@/types';
 import { clsx } from 'clsx';
+import { formatDataMode } from '@/lib/dataMode';
 
 export default function CinematicLandingPage() {
   const [sysStatus, setSysStatus] = useState<SystemStatusResponse | null>(null);
   const [indices, setIndices] = useState<NationalAggregateIndex[]>([]);
   const [dq, setDq] = useState<DataQualityLog | null>(null);
   const [sources, setSources] = useState<SourceHealth[]>([]);
+  const [horizonSummary, setHorizonSummary] = useState<HorizonSummaryResponse | null>(null);
+  const [pipelineStatus, setPipelineStatus] = useState<PipelineStatus | null>(null);
   const [sampleNorm, setSampleNorm] = useState<NormalizedIndexObservation | null>(null);
   const [sampleProv, setSampleProv] = useState<ProvenanceAuditTrail | null>(null);
+  const [totalObservations, setTotalObservations] = useState(0);
+  const [routeIds, setRouteIds] = useState<string[]>([]);
   const [loading, setLoading] = useState(true);
 
   const loadData = async () => {
     try {
-      const [sys, nat, quality, srcs, normData] = await Promise.all([
+      const [sys, nat, quality, srcs, normData, pipeline, horizons, routeIndices] = await Promise.all([
         api.getSystemStatus().catch(() => null),
         api.getNationalIndices().catch(() => []),
         api.getQualityScore().catch(() => null),
         api.getSources().catch(() => []),
-        api.getNormalizedObservations('DEL-BOM', 'T+7', true, 5).catch(() => ({ items: [], total: 0 })),
+        api.getNormalizedObservations(undefined, undefined, true, 500).catch(() => ({ items: [], total: 0 })),
+        api.getPipelineStatus().catch(() => null),
+        api.getHorizonSummary().catch(() => null),
+        api.getRouteIndices().catch(() => []),
       ]);
       setSysStatus(sys);
       setIndices(nat);
       setDq(quality);
       setSources(srcs);
+      setPipelineStatus(pipeline);
+      setHorizonSummary(horizons);
+      setRouteIds(Array.from(new Set(routeIndices.map(route => route.route_id))));
+      setTotalObservations(normData.total);
 
       if (normData.items.length > 0) {
         const item = normData.items[0];
@@ -52,19 +65,17 @@ export default function CinematicLandingPage() {
   }, []);
 
   const latestIndex = indices.length > 0 ? indices[indices.length - 1] : null;
-  const totalScraped = sources.reduce((sum, s) => sum + s.total_records_scraped, 0);
-  const healthySources = sources.filter(s => s.status === 'HEALTHY').length;
-  const activeMode = sysStatus?.data_mode || (latestIndex?.data_mode) || 'HISTORICAL';
+  const fixtureSources = sources.filter(s => getAdapterOperationalStatus(s) === 'HISTORICAL/FIXTURE FALLBACK').length;
+  const activeMode = sysStatus?.data_mode || latestIndex?.data_mode || 'DATA MODE UNAVAILABLE';
+  const airlineCount = pipelineStatus?.counts.airlines ?? 0;
+  const networkAirports = Array.from(new Set(routeIds.flatMap(route => route.split('-')))).slice(0, 6);
+  const networkPositions = [
+    { x: '20%', y: '25%' }, { x: '80%', y: '28%' }, { x: '45%', y: '65%' },
+    { x: '65%', y: '75%' }, { x: '30%', y: '75%' }, { x: '75%', y: '48%' },
+  ];
 
-  // Base fare breakdown values (either dynamic from sample or mathematically exact)
-  const baseFare = sampleNorm?.parsed?.base_fare ? parseFloat(sampleNorm.parsed.base_fare.toString()) : 3820;
-  const udfFee = sampleNorm?.parsed?.udf_fee ? parseFloat(sampleNorm.parsed.udf_fee.toString()) : 430;
-  const asfFee = sampleNorm?.parsed?.asf_fee ? parseFloat(sampleNorm.parsed.asf_fee.toString()) : 250;
-  const gstTax = sampleNorm?.parsed?.gst_tax ? parseFloat(sampleNorm.parsed.gst_tax.toString()) : 682;
-  const yqSurcharge = sampleNorm?.parsed?.yq_surcharge ? parseFloat(sampleNorm.parsed.yq_surcharge.toString()) : 0;
-  const comparableFare = sampleNorm?.comparable_index_fare 
-    ? parseFloat(sampleNorm.comparable_index_fare.toString()) 
-    : (baseFare + udfFee + asfFee + gstTax + yqSurcharge);
+  const formatFare = (value: string | null | undefined) =>
+    value == null ? 'NO DATA' : `₹${parseFloat(value).toLocaleString('en-IN', { maximumFractionDigits: 2 })}`;
 
   return (
     <div className="snap-scroll">
@@ -90,13 +101,13 @@ export default function CinematicLandingPage() {
           </div>
 
           <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-surface/80 border border-white/10 mb-8 font-mono text-xs text-muted-silver">
-            <span className="w-2 h-2 rounded-full bg-accent animate-pulse" />
+            <span className={clsx('w-2 h-2 rounded-full', activeMode === 'LIVE' ? 'bg-accent animate-pulse' : 'bg-accent')} />
             <span>OPERATIONAL MODE:</span>
-            <span className="text-soft-white font-bold">{activeMode}</span>
+            <span className="text-soft-white font-bold">{formatDataMode(activeMode === 'DATA MODE UNAVAILABLE' ? null : activeMode)}</span>
           </div>
 
           <p className="text-xl text-muted-silver max-w-2xl mx-auto mb-12 leading-relaxed">
-            Every flight leaves a signal. AirFace transforms millions of airfare observations
+            Every flight leaves a signal. AirFace transforms persisted airfare observations
             into measurable intelligence for India&apos;s economic landscape.
           </p>
 
@@ -131,7 +142,7 @@ export default function CinematicLandingPage() {
       <Scene
         id="network"
         title="The Network"
-        subtitle="Thousands of airfare observations form a picture of India's skies"
+        subtitle="Persisted airfare observations form a picture of India's skies"
         background="route"
       >
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
@@ -149,22 +160,22 @@ export default function CinematicLandingPage() {
             <div className="grid grid-cols-2 gap-4">
               <GlassMetric
                 label="Active Corridors"
-                value={latestIndex?.route_count || 9}
+                value={latestIndex?.route_count ?? 'NO DATA'}
                 size="sm"
               />
               <GlassMetric
                 label="Coverage"
-                value={latestIndex?.coverage_pct ? `${latestIndex.coverage_pct}%` : '100%'}
+                value={latestIndex ? `${latestIndex.coverage_pct}%` : 'NO DATA'}
                 size="sm"
               />
               <GlassMetric
                 label="Airlines"
-                value="5"
+                value={airlineCount || 'NO DATA'}
                 size="sm"
               />
               <GlassMetric
                 label="Observations"
-                value={totalScraped > 0 ? totalScraped.toLocaleString() : '571+'}
+                value={totalObservations > 0 ? totalObservations.toLocaleString() : 'NO DATA'}
                 size="sm"
               />
             </div>
@@ -183,24 +194,18 @@ export default function CinematicLandingPage() {
                 <div className="absolute bottom-1/3 left-1/3 w-2/5 h-px bg-gradient-to-r from-transparent via-cyan-400 to-transparent transform -rotate-6" />
 
                 {/* Route nodes */}
-                {[
-                  { label: 'DEL', x: '20%', y: '25%' },
-                  { label: 'BOM', x: '80%', y: '28%' },
-                  { label: 'BLR', x: '45%', y: '65%' },
-                  { label: 'MAA', x: '65%', y: '75%' },
-                  { label: 'CCU', x: '30%', y: '75%' },
-                  { label: 'HYD', x: '75%', y: '48%' },
-                ].map((node) => (
+                {networkAirports.map((label, index) => (
                   <div
-                    key={node.label}
+                    key={label}
                     className="absolute w-12 h-12 flex items-center justify-center"
-                    style={{ left: node.x, top: node.y, transform: 'translate(-50%, -50%)' }}
+                    style={{ ...networkPositions[index], transform: 'translate(-50%, -50%)' }}
                   >
                     <div className="w-10 h-10 rounded-full bg-gradient-to-br from-atmospheric-blue to-electric-cyan flex items-center justify-center text-xs font-bold text-soft-white shadow-lg">
-                      {node.label}
+                      {label}
                     </div>
                   </div>
                 ))}
+                {networkAirports.length === 0 && <div className="absolute inset-0 flex items-center justify-center text-xs font-mono text-muted-silver">NO ROUTE INDEX DATA</div>}
               </div>
 
               <div className="mt-8 text-center">
@@ -230,27 +235,27 @@ export default function CinematicLandingPage() {
           <GlassSurface className="p-8 mb-12">
             <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
               <div className="text-center">
-                <div className="text-2xl font-mono text-muted-silver mb-2">{sampleNorm?.route_id || 'DEL → BOM'}</div>
-                <div className="text-sm text-muted-silver">{sampleNorm?.booking_horizon || 'T+7'}</div>
+                <div className="text-2xl font-mono text-muted-silver mb-2">{sampleNorm?.route_id || 'NO DATA'}</div>
+                <div className="text-sm text-muted-silver">{sampleNorm?.booking_horizon || 'NO DATA'}</div>
               </div>
               <div className="text-center">
-                <div className="text-5xl font-mono font-bold text-electric-cyan mb-2">₹{comparableFare.toLocaleString('en-IN', { maximumFractionDigits: 2 })}</div>
+                <div className="text-5xl font-mono font-bold text-electric-cyan mb-2">{formatFare(sampleNorm?.comparable_index_fare)}</div>
                 <div className="text-sm text-muted-silver">Comparable Fare (P_comparable)</div>
               </div>
               <div className="text-center">
-                <div className="text-lg font-mono text-muted-silver">{sampleNorm?.parsed?.airline_code || '6E'} {sampleNorm?.parsed?.flight_number || '6E-205'}</div>
-                <div className="text-sm text-muted-silver">{sampleNorm?.parsed?.cabin_class || 'ECONOMY'} · {sampleNorm?.parsed?.fare_family || 'Saver'}</div>
+                <div className="text-lg font-mono text-muted-silver">{sampleNorm?.parsed ? `${sampleNorm.parsed.airline_code} ${sampleNorm.parsed.flight_number}` : 'NO DATA'}</div>
+                <div className="text-sm text-muted-silver">{sampleNorm?.parsed ? `${sampleNorm.parsed.cabin_class || 'NO CABIN'} · ${sampleNorm.parsed.fare_family || 'NO FARE FAMILY'}` : 'NO DATA'}</div>
               </div>
             </div>
           </GlassSurface>
 
           <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
             {[
-              { label: 'BASE', value: `₹${baseFare.toLocaleString('en-IN')}`, color: 'from-accent to-accent/70' },
-              { label: 'UDF', value: `₹${udfFee.toLocaleString('en-IN')}`, color: 'from-success to-success/70' },
-              { label: 'ASF', value: `₹${asfFee.toLocaleString('en-IN')}`, color: 'from-warning to-warning/70' },
-              { label: 'GST', value: `₹${gstTax.toLocaleString('en-IN')}`, color: 'from-info to-info/70' },
-              { label: 'YQ', value: `₹${yqSurcharge.toLocaleString('en-IN')}`, color: 'from-muted to-muted/70' },
+              { label: 'BASE', value: formatFare(sampleNorm?.parsed?.base_fare), color: 'from-accent to-accent/70' },
+              { label: 'UDF', value: formatFare(sampleNorm?.parsed?.udf_fee), color: 'from-success to-success/70' },
+              { label: 'ASF', value: formatFare(sampleNorm?.parsed?.asf_fee), color: 'from-warning to-warning/70' },
+              { label: 'GST', value: formatFare(sampleNorm?.parsed?.gst_tax), color: 'from-info to-info/70' },
+              { label: 'YQ', value: formatFare(sampleNorm?.parsed?.yq_surcharge), color: 'from-muted to-muted/70' },
             ].map((component) => (
               <GlassCard
                 key={component.label}
@@ -295,11 +300,11 @@ export default function CinematicLandingPage() {
         <div className="max-w-6xl mx-auto">
           <div className="flex flex-col md:flex-row items-center justify-between gap-8 mb-12">
             {[
-              { stage: 'RAW', icon: '📥', desc: 'HTML/JSON payloads', count: totalScraped || 571 },
-              { stage: 'PARSED', icon: '🔍', desc: 'Fare extraction', count: totalScraped || 571 },
-              { stage: 'NORMALIZED', icon: '⚖️', desc: 'Currency alignment', count: totalScraped || 571 },
-              { stage: 'QUALITY', icon: '🛡️', desc: '8-factor scoring', count: dq ? `${dq.composite_score}%` : '90%' },
-              { stage: 'INDEX', icon: '📊', desc: 'Jevons aggregation', count: indices.length || 64 },
+              { stage: 'RAW', icon: '📥', desc: 'HTML/JSON payloads', count: pipelineStatus?.counts.raw ?? 'NO DATA' },
+              { stage: 'PARSED', icon: '🔍', desc: 'Fare extraction', count: pipelineStatus?.counts.parsed ?? 'NO DATA' },
+              { stage: 'NORMALIZED', icon: '⚖️', desc: 'Currency alignment', count: pipelineStatus?.counts.normalized ?? 'NO DATA' },
+              { stage: 'QUALITY', icon: '🛡️', desc: '8-factor scoring', count: dq ? `${dq.composite_score}%` : 'NO DATA' },
+              { stage: 'INDEX', icon: '📊', desc: 'Jevons aggregation', count: indices.length || 'NO DATA' },
             ].map((stage, index) => (
               <div key={stage.stage} className="flex items-center">
                 <div className="relative">
@@ -338,19 +343,14 @@ export default function CinematicLandingPage() {
               )}
             </GlassCard>
 
-            <GlassCard title="Collection Health" subtitle="Scraper Adapter Status">
+            <GlassCard title="Collection Health" subtitle="Scraper Adapter Operational Status">
               <div className="py-6">
                 <div className="flex items-center justify-between mb-4">
                   <div className="text-3xl font-mono font-bold text-soft-white">
-                    {healthySources}/{sources.length || 3}
+                    {sources.length || 0}
                   </div>
-                  <div className={clsx(
-                    'px-3 py-1 rounded-full text-xs font-bold',
-                    healthySources === (sources.length || 3)
-                      ? 'bg-success/10 text-success border border-success/20'
-                      : 'bg-warning/10 text-warning border border-warning/20'
-                  )}>
-                    {healthySources === (sources.length || 3) ? 'ALL SYSTEMS OPERATIONAL' : 'DEGRADED'}
+                  <div className="px-3 py-1 rounded-full text-xs font-bold bg-surface text-muted-silver border border-border">
+                    {fixtureSources > 0 ? 'FIXTURE-BACKED DEMO' : 'NOT CONFIGURED'}
                   </div>
                 </div>
                 <div className="space-y-3">
@@ -358,10 +358,7 @@ export default function CinematicLandingPage() {
                     <div key={source.source_id} className="flex items-center justify-between">
                       <span className="text-sm text-muted-silver">{source.source_name}</span>
                       <div className="flex items-center gap-2">
-                        <div className={clsx(
-                          'w-2 h-2 rounded-full',
-                          source.status === 'HEALTHY' ? 'bg-success animate-pulse' : 'bg-warning'
-                        )} />
+                        <span className="text-[10px] font-mono text-muted-silver uppercase">{getAdapterOperationalStatus(source)}</span>
                         <span className="text-xs text-muted-silver">{source.success_rate}%</span>
                       </div>
                     </div>
@@ -398,22 +395,17 @@ export default function CinematicLandingPage() {
             <GlassCard>
               <div className="py-8">
                 <div className="text-center mb-6">
-                  <div className="text-4xl font-mono font-bold text-soft-white">T+1 ... T+45</div>
-                  <div className="text-sm text-muted-silver">Horizon Stratification</div>
+                  <div className="text-4xl font-mono font-bold text-soft-white">{horizonSummary?.horizons.filter(h => h.availability_state === 'AVAILABLE').length ?? 'NO DATA'} / {horizonSummary?.horizons.length ?? 'NO DATA'}</div>
+                  <div className="text-sm text-muted-silver">Horizons with Index Data</div>
                 </div>
                 <div className="space-y-3">
-                  {[
-                    { horizon: 'T+1', desc: 'Last-minute emergency / business travel' },
-                    { horizon: 'T+7', desc: 'Short-lead domestic bookings' },
-                    { horizon: 'T+15', desc: 'Standard leisure / corporate travel' },
-                    { horizon: 'T+30', desc: 'Advance planned domestic travel' },
-                    { horizon: 'T+45', desc: 'Early bird baseline window' },
-                  ].map((item) => (
-                    <div key={item.horizon} className="flex items-center justify-between">
+                  {(horizonSummary?.horizons ?? []).map((item) => (
+                    <div key={item.horizon} className="flex items-center justify-between gap-3">
                       <span className="font-mono text-amber-400 font-bold text-sm">{item.horizon}</span>
-                      <span className="text-xs text-muted-silver">{item.desc}</span>
+                      <span className="text-xs text-muted-silver">{item.availability_state === 'AVAILABLE' ? `${item.observation_count} observations · ${item.route_count} routes` : 'DATA NOT AVAILABLE'}</span>
                     </div>
                   ))}
+                  {horizonSummary?.horizons.length === 0 && <div className="text-xs text-muted-silver">No horizon summary is available.</div>}
                 </div>
               </div>
             </GlassCard>
@@ -453,10 +445,10 @@ export default function CinematicLandingPage() {
             <div className="absolute -inset-8 bg-gradient-to-r from-electric-cyan/10 to-atmospheric-blue/10 blur-3xl rounded-full" />
             <div className="relative">
               <div className="text-8xl md:text-9xl font-light tracking-tighter text-soft-white mb-2">
-                {latestIndex?.index_value ? parseFloat(latestIndex.index_value.toString()).toFixed(2) : '100.00'}
+                {latestIndex?.index_value ? parseFloat(latestIndex.index_value.toString()).toFixed(2) : 'NO DATA'}
               </div>
               <div className="text-xl text-muted-silver uppercase tracking-widest">
-                NATIONAL AIRFARE PRICE INDEX ({activeMode})
+                NATIONAL AIRFARE PRICE INDEX ({formatDataMode(activeMode === 'DATA MODE UNAVAILABLE' ? null : activeMode)})
               </div>
             </div>
           </div>
@@ -464,22 +456,22 @@ export default function CinematicLandingPage() {
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-12">
             <GlassMetric
               label="Base Period"
-              value={latestIndex?.base_date || '2026-01-14'}
+              value={latestIndex?.base_date || 'NO DATA'}
               size="sm"
             />
             <GlassMetric
               label="Calculation Date"
-              value={latestIndex?.calculation_date || '2026-02-13'}
+              value={latestIndex?.calculation_date || 'NO DATA'}
               size="sm"
             />
             <GlassMetric
               label="Horizon"
-              value={latestIndex?.booking_horizon || 'T+1'}
+              value={latestIndex?.booking_horizon || 'NO DATA'}
               size="sm"
             />
             <GlassMetric
               label="Coverage"
-              value={latestIndex?.coverage_pct ? `${latestIndex.coverage_pct}%` : '100%'}
+              value={latestIndex ? `${latestIndex.coverage_pct}%` : 'NO DATA'}
               size="sm"
             />
           </div>
@@ -520,7 +512,7 @@ export default function CinematicLandingPage() {
             <GlassCard title="Cryptographic Audit Trail" subtitle="Immutable Verification">
               <div className="py-6">
                 <div className="font-mono text-xs text-emerald-400 break-all bg-obsidian p-4 rounded-lg mb-4 border border-emerald-500/20">
-                  {sampleProv?.payload_sha256_hash || 'e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855'}
+                  {sampleProv?.payload_sha256_hash || 'NO DATA'}
                 </div>
                 <p className="text-sm text-muted-silver">
                   Each index observation is cryptographically linked to its raw scraper payload
@@ -533,11 +525,11 @@ export default function CinematicLandingPage() {
               <div className="py-6 space-y-4">
                 <div className="flex items-center justify-between">
                   <span className="text-sm text-muted-silver">Observation ID</span>
-                  <span className="text-xs font-mono text-emerald-400">{sampleNorm?.observation_id?.slice(0, 16) || 'obs_verified'}...</span>
+                  <span className="text-xs font-mono text-emerald-400">{sampleNorm?.observation_id ? `${sampleNorm.observation_id.slice(0, 16)}...` : 'NO DATA'}</span>
                 </div>
                 <div className="flex items-center justify-between">
                   <span className="text-sm text-muted-silver">Source Portal</span>
-                  <span className="text-xs font-mono text-emerald-400">{sampleProv?.source_portal || 'fixture_historical'}</span>
+                  <span className="text-xs font-mono text-emerald-400">{sampleProv?.source_portal || 'NO DATA'}</span>
                 </div>
                 <div className="flex items-center justify-between">
                   <span className="text-sm text-muted-silver">Index Methodology</span>
@@ -545,7 +537,7 @@ export default function CinematicLandingPage() {
                 </div>
                 <div className="flex items-center justify-between">
                   <span className="text-sm text-muted-silver">Data Mode</span>
-                  <span className="text-xs font-mono text-emerald-400">{activeMode}</span>
+                  <span className="text-xs font-mono text-emerald-400">{formatDataMode(activeMode === 'DATA MODE UNAVAILABLE' ? null : activeMode)}</span>
                 </div>
               </div>
             </GlassCard>

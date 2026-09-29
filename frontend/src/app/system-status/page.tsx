@@ -4,8 +4,12 @@ import { useEffect, useState, useCallback } from 'react';
 import { api } from '@/lib/api';
 import { SystemStatusResponse, HealthResponse, SourceHealth } from '@/types';
 import { StateBoundary } from '@/components/StateBoundary';
-import { Cpu, Database, Server, Radio, Activity, RefreshCw, CheckCircle2, AlertTriangle, XCircle, Zap } from 'lucide-react';
+import { getAdapterOperationalStatus, operationalStatusTone } from '@/lib/adapterStatus';
+import { Cpu, Database, Server, Radio, Activity, RefreshCw, CheckCircle2, AlertTriangle, Zap } from 'lucide-react';
 import { clsx } from 'clsx';
+import { formatDataMode } from '@/lib/dataMode';
+
+type ServiceStatus = 'HEALTHY' | 'DEGRADED' | 'OFFLINE' | 'NOT CONFIGURED' | 'NOT VERIFIED';
 
 export default function SystemStatusPage() {
   const [sysStatus, setSysStatus] = useState<SystemStatusResponse | null>(null);
@@ -49,49 +53,57 @@ export default function SystemStatusPage() {
   const isBackendHealthy = !!health && health.status === 'ok';
   const isDbHealthy = !!sysStatus && sysStatus.database_connected;
   const isRedisHealthy = !!sysStatus && sysStatus.redis_connected;
-  const activeMode = sysStatus?.data_mode || 'HISTORICAL';
+  const activeMode = sysStatus?.data_mode || 'DATA NOT AVAILABLE';
 
-  const services = [
+  const services: Array<{ name: string; category: string; status: ServiceStatus; detail: string; icon: typeof Server }> = [
     {
       name: 'Frontend Application',
       category: 'Client Interface',
-      status: 'HEALTHY' as const,
-      detail: 'Next.js App Router (SSR & Client Hydration)',
+      status: 'NOT VERIFIED',
+      detail: 'Next.js client UI — no server-side health probe in this environment',
       icon: Radio,
     },
     {
       name: 'Backend API Service',
       category: 'FastAPI Gateway',
-      status: isBackendHealthy ? ('HEALTHY' as const) : ('OFFLINE' as const),
-      detail: `FastAPI ${health?.version || '1.0.0'} (${health?.service || 'airfare-index-api'})`,
+      status: isBackendHealthy ? 'HEALTHY' : health === null ? 'NOT VERIFIED' : 'OFFLINE',
+      detail: isBackendHealthy
+        ? `GET /api/v1/health → ok (${health?.service || 'airfare-index-api'} v${health?.version || '1.0.0'})`
+        : 'Backend health endpoint unreachable',
       icon: Server,
     },
     {
       name: 'Relational Database',
       category: 'Time-Series & Relational Store',
-      status: isDbHealthy ? ('HEALTHY' as const) : ('DEGRADED' as const),
-      detail: isDbHealthy ? 'Connected (SQLAlchemy Session Pool active)' : 'Database connection unavailable',
+      status: sysStatus === null ? 'NOT VERIFIED' : isDbHealthy ? 'HEALTHY' : 'DEGRADED',
+      detail: isDbHealthy
+        ? 'GET /api/v1/health/system → database_connected=true'
+        : 'Database probe failed or unavailable',
       icon: Database,
     },
     {
       name: 'Redis Cache & Broker',
       category: 'In-Memory Message Broker',
-      status: isRedisHealthy ? ('HEALTHY' as const) : ('NOT CONFIGURED' as const),
-      detail: isRedisHealthy ? 'Redis Broker online' : 'Optional broker offline (synchronous execution mode)',
+      status: sysStatus === null ? 'NOT VERIFIED' : isRedisHealthy ? 'HEALTHY' : 'NOT CONFIGURED',
+      detail: isRedisHealthy
+        ? 'GET /api/v1/health/system → redis_connected=true'
+        : 'Redis not configured or unreachable (synchronous execution mode)',
       icon: Zap,
     },
     {
       name: 'Index Engine Subsystem',
       category: 'Statistical Calculation Tier',
-      status: isDbHealthy ? ('HEALTHY' as const) : ('DEGRADED' as const),
-      detail: 'Tier 1 Jevons Elementary & Tier 2 DGCA Young Aggregation',
+      status: 'NOT VERIFIED',
+      detail: 'No dedicated health endpoint; engine executes within the API process on demand',
       icon: Activity,
     },
     {
       name: 'Scraper Adapter Subsystem',
       category: 'Data Acquisition Tier',
-      status: sources.length > 0 ? ('HEALTHY' as const) : ('DEGRADED' as const),
-      detail: `${sources.length} adapters active (Historical, Synthetic, Indigo)`,
+      status: sources.length > 0 ? 'NOT VERIFIED' : 'NOT CONFIGURED',
+      detail: sources.length > 0
+        ? `${sources.length} adapters registered — see operational status table below`
+        : 'No adapters registered; run demo seed to populate fixture sources',
       icon: Cpu,
     },
   ];
@@ -145,7 +157,7 @@ export default function SystemStatusPage() {
                 AIRFACE Core Systems: {overallStatus}
               </h3>
               <p className="text-xs text-muted-silver">
-                Active Operational Mode: <span className="font-mono text-soft-white font-bold">{activeMode}</span>
+                DATA MODE: <span className="font-mono text-soft-white font-bold">{formatDataMode(activeMode === 'DATA NOT AVAILABLE' ? null : activeMode)}</span>
               </p>
             </div>
           </div>
@@ -162,7 +174,8 @@ export default function SystemStatusPage() {
           {services.map((svc) => {
             const Icon = svc.icon;
             const isOk = svc.status === 'HEALTHY';
-            const isWarn = svc.status === 'DEGRADED' || svc.status === 'NOT CONFIGURED';
+            const isNeutral = svc.status === 'NOT VERIFIED' || svc.status === 'NOT CONFIGURED';
+            const isWarn = svc.status === 'DEGRADED';
             return (
               <div key={svc.name} className="p-6 bg-card border border-border rounded-xl flex flex-col justify-between relative group hover:border-white/20 transition-all">
                 <div className="flex items-start justify-between mb-4">
@@ -179,6 +192,7 @@ export default function SystemStatusPage() {
                   <span className={clsx(
                     'px-2.5 py-1 rounded-full text-[10px] font-mono font-bold border',
                     isOk ? 'bg-success/10 border-success/30 text-success' :
+                    isNeutral ? 'bg-surface border-border text-muted-silver' :
                     isWarn ? 'bg-warning/10 border-warning/30 text-warning' :
                     'bg-danger/10 border-danger/30 text-danger'
                   )}>
@@ -204,31 +218,45 @@ export default function SystemStatusPage() {
               <thead>
                 <tr className="border-b border-border text-muted-silver">
                   <th className="pb-3 uppercase">Adapter Name</th>
-                  <th className="pb-3 uppercase">Mode</th>
-                  <th className="pb-3 uppercase">Status</th>
+                  <th className="pb-3 uppercase">Operational Status</th>
+                  <th className="pb-3 uppercase">Ingestion Health</th>
                   <th className="pb-3 uppercase">Success Rate</th>
                   <th className="pb-3 uppercase">Records</th>
                   <th className="pb-3 uppercase">Avg Latency</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-border/40">
-                {sources.map((s) => (
-                  <tr key={s.source_id} className="text-soft-white">
-                    <td className="py-3 font-bold">{s.source_name}</td>
-                    <td className="py-3 text-muted-silver">{s.source_name.toLowerCase().includes('fixture') ? 'FIXTURE' : 'LIVE'}</td>
-                    <td className="py-3">
-                      <span className={clsx(
-                        'px-2 py-0.5 rounded text-[10px] font-bold border',
-                        s.status === 'HEALTHY' ? 'bg-success/10 border-success/30 text-success' : 'bg-warning/10 border-warning/30 text-warning'
-                      )}>
-                        {s.status}
-                      </span>
-                    </td>
-                    <td className="py-3">{s.success_rate}%</td>
-                    <td className="py-3">{s.total_records_scraped.toLocaleString()}</td>
-                    <td className="py-3">{s.average_latency_ms}ms</td>
-                  </tr>
-                ))}
+                {sources.map((s) => {
+                  const opStatus = getAdapterOperationalStatus(s);
+                  const tone = operationalStatusTone(opStatus);
+                  return (
+                    <tr key={s.source_id} className="text-soft-white">
+                      <td className="py-3 font-bold">{s.source_name}</td>
+                      <td className="py-3">
+                        <span className={clsx(
+                          'px-2 py-0.5 rounded text-[10px] font-bold border',
+                          tone === 'success' ? 'bg-success/10 border-success/30 text-success' :
+                          tone === 'warning' ? 'bg-warning/10 border-warning/30 text-warning' :
+                          tone === 'danger' ? 'bg-danger/10 border-danger/30 text-danger' :
+                          'bg-surface border-border text-muted-silver'
+                        )}>
+                          {opStatus}
+                        </span>
+                      </td>
+                      <td className="py-3">
+                        <span className={clsx(
+                          'px-2 py-0.5 rounded text-[10px] font-bold border',
+                          s.status === 'HEALTHY' ? 'bg-success/10 border-success/30 text-success' : 'bg-warning/10 border-warning/30 text-warning'
+                        )}>
+                          {s.status}
+                        </span>
+                      </td>
+                      <td className="py-3">{s.success_rate == null ? 'NO DATA' : `${s.success_rate}%`}</td>
+                      <td className="py-3">{s.total_records_scraped == null ? 'NO DATA' : s.total_records_scraped.toLocaleString()}</td>
+                      <td className="py-3">{s.average_latency_ms == null ? 'NO DATA' : `${s.average_latency_ms}ms`}</td>
+                    </tr>
+                  );
+                })}
                 {sources.length === 0 && (
                   <tr>
                     <td colSpan={6} className="py-6 text-center text-muted-silver">

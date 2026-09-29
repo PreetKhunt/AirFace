@@ -12,7 +12,50 @@ export interface SystemStatusResponse {
   version: string;
   database_connected: boolean;
   redis_connected: boolean;
-  data_mode: DataMode;
+  data_mode: DataMode | null;
+}
+
+export interface HorizonSummary {
+  horizon: string;
+  data_mode: DataMode | null;
+  observation_count: number;
+  route_count: number;
+  index_observation_count: number;
+  coverage_pct: string | null;
+  date_range: { start: string | null; end: string | null };
+  availability_state: 'AVAILABLE' | 'DATA_NOT_AVAILABLE';
+  reason: string | null;
+}
+
+export interface HorizonSummaryResponse {
+  data_mode: DataMode | null;
+  horizons: HorizonSummary[];
+}
+
+export interface PipelineStatus {
+  data_mode: DataMode | null;
+  counts: {
+    raw: number;
+    parsed: number;
+    normalized: number;
+    dq: number;
+    index_ready: number;
+    airlines: number;
+    routes: number;
+  };
+}
+
+export interface RouteWeight {
+  route_id: string;
+  corridor_region: string;
+  passenger_volume: number;
+  reference_weight: string;
+  normalized_weight_pct: string | null;
+}
+
+export interface RouteWeightsResponse {
+  total_weight: number;
+  routes: RouteWeight[];
 }
 
 export interface NationalAggregateIndex {
@@ -66,36 +109,41 @@ export interface BacktestRun {
   created_at: string;
 }
 
+export type AdapterType = 'FIXTURE' | 'LIVE';
+
 export interface SourceHealth {
   source_id: string;
   source_name: string;
+  adapter_type: AdapterType;
   last_collection_time: string | null;
   status: string;
-  success_rate: string;
+  success_rate: string | null;
   total_records_scraped: number;
   error_count: number;
-  average_latency_ms: string;
+  average_latency_ms: string | null;
 }
 
 export interface DataQualityLog {
   log_id: string;
   calculation_date: string;
-  composite_score: string;
-  completeness_score: string;
-  validity_score: string;
-  consistency_score: string;
-  timeliness_score: string;
-  source_reliability_score: string;
-  dedup_integrity_score: string;
-  outlier_cleanliness_score: string;
-  availability_coverage_score: string;
-  data_mode: DataMode;
+  composite_score: string | null;
+  completeness_score: string | null;
+  validity_score: string | null;
+  consistency_score: string | null;
+  timeliness_score: string | null;
+  source_reliability_score: string | null;
+  dedup_integrity_score: string | null;
+  outlier_cleanliness_score: string | null;
+  availability_coverage_score: string | null;
+  synthetic_share: string | null;
+  data_mode: DataMode | null;
 }
 
 /** Parsed fare observation fields embedded inside a normalized observation (returned when include_parsed=true) */
 export interface ParsedAirfareObservationEmbedded {
   observation_id: string;
   raw_id: string;
+  source_name: string | null;
   origin: string;
   destination: string;
   airline_code: string;
@@ -183,4 +231,17 @@ export interface ProvenanceAuditTrail {
   normalization_version: string;
   payload_sha256_hash: string;
   created_at: string;
+  index_obs_id?: string | null;
+  route_id?: string | null;
+  booking_horizon?: string | null;
+  origin?: string | null;
+  destination?: string | null;
+  airline_code?: string | null;
+  fare?: string | null;
+  base_fare?: string | null;
+  udf_fee?: string | null;
+  asf_fee?: string | null;
+  gst_tax?: string | null;
+  yq_surcharge?: string | null;
+  data_mode?: DataMode | null;
 }

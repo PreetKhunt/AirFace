@@ -1,3 +1,4 @@
+from typing import Optional
 from pydantic import BaseModel, Field
 from app.core.enums import DataMode
 
@@ -18,4 +19,4 @@ class SystemStatusResponse(BaseModel):
     version: str = Field("1.0.0", json_schema_extra={"example": "1.0.0"})
     database_connected: bool = Field(True, json_schema_extra={"example": True})
     redis_connected: bool = Field(True, json_schema_extra={"example": True})
-    data_mode: DataMode = Field(DataMode.LIVE, json_schema_extra={"example": DataMode.LIVE})
+    data_mode: Optional[DataMode] = Field(None, json_schema_extra={"example": None})

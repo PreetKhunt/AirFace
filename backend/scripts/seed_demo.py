@@ -17,6 +17,7 @@ Executes the full pipeline in pure Python with database transactions:
 
 Usage:
     python -m backend.scripts.seed_demo
+    python -m backend.scripts.seed_demo --no-reset
 """
 import os
 import sys
@@ -91,7 +92,7 @@ def ingest_fixtures(db):
     print("  [3/7] Ingesting airfare observations from verified fixture sources...")
     
     # 1. Synthetic Fixture
-    syn_adapter = FixtureAdapter(DataMode.SYNTHETIC)
+    syn_adapter = FixtureAdapter(DataMode.SYNTHETIC, include_synthetic_base_period=True)
     syn_res = run_ingestion(syn_adapter, db)
     print(f"        [OK] SYNTHETIC Fixture: {syn_res.raw_ingested} raw, {syn_res.parsed_ingested} parsed, {syn_res.duplicates_skipped} dupes.")
     
@@ -204,7 +205,11 @@ def main():
     print("================================================================================")
     db = SessionLocal()
     try:
-        reset_database()
+        preserve_existing = "--no-reset" in sys.argv[1:]
+        if preserve_existing:
+            print("  [1/7] Preserving existing database for idempotency verification...")
+        else:
+            reset_database()
         seed_routes(db)
         ingest_fixtures(db)
         run_normalization_and_dq(db)

@@ -61,6 +61,7 @@ def test_synthetic_ingestion_data_mode_isolation(db_session):
 
     # Verify collection_mode is preserved in DB
     raws = db_session.query(RawAirfareObservation).all()
+    assert db_session.query(ParsedAirfareObservation).count() == 90
     assert len(raws) == 90
     for r in raws:
         assert r.collection_mode == DataMode.SYNTHETIC

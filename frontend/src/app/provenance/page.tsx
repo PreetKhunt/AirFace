@@ -6,7 +6,7 @@ import { api } from '@/lib/api';
 import { StateBoundary } from '@/components/StateBoundary';
 import { Network, FileText, Globe, Key, ShieldAlert, Database, Map, Search, Check, Copy } from 'lucide-react';
 import { clsx } from 'clsx';
-import { NationalAggregateIndex, NormalizedIndexObservation } from '@/types';
+import { NationalAggregateIndex, NormalizedIndexObservation, ProvenanceAuditTrail } from '@/types';
 
 function ProvenanceContent() {
   const searchParams = useSearchParams();
@@ -18,7 +18,7 @@ function ProvenanceContent() {
   const [nat, setNat] = useState<NationalAggregateIndex | null>(null);
   const [normList, setNormList] = useState<NormalizedIndexObservation[]>([]);
   const [selectedNorm, setSelectedNorm] = useState<NormalizedIndexObservation | null>(null);
-  const [provenance, setProvenance] = useState<any | null>(null);
+  const [provenance, setProvenance] = useState<ProvenanceAuditTrail | null>(null);
   const [copied, setCopied] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
 
@@ -95,7 +95,7 @@ function ProvenanceContent() {
   });
 
   const parsedData = selectedNorm?.parsed;
-  const sourceUrl = provenance?.source_url || (parsedData ? `fixture://${selectedNorm?.route_id}/${parsedData.airline_code}/${parsedData.travel_date}` : null);
+  const sourceUrl = provenance?.source_url || null;
 
   return (
     <div className="min-h-[calc(100vh-5rem)] p-6 flex flex-col gap-6 max-w-[1600px] mx-auto w-full fade-in">
@@ -146,7 +146,7 @@ function ProvenanceContent() {
                       <span className="text-emerald-400 font-bold">₹{obs.comparable_index_fare}</span>
                     </div>
                     <div className="flex justify-between items-center text-[10px] text-muted-silver">
-                      <span>{obs.booking_horizon} · {obs.parsed?.airline_code || '6E'}</span>
+                      <span>{obs.booking_horizon} · {obs.parsed?.airline_code || 'NO DATA'}</span>
                       <span className="truncate max-w-[120px]">ID: {obs.index_obs_id.slice(0, 8)}...</span>
                     </div>
                   </button>
@@ -164,8 +164,8 @@ function ProvenanceContent() {
                 icon={<Database />}
                 title="NATIONAL INDEX"
                 subtitle="Root Aggregate"
-                value={nat?.index_value ? `${parseFloat(nat.index_value.toString()).toFixed(2)} (${nat.booking_horizon})` : '100.00'}
-                detail={`Methodology: ${nat?.methodology || 'JEVONS'}`}
+                value={nat?.index_value ? `${parseFloat(nat.index_value.toString()).toFixed(2)} (${nat.booking_horizon})` : 'NO DATA'}
+                detail={`Methodology: ${nat?.methodology || 'NO DATA'}`}
               />
               <TimelineNode
                 icon={<Map />}
@@ -191,7 +191,7 @@ function ProvenanceContent() {
                 title="PARSED RECORD"
                 subtitle="Component Sum"
                 value={parsedData ? `${parsedData.airline_code} · ₹${parsedData.raw_total_fare}` : '---'}
-                detail={`Base: ₹${parsedData?.base_fare || 0} + Fees`}
+                detail={parsedData?.base_fare != null ? `Base: ₹${parsedData.base_fare} + Fees` : 'Base fare: NO DATA'}
               />
               <TimelineNode
                 icon={<Globe />}
@@ -240,6 +240,10 @@ function ProvenanceContent() {
 
                   <div className="grid grid-cols-1 gap-3 mt-2 text-xs font-mono">
                     <div className="border-b border-border/40 pb-2">
+                      <span className="text-[10px] uppercase tracking-widest text-muted-silver block">Route / Horizon</span>
+                      <span className="text-soft-white">{provenance.route_id || 'NO DATA'} · {provenance.booking_horizon || 'NO DATA'}</span>
+                    </div>
+                    <div className="border-b border-border/40 pb-2">
                       <span className="text-[10px] uppercase tracking-widest text-muted-silver block">Audit ID</span>
                       <span className="text-soft-white break-all">{provenance.audit_id}</span>
                     </div>
@@ -250,6 +254,10 @@ function ProvenanceContent() {
                     <div className="border-b border-border/40 pb-2">
                       <span className="text-[10px] uppercase tracking-widest text-muted-silver block">Source Portal</span>
                       <span className="text-emerald-400">{provenance.source_portal}</span>
+                    </div>
+                    <div className="border-b border-border/40 pb-2">
+                      <span className="text-[10px] uppercase tracking-widest text-muted-silver block">Fare / Data Mode</span>
+                      <span className="text-soft-white">₹{provenance.fare || 'NO DATA'} · {provenance.data_mode || 'NO DATA'}</span>
                     </div>
                     <div>
                       <span className="text-[10px] uppercase tracking-widest text-muted-silver block">Timestamp</span>

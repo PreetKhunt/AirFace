@@ -2,7 +2,7 @@
 
 import { useEffect, useState, useMemo } from 'react';
 import { api } from '@/lib/api';
-import { NormalizedIndexObservation } from '@/types';
+import { NormalizedIndexObservation, PipelineStatus } from '@/types';
 import { StateBoundary } from '@/components/StateBoundary';
 import { ShieldAlert, CheckCircle2, AlertTriangle, ArrowRight, XCircle, Search } from 'lucide-react';
 import { clsx } from 'clsx';
@@ -10,6 +10,7 @@ import Link from 'next/link';
 
 export default function DataCleaningPage() {
   const [observations, setObservations] = useState<NormalizedIndexObservation[]>([]);
+  const [pipelineStatus, setPipelineStatus] = useState<PipelineStatus | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [selectedObs, setSelectedObs] = useState<NormalizedIndexObservation | null>(null);
@@ -19,8 +20,12 @@ export default function DataCleaningPage() {
     try {
       setLoading(true);
       setError(null);
-      const data = await api.getNormalizedObservations(undefined, undefined, true);
+      const [data, status] = await Promise.all([
+        api.getNormalizedObservations(undefined, undefined, true, 500),
+        api.getPipelineStatus(),
+      ]);
       setObservations(data.items);
+      setPipelineStatus(status);
       if (data.items.length > 0) {
         setSelectedObs(data.items[0]);
       }
@@ -46,11 +51,20 @@ export default function DataCleaningPage() {
   }, [observations, searchQuery]);
 
   // Aggregate Pipeline Counts
-  const rawCount = observations.length;
-  const parsedCount = observations.filter(o => o.parsed !== null).length;
-  const normalizedCount = observations.filter(o => ['VALID', 'PARTIAL_COMPONENTS', 'INCONSISTENT_TOTAL'].includes(o.normalization_status)).length;
-  const dqCount = observations.length; // DQ runs on all
-  const indexReadyCount = observations.filter(o => o.valid_for_index).length;
+  const stageCounts = pipelineStatus?.counts;
+  const rawCount = stageCounts?.raw ?? 0;
+  const parsedCount = stageCounts?.parsed ?? 0;
+  const normalizedCount = stageCounts?.normalized ?? 0;
+  const dqCount = stageCounts?.dq ?? 0;
+  const indexReadyCount = stageCounts?.index_ready ?? 0;
+
+  const computeComparableFromComponents = (obs: NormalizedIndexObservation): number | null => {
+    const p = obs.parsed;
+    if (!p) return null;
+    const parts = [p.base_fare, p.udf_fee, p.asf_fee, p.gst_tax, p.yq_surcharge];
+    if (parts.some(v => v === null || v === undefined)) return null;
+    return parts.reduce((sum, v) => sum + parseFloat(v!.toString()), 0);
+  };
 
   const getEventTag = (obs: NormalizedIndexObservation) => {
     if (obs.is_outlier) return { label: 'TECHNICAL OUTLIER', color: 'text-danger border-danger/30 bg-danger/10' };
@@ -147,22 +161,43 @@ export default function DataCleaningPage() {
                   <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
                     <InspectorItem label="Route" value={selectedObs.route_id} />
                     <InspectorItem label="Airline" value={selectedObs.parsed?.airline_name ?? selectedObs.parsed?.airline_code ?? '---'} />
-                    <InspectorItem label="Horizon" value={selectedObs.booking_horizon} />
+                    <InspectorItem label="Flight" value={selectedObs.parsed ? `${selectedObs.parsed.airline_code} ${selectedObs.parsed.flight_number}` : '---'} />
+                    <InspectorItem label="Source" value={selectedObs.parsed?.source_name ?? 'NO DATA'} />
                     <InspectorItem label="Travel Date" value={selectedObs.parsed?.travel_date ?? '---'} />
+                    <InspectorItem label="Booking Horizon" value={selectedObs.booking_horizon} />
+                    <InspectorItem label="Availability" value={selectedObs.availability_status} />
+                    <InspectorItem label="Cabin / Fare Family" value={selectedObs.parsed ? `${selectedObs.parsed.cabin_class ?? '---'} / ${selectedObs.parsed.fare_family ?? '---'}` : '---'} />
                   </div>
 
                   <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
                     <div className="p-4 border border-border rounded-lg bg-surface">
-                      <h4 className="text-[10px] uppercase tracking-widest text-muted mb-3">Fare Components</h4>
+                      <h4 className="text-[10px] uppercase tracking-widest text-muted mb-3">Fare Components (P_comp = Base + UDF + ASF + GST + YQ + Other Mandatory)</h4>
                       <div className="space-y-2 font-mono text-sm">
                         <div className="flex justify-between text-muted"><span>Base Fare</span> <span>₹{selectedObs.parsed?.base_fare ?? '---'}</span></div>
                         <div className="flex justify-between text-muted"><span>UDF</span> <span>₹{selectedObs.parsed?.udf_fee ?? '---'}</span></div>
                         <div className="flex justify-between text-muted"><span>ASF</span> <span>₹{selectedObs.parsed?.asf_fee ?? '---'}</span></div>
                         <div className="flex justify-between text-muted"><span>GST</span> <span>₹{selectedObs.parsed?.gst_tax ?? '---'}</span></div>
+                        <div className="flex justify-between text-muted"><span>YQ</span> <span>₹{selectedObs.parsed?.yq_surcharge ?? '---'}</span></div>
+                        <div className="flex justify-between text-muted"><span>Other Mandatory Charges</span> <span>NO DATA</span></div>
+                        <div className="flex justify-between text-muted/70 text-xs"><span>Excluded: Convenience Fee</span> <span>{selectedObs.parsed?.convenience_fee != null ? `₹${selectedObs.parsed.convenience_fee}` : 'NO DATA'}</span></div>
                         <div className="flex justify-between border-t border-border pt-2 text-white font-bold">
-                          <span>Comparable Fare</span> 
+                          <span>Comparable Fare (Backend)</span> 
                           <span>₹{selectedObs.comparable_index_fare}</span>
                         </div>
+                        {(() => {
+                          const computed = computeComparableFromComponents(selectedObs);
+                          const backend = parseFloat(selectedObs.comparable_index_fare.toString());
+                          const matches = computed !== null && Math.abs(computed - backend) < 0.01;
+                          return computed !== null ? (
+                            <div className={clsx(
+                              'flex justify-between text-xs pt-1',
+                              matches ? 'text-success' : 'text-warning'
+                            )}>
+                              <span>Component Sum Check</span>
+                              <span>₹{computed.toFixed(2)} {matches ? '✓ matches backend' : '≠ backend'}</span>
+                            </div>
+                          ) : null;
+                        })()}
                       </div>
                     </div>
 

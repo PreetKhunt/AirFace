@@ -94,13 +94,16 @@ class BacktestEngine:
             abs_pct_errors.append(abs(pct_err))
             pct_biases.append(pct_err) # Positive if our index > reference
 
-        mape = (sum(abs_pct_errors) / n) * 100.0
-        rmse = math.sqrt(sum(sq_errors) / n)
-        mean_bias_pct = (sum(pct_biases) / n) * 100.0
+        # Do not persist apparently precise validation metrics for a sample that
+        # is too small to support the project's statistical validation gate.
+        metrics_available = n >= 3
+        mape = (sum(abs_pct_errors) / n) * 100.0 if metrics_available else None
+        rmse = math.sqrt(sum(sq_errors) / n) if metrics_available else None
+        mean_bias_pct = (sum(pct_biases) / n) * 100.0 if metrics_available else None
 
         # Pearson Correlation (r)
         pearson_r = None
-        if n >= 2:
+        if metrics_available:
             mean_s = sum(s for s, r in aligned_pairs) / n
             mean_r = sum(r for s, r in aligned_pairs) / n
             
@@ -137,7 +140,7 @@ class BacktestEngine:
                     da_matches += 1
                 da_comparisons += 1
                 
-        directional_accuracy = (da_matches / da_comparisons * 100.0) if da_comparisons > 0 else None
+        directional_accuracy = (da_matches / da_comparisons * 100.0) if metrics_available and da_comparisons > 0 else None
         
         status = "VALIDATED"
         if n < 3: # Need at least some pairs to be meaningful

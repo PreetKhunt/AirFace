@@ -62,6 +62,10 @@ def test_zero_reference_protection(db_session):
     assert run.sample_count == 2
     assert run.coverage_pct == Decimal("50.00")
     assert run.status == "INSUFFICIENT_DATA" # since n < 3
+    assert run.mape is None
+    assert run.rmse is None
+    assert run.mean_bias_pct is None
+    assert run.directional_accuracy is None
 
 def test_insufficient_correlation_sample(db_session):
     start = date(2026, 1, 1)

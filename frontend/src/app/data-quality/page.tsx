@@ -35,7 +35,7 @@ export default function DataQualityPage() {
   const chartData = useMemo(() => {
     return history.map(h => ({
       date: h.calculation_date,
-      score: parseFloat(h.composite_score)
+      score: h.composite_score == null ? null : parseFloat(h.composite_score)
     }));
   }, [history]);
 
@@ -53,6 +53,10 @@ export default function DataQualityPage() {
         </Link>
       </header>
 
+      <p className="text-xs text-muted-silver font-mono">
+        Synthetic share in scored batch: {latest?.synthetic_share == null ? 'NO DATA' : `${(parseFloat(latest.synthetic_share) * 100).toFixed(2)}%`}
+      </p>
+
       <StateBoundary loading={loading} error={error} onRetry={loadData} isEmpty={!loading && history.length === 0}>
         
         {latest && (
@@ -61,11 +65,11 @@ export default function DataQualityPage() {
               <div className="absolute inset-0 bg-accent/5 mix-blend-overlay opacity-0 group-hover:opacity-100 transition-opacity" />
               <ShieldCheck className="w-16 h-16 text-accent mb-6" />
               <h2 className="text-[10px] font-bold text-muted uppercase tracking-[0.2em] mb-2">Composite Score</h2>
-              <div className="text-6xl font-bold text-white font-mono mb-4">{latest.composite_score}</div>
+              <div className="text-6xl font-bold text-white font-mono mb-4">{latest.composite_score ?? 'NO DATA'}</div>
               {(() => {
-                const score = parseFloat(latest.composite_score ?? '0');
-                const label = score >= 80 ? 'EXCELLENT' : score >= 60 ? 'ACCEPTABLE' : 'DEGRADED';
-                const color = score >= 80 ? 'text-accent border-accent/30 bg-accent/10' : score >= 60 ? 'text-warning border-warning/30 bg-warning/10' : 'text-danger border-danger/30 bg-danger/10';
+                const score = latest.composite_score == null ? null : parseFloat(latest.composite_score);
+                const label = score == null ? 'NO DATA' : score >= 80 ? 'EXCELLENT' : score >= 60 ? 'ACCEPTABLE' : 'DEGRADED';
+                const color = score == null ? 'text-muted border-border bg-surface' : score >= 80 ? 'text-accent border-accent/30 bg-accent/10' : score >= 60 ? 'text-warning border-warning/30 bg-warning/10' : 'text-danger border-danger/30 bg-danger/10';
                 return <p className={`text-[10px] font-bold tracking-widest px-3 py-1 rounded border ${color}`}>{label}</p>;
               })()}
             </div>
@@ -85,7 +89,7 @@ export default function DataQualityPage() {
                 ].map((item, idx) => (
                   <div key={idx} className="bg-surface border border-border rounded-lg p-4 flex flex-col justify-between">
                     <p className="text-[10px] text-muted tracking-widest uppercase mb-2">{item.label}</p>
-                    <p className="text-2xl font-mono font-bold text-white">{item.val}%</p>
+                    <p className="text-2xl font-mono font-bold text-white">{item.val == null ? 'NO DATA' : `${item.val}%`}</p>
                   </div>
                 ))}
               </div>

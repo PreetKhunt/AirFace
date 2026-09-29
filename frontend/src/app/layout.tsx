@@ -2,11 +2,11 @@ import type { Metadata } from 'next';
 import { Inter, JetBrains_Mono } from 'next/font/google';
 import './globals.css';
 
-const inter = Inter({ subsets: ['latin'], variable: '--font-inter' });
-const jetbrainsMono = JetBrains_Mono({ subsets: ['latin'], variable: '--font-mono' });
+const inter = Inter({ subsets: ['latin'], variable: '--font-inter', display: 'swap', preload: false });
+const jetbrainsMono = JetBrains_Mono({ subsets: ['latin'], variable: '--font-mono', display: 'swap', preload: false });
 
 export const metadata: Metadata = {
-  title: 'Real-Time Airfare Price Index',
+  title: 'AIRFACE — Real-Time Airfare Price Index',
   description: 'Automated Airfare Web Scraping for CPI Augmentation — Ministry of Statistics and Programme Implementation (MoSPI)',
 };
 
@@ -27,7 +27,7 @@ export default function RootLayout({
 
         <TopNavigation />
         <CommandPalette />
-        <main className="flex-1 w-full relative">
+        <main className="flex-1 w-full min-w-0 max-w-full relative overflow-x-clip">
           {children}
         </main>
       </body>

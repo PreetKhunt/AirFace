@@ -7,7 +7,8 @@ from pathlib import Path
 
 PROJECT_ROOT = Path(__file__).resolve().parent.parent.parent.parent
 REFERENCE_FIXTURE_PATH = PROJECT_ROOT / "data" / "fixtures" / "reference" / "demo_reference_baseline.csv"
-REFERENCE_SOURCE = "MOCK_BASELINE"
+REFERENCE_SOURCE = "DEMO SYNTHETIC BENCHMARK"
+REFERENCE_FIXTURE_ID = "MOCK_BASELINE"
 REFERENCE_TYPE = "DEMO_SYNTHETIC"
 
 
@@ -16,7 +17,7 @@ def load_demo_reference_baseline() -> dict[date, float]:
     values: dict[date, float] = {}
     with REFERENCE_FIXTURE_PATH.open(newline="", encoding="utf-8") as fixture:
         for row in csv.DictReader(fixture):
-            if row["source"] != REFERENCE_SOURCE or row["reference_type"] != REFERENCE_TYPE:
+            if row["source"] != REFERENCE_FIXTURE_ID or row["reference_type"] != REFERENCE_TYPE:
                 raise ValueError("Demo reference fixture metadata is invalid")
             if row["methodology"] != "JEVONS" or row["data_mode"] != "SYNTHETIC":
                 raise ValueError("Demo reference fixture methodology or mode is invalid")

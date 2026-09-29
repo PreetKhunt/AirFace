@@ -34,6 +34,18 @@ def test_fixture_adapter_synthetic_loading():
     assert len(records) == 90
     for r in records:
         assert r.collection_mode == DataMode.SYNTHETIC
+        assert r.payload_sha256 is not None
+
+
+def test_synthetic_seed_adapter_adds_base_period_observations():
+    adapter = FixtureAdapter(data_mode=DataMode.SYNTHETIC, include_synthetic_base_period=True)
+    records = adapter.collect()
+    base_records = [record for record in records if "synthetic-base" in record.source_url]
+
+    assert len(records) == 162
+    assert len(base_records) == 72
+    assert all(record.collection_mode == DataMode.SYNTHETIC for record in base_records)
+    assert all((record.travel_date - record.collection_timestamp.date()).days == record.booking_window_days for record in base_records)
 
 
 def test_fixture_adapter_rejects_live_mode():

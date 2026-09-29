@@ -2,44 +2,35 @@
 
 import { useEffect, useState, useMemo } from 'react';
 import { api } from '@/lib/api';
-import { NationalAggregateIndex, ElementaryRouteIndex } from '@/types';
+import { NationalAggregateIndex, ElementaryRouteIndex, RouteWeight } from '@/types';
 import { StateBoundary } from '@/components/StateBoundary';
 import { ResponsiveContainer, LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend } from 'recharts';
 import { BarChart3, TrendingUp, Layers, Scale, Info } from 'lucide-react';
 import { clsx } from 'clsx';
 
-const DGCA_WEIGHTS_INFO = [
-  { route: 'DEL-BOM', desc: 'Delhi – Mumbai', weight: '24.50%', volume: '11.8M PAX', share: 'High Density Metro' },
-  { route: 'DEL-BLR', desc: 'Delhi – Bengaluru', weight: '18.20%', volume: '8.7M PAX', share: 'Tech Metro Corridor' },
-  { route: 'BOM-BLR', desc: 'Mumbai – Bengaluru', weight: '14.10%', volume: '6.8M PAX', share: 'Commercial Trunk' },
-  { route: 'DEL-CCU', desc: 'Delhi – Kolkata', weight: '11.80%', volume: '5.6M PAX', share: 'East Metro Link' },
-  { route: 'DEL-HYD', desc: 'Delhi – Hyderabad', weight: '9.60%', volume: '4.6M PAX', share: 'South Metro Link' },
-  { route: 'BOM-MAA', desc: 'Mumbai – Chennai', weight: '8.20%', volume: '3.9M PAX', share: 'Coastal Trunk' },
-  { route: 'DEL-PNQ', desc: 'Delhi – Pune', weight: '5.20%', volume: '2.5M PAX', share: 'Metro-Tier 2' },
-  { route: 'DEL-PAT', desc: 'Delhi – Patna', weight: '4.60%', volume: '2.2M PAX', share: 'Regional Trunk' },
-  { route: 'BOM-COK', desc: 'Mumbai – Kochi', weight: '3.80%', volume: '1.8M PAX', share: 'South Regional' },
-];
-
 export default function IndexAnalyticsPage() {
   const [jevonsIndices, setJevonsIndices] = useState<NationalAggregateIndex[]>([]);
   const [youngIndices, setYoungIndices] = useState<NationalAggregateIndex[]>([]);
   const [routeIndices, setRouteIndices] = useState<ElementaryRouteIndex[]>([]);
+  const [routeWeights, setRouteWeights] = useState<RouteWeight[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [selectedHorizon, setSelectedHorizon] = useState<string>('T+1');
+  const [selectedHorizon, setSelectedHorizon] = useState<string | null>(null);
 
   const loadData = async () => {
     try {
       setLoading(true);
       setError(null);
-      const [jev, yng, rts] = await Promise.all([
+      const [jev, yng, rts, weights] = await Promise.all([
         api.getNationalIndices(undefined, undefined, 'JEVONS').catch(() => []),
         api.getNationalIndices(undefined, undefined, 'YOUNG_MODIFIED_LASPEYRES').catch(() => []),
         api.getRouteIndices().catch(() => []),
+        api.getRouteWeights(),
       ]);
       setJevonsIndices(jev);
       setYoungIndices(yng);
       setRouteIndices(rts);
+      setRouteWeights(weights.routes);
     } catch (err: any) {
       setError(err.message || 'Failed to load index analytics data');
     } finally {
@@ -55,8 +46,14 @@ export default function IndexAnalyticsPage() {
     const list = Array.from(new Set(jevonsIndices.map(i => i.booking_horizon))).sort((a, b) => {
       return parseInt(a.replace('T+', '')) - parseInt(b.replace('T+', ''));
     });
-    return list.length > 0 ? list : ['T+1', 'T+7', 'T+15', 'T+30', 'T+45'];
+    return list;
   }, [jevonsIndices]);
+
+  useEffect(() => {
+    if (availableHorizons.length > 0 && (!selectedHorizon || !availableHorizons.includes(selectedHorizon))) {
+      setSelectedHorizon(availableHorizons[0]);
+    }
+  }, [availableHorizons, selectedHorizon]);
 
   // Merge Jevons and Young indices for chart comparison
   const chartData = useMemo(() => {
@@ -133,7 +130,7 @@ export default function IndexAnalyticsPage() {
           <div className="p-5 bg-card border border-border rounded-xl">
             <span className="text-[10px] uppercase tracking-widest text-muted-silver block mb-1">Elementary Routes</span>
             <span className="text-3xl font-mono text-soft-white font-bold">
-              {latestJevons?.route_count || DGCA_WEIGHTS_INFO.length}
+              {latestJevons?.route_count ?? 'NO DATA'}
             </span>
             <span className="text-xs text-muted-silver block mt-1">Active Indian Domestic Corridors</span>
           </div>
@@ -141,7 +138,7 @@ export default function IndexAnalyticsPage() {
           <div className="p-5 bg-card border border-border rounded-xl">
             <span className="text-[10px] uppercase tracking-widest text-muted-silver block mb-1">National Coverage</span>
             <span className="text-3xl font-mono text-emerald-400 font-bold">
-              {latestJevons?.coverage_pct ? `${latestJevons.coverage_pct}%` : '100%'}
+              {latestJevons ? `${latestJevons.coverage_pct}%` : 'NO DATA'}
             </span>
             <span className="text-xs text-muted-silver block mt-1">Sample Completeness</span>
           </div>
@@ -151,11 +148,11 @@ export default function IndexAnalyticsPage() {
         <div className="p-6 bg-card border border-border rounded-xl">
           <div className="flex items-center justify-between mb-6">
             <div>
-              <h3 className="text-xs font-semibold text-muted-silver tracking-[0.2em] uppercase">
+                  <h3 className="text-xs font-semibold text-muted-silver tracking-[0.2em] uppercase">
                 Methodological Trajectory Comparison ({selectedHorizon})
               </h3>
               <p className="text-xs text-muted-silver mt-1">
-                Jevons Geometric Mean vs Young / Modified Laspeyres DGCA Weighted Formula
+                    Jevons Geometric Mean vs Young / Modified Laspeyres; base period {latestJevons?.base_date ?? 'NO DATA'}
               </p>
             </div>
             <div className="flex items-center gap-4 text-xs font-mono">
@@ -190,14 +187,14 @@ export default function IndexAnalyticsPage() {
           <div className="flex items-center gap-2 mb-4">
             <Scale className="w-5 h-5 text-electric-cyan" />
             <h3 className="text-xs font-semibold text-muted-silver tracking-[0.2em] uppercase">
-              DGCA Passenger Traffic Reference Weights Basket
+              Configured Route Reference Weights
             </h3>
           </div>
 
           <div className="mb-4 p-4 rounded-lg bg-surface border border-border flex items-start gap-3">
             <Info className="w-5 h-5 text-electric-cyan flex-shrink-0 mt-0.5" />
             <p className="text-xs text-muted-silver leading-relaxed">
-              <span className="text-soft-white font-bold">Methodology Disclosure:</span> The weights below represent annual passenger traffic volume shares published in DGCA Domestic Air Traffic Statistics. As outlined in the CPI manual, passenger volume weights serve as traffic-based reference weights rather than exact household consumer expenditure shares.
+              <span className="text-soft-white font-bold">DEMO REFERENCE:</span> Route weights and passenger volumes below are read from the configured database route basket. They are traffic-based engineering weights, not household consumer expenditure shares or an official statistical series.
             </p>
           </div>
 
@@ -206,26 +203,25 @@ export default function IndexAnalyticsPage() {
               <thead>
                 <tr className="border-b border-border text-muted-silver">
                   <th className="pb-3 uppercase">Corridor Code</th>
-                  <th className="pb-3 uppercase">Route Description</th>
-                  <th className="pb-3 uppercase">DGCA Traffic Weight (w_r)</th>
-                  <th className="pb-3 uppercase">Annual Volume</th>
-                  <th className="pb-3 uppercase">Corridor Classification</th>
+                  <th className="pb-3 uppercase">Corridor Region</th>
+                  <th className="pb-3 uppercase">Reference Weight</th>
+                  <th className="pb-3 uppercase">Normalized Share</th>
+                  <th className="pb-3 uppercase">Passenger Volume</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-border/40">
-                {DGCA_WEIGHTS_INFO.map((item) => (
-                  <tr key={item.route} className="text-soft-white hover:bg-white/5 transition-colors">
-                    <td className="py-3 font-bold text-electric-cyan">{item.route}</td>
-                    <td className="py-3">{item.desc}</td>
-                    <td className="py-3 font-bold">{item.weight}</td>
-                    <td className="py-3 text-muted-silver">{item.volume}</td>
-                    <td className="py-3">
-                      <span className="px-2 py-0.5 rounded text-[10px] bg-surface border border-border text-muted-silver">
-                        {item.share}
-                      </span>
-                    </td>
+                {routeWeights.map((route) => (
+                  <tr key={route.route_id} className="text-soft-white hover:bg-white/5 transition-colors">
+                    <td className="py-3 font-bold text-electric-cyan">{route.route_id}</td>
+                    <td className="py-3">{route.corridor_region}</td>
+                    <td className="py-3 font-bold">{route.reference_weight}</td>
+                    <td className="py-3 text-muted-silver">{route.normalized_weight_pct == null ? 'NO DATA' : `${parseFloat(route.normalized_weight_pct).toFixed(2)}%`}</td>
+                    <td className="py-3 text-muted-silver">{route.passenger_volume > 0 ? route.passenger_volume.toLocaleString() : 'NO DATA'}</td>
                   </tr>
                 ))}
+                {routeWeights.length === 0 && (
+                  <tr><td colSpan={5} className="py-6 text-center text-muted-silver">No route weights are available from the database.</td></tr>
+                )}
               </tbody>
             </table>
           </div>
