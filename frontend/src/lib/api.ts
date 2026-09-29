@@ -19,7 +19,12 @@ const API_BASE_URL = (process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000/
 
 async function fetchJson<T>(endpoint: string, options?: RequestInit): Promise<T> {
   const url = endpoint.startsWith('http') ? endpoint : `${API_BASE_URL}${endpoint.startsWith('/') ? '' : '/'}${endpoint}`;
-  const res = await fetch(url, { cache: 'no-store', ...options });
+  let res: Response;
+  try {
+    res = await fetch(url, { cache: 'no-store', ...options });
+  } catch {
+    throw new Error(`Cannot reach the AIRFACE API at ${new URL(url).origin}. Start the backend and verify NEXT_PUBLIC_API_URL.`);
+  }
   if (!res.ok) {
     throw new Error(`API error: ${res.status} on ${endpoint}`);
   }

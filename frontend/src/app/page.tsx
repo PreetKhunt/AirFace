@@ -9,6 +9,7 @@ import { api } from '@/lib/api';
 import { getAdapterOperationalStatus } from '@/lib/adapterStatus';
 import { SystemStatusResponse, NationalAggregateIndex, DataQualityLog, SourceHealth, NormalizedIndexObservation, ProvenanceAuditTrail, HorizonSummaryResponse, PipelineStatus } from '@/types';
 import { clsx } from 'clsx';
+import { formatDataMode } from '@/lib/dataMode';
 
 export default function CinematicLandingPage() {
   const [sysStatus, setSysStatus] = useState<SystemStatusResponse | null>(null);
@@ -100,9 +101,9 @@ export default function CinematicLandingPage() {
           </div>
 
           <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-surface/80 border border-white/10 mb-8 font-mono text-xs text-muted-silver">
-            <span className="w-2 h-2 rounded-full bg-accent animate-pulse" />
+            <span className={clsx('w-2 h-2 rounded-full', activeMode === 'LIVE' ? 'bg-accent animate-pulse' : 'bg-accent')} />
             <span>OPERATIONAL MODE:</span>
-            <span className="text-soft-white font-bold">{activeMode}</span>
+            <span className="text-soft-white font-bold">{formatDataMode(activeMode === 'DATA MODE UNAVAILABLE' ? null : activeMode)}</span>
           </div>
 
           <p className="text-xl text-muted-silver max-w-2xl mx-auto mb-12 leading-relaxed">
@@ -447,7 +448,7 @@ export default function CinematicLandingPage() {
                 {latestIndex?.index_value ? parseFloat(latestIndex.index_value.toString()).toFixed(2) : 'NO DATA'}
               </div>
               <div className="text-xl text-muted-silver uppercase tracking-widest">
-                NATIONAL AIRFARE PRICE INDEX ({activeMode})
+                NATIONAL AIRFARE PRICE INDEX ({formatDataMode(activeMode === 'DATA MODE UNAVAILABLE' ? null : activeMode)})
               </div>
             </div>
           </div>
@@ -536,7 +537,7 @@ export default function CinematicLandingPage() {
                 </div>
                 <div className="flex items-center justify-between">
                   <span className="text-sm text-muted-silver">Data Mode</span>
-                  <span className="text-xs font-mono text-emerald-400">{activeMode}</span>
+                  <span className="text-xs font-mono text-emerald-400">{formatDataMode(activeMode === 'DATA MODE UNAVAILABLE' ? null : activeMode)}</span>
                 </div>
               </div>
             </GlassCard>

@@ -231,4 +231,17 @@ export interface ProvenanceAuditTrail {
   normalization_version: string;
   payload_sha256_hash: string;
   created_at: string;
+  index_obs_id?: string | null;
+  route_id?: string | null;
+  booking_horizon?: string | null;
+  origin?: string | null;
+  destination?: string | null;
+  airline_code?: string | null;
+  fare?: string | null;
+  base_fare?: string | null;
+  udf_fee?: string | null;
+  asf_fee?: string | null;
+  gst_tax?: string | null;
+  yq_surcharge?: string | null;
+  data_mode?: DataMode | null;
 }

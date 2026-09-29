@@ -7,6 +7,7 @@ import { StateBoundary } from '@/components/StateBoundary';
 import { getAdapterOperationalStatus, operationalStatusTone } from '@/lib/adapterStatus';
 import { Cpu, Database, Server, Radio, Activity, RefreshCw, CheckCircle2, AlertTriangle, Zap } from 'lucide-react';
 import { clsx } from 'clsx';
+import { formatDataMode } from '@/lib/dataMode';
 
 type ServiceStatus = 'HEALTHY' | 'DEGRADED' | 'OFFLINE' | 'NOT CONFIGURED' | 'NOT VERIFIED';
 
@@ -156,7 +157,7 @@ export default function SystemStatusPage() {
                 AIRFACE Core Systems: {overallStatus}
               </h3>
               <p className="text-xs text-muted-silver">
-                DATA MODE: <span className="font-mono text-soft-white font-bold">{activeMode}</span>
+                DATA MODE: <span className="font-mono text-soft-white font-bold">{formatDataMode(activeMode === 'DATA NOT AVAILABLE' ? null : activeMode)}</span>
               </p>
             </div>
           </div>

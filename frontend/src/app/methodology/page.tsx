@@ -1,109 +1,116 @@
 'use client';
 
-import { BookOpen, CheckCircle, Shield, Layers, Scale, AlertCircle } from 'lucide-react';
+import { ArrowDown, BookOpen, ShieldCheck, Sigma } from 'lucide-react';
+
+const steps = [
+  ['DATA COLLECTION', 'Source adapters retain the raw observation, source details, collection time and declared data mode. This demo uses synthetic fixtures; it does not perform live fare scraping.'],
+  ['FARE NORMALIZATION', 'Comparable fare = Base Fare + UDF + ASF + GST + YQ. Convenience fees and optional extras are excluded; a total-minus-convenience-fee fallback is used when the component breakdown is incomplete.'],
+  ['QUALITY CONTROL', 'The prototype checks component consistency, screens commercial duplicates and classifies price anomalies. Invalid component totals and technical outliers are excluded from index eligibility.'],
+  ['JEVONS ROUTE INDEX', 'For each route and booking horizon, matched flight price relatives are combined as a geometric mean against the persisted base period.'],
+  ['NATIONAL AGGREGATION', 'Route indices are combined with passenger-volume reference weights using a weighted arithmetic (Young / Modified Laspeyres) or geometric (Jevons) mean.'],
+  ['VALIDATION', 'Calculated values are date-aligned with a configured reference series. Metrics require matched observations; they are not evidence of official benchmark accuracy.'],
+  ['PROVENANCE', 'Every parsed observation retains a trace to its raw payload and SHA-256 checksum.'],
+] as const;
+
+const horizons = [
+  ['T+1', 'Last-minute'],
+  ['T+7', 'Short-term'],
+  ['T+15', 'Standard advance'],
+  ['T+30', 'Early booking'],
+  ['T+45', 'Baseline advance'],
+] as const;
 
 export default function MethodologyPage() {
   return (
-    <div className="min-h-screen p-6 md:p-8 space-y-6 max-w-7xl mx-auto fade-in">
-      <header className="p-6 bg-card border border-border rounded-xl shadow-sm">
-        <h1 className="text-2xl md:text-3xl font-bold tracking-tight text-white mb-2">
-          Methodology & Mathematical Framework
-        </h1>
-        <p className="text-sm text-muted-silver leading-relaxed">
-          Methodology informed by established CPI index-number principles, SIH26056 requirements, and project-defined engineering decisions.
+    <div className="min-h-screen p-6 md:p-8 space-y-8 max-w-7xl mx-auto fade-in">
+      <header className="glass-surface rounded-2xl p-8">
+        <div className="section-label mb-3">AIRFACE / STATISTICAL FRAMEWORK</div>
+        <h1 className="text-3xl md:text-5xl font-light tracking-tight text-white">From observed fares to an auditable index.</h1>
+        <p className="mt-4 max-w-3xl text-sm leading-relaxed text-muted-silver">
+          The frozen framework defines comparable fares and separate indices for each booking horizon. The current prototype implements
+          the core calculations on demo data; proposed production features and official validation data are identified below.
         </p>
       </header>
 
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        
-        {/* Statistical Pipeline Steps */}
-        <div className="p-6 bg-card border border-border rounded-xl space-y-4">
-          <h2 className="text-lg font-bold text-white mb-4 border-b border-border pb-2 flex items-center gap-2">
-            <Layers className="w-5 h-5 text-electric-cyan" /> End-to-End Statistical Pipeline
-          </h2>
-          
-          <MethodologyStep num="1" title="Automated Web Scraping" desc="HTML DOM parsing and JSON payload collection from airline direct portals and aggregators." />
-          <MethodologyStep num="2" title="Structural Parsing" desc="Extraction of base fare, mandatory statutory charges (UDF, ASF, YQ), and GST into structured models." />
-          <MethodologyStep num="3" title="Fare Normalization" desc="Calculation of comparable index fare: P_comp = Base + UDF + ASF + GST + YQ. Strict exclusion of convenience fees." />
-          <MethodologyStep num="4" title="Commercial Deduplication" desc="Resolving commercially identical flights across channels while giving priority to direct airline feeds." />
-          <MethodologyStep num="5" title="Outlier & Surge Treatment" desc="Tukey IQR anomaly exclusion with a strict 3.5x median technical ceiling. Genuine market surges are preserved." />
-          <MethodologyStep num="6" title="8-Factor Empirical DQ Scoring" desc="Multi-dimensional data quality scoring evaluated across completeness, validity, consistency, freshness, and reliability." />
-          <MethodologyStep num="7" title="Tier 1 Elementary Jevons Index" desc="Unweighted geometric mean of price relatives per Route × Horizon × Date cell: I_t = exp(mean(ln(p_t / p_0))) * 100." />
-          <MethodologyStep num="8" title="DGCA Volume-Weighted National Index" desc="Tier 2 aggregation using DGCA passenger traffic volume reference weights via Young/Modified Laspeyres & Jevons formulas." />
-          <MethodologyStep num="9" title="Statistical Backtesting & Validation" desc="Evaluation of RMSE, MAPE, Pearson r, and Directional Accuracy against reference baseline datasets." />
-          <MethodologyStep num="10" title="Cryptographic Provenance Trail" desc="Immutable SHA-256 hash tracking from raw scraper payload to final national index contribution." />
+      <section className="glass-surface rounded-2xl p-6 md:p-8">
+        <div className="section-label mb-2">INDEPENDENT BOOKING HORIZONS</div>
+        <h2 className="text-xl font-semibold text-white">One series per advance-booking window</h2>
+        <p className="mt-2 text-sm leading-relaxed text-muted-silver">
+          Booking window = calendar date of travel − calendar date of collection. Observations from different horizons are never
+          combined in an elementary route index.
+        </p>
+        <div className="mt-5 grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-5">
+          {horizons.map(([horizon, description]) => (
+            <div key={horizon} className="rounded-xl border border-white/10 bg-white/[0.03] p-4">
+              <div className="font-mono text-lg text-electric-cyan">{horizon}</div>
+              <div className="mt-1 text-xs text-muted-silver">{description}</div>
+            </div>
+          ))}
+        </div>
+      </section>
+
+      <section className="grid grid-cols-1 lg:grid-cols-[1.15fr_0.85fr] gap-6">
+        <div className="glass-surface rounded-2xl p-6">
+          <div className="section-label mb-6">PROTOTYPE PIPELINE</div>
+          <div className="space-y-3">
+            {steps.map(([title, description], index) => (
+              <div key={title}>
+                <div className="flex items-start gap-4 rounded-xl border border-white/10 bg-white/[0.03] p-4">
+                  <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full border border-electric-cyan/30 bg-electric-cyan/10 text-xs font-mono text-electric-cyan">
+                    {String(index + 1).padStart(2, '0')}
+                  </div>
+                  <div>
+                    <h2 className="text-sm font-bold tracking-wide text-white">{title}</h2>
+                    <p className="mt-1 text-xs leading-relaxed text-muted-silver">{description}</p>
+                  </div>
+                </div>
+                {index < steps.length - 1 && <ArrowDown className="mx-auto my-1 h-4 w-4 text-electric-cyan/50" />}
+              </div>
+            ))}
+          </div>
         </div>
 
-        {/* Requirements & Disclosures */}
         <div className="space-y-6">
-          <div className="p-6 bg-card border border-border rounded-xl border-l-4 border-l-emerald-500">
-            <h3 className="text-md font-bold text-white flex items-center gap-2 mb-2">
-              <CheckCircle className="w-5 h-5 text-emerald-500" />
-              A. SIH26056 PROBLEM REQUIREMENTS
-            </h3>
-            <ul className="list-disc pl-5 text-xs text-muted-silver space-y-1.5">
-              <li>Automated scraping of Airline and OTA portals for NSO CPI augmentation.</li>
-              <li>Stratification across advance booking windows (T+1, T+7, T+15, T+30, T+45).</li>
-              <li>Comparable fare isolation and double-counting prevention.</li>
-              <li>Data quality and cleaning heuristics.</li>
-              <li>National aggregation and verification dashboard.</li>
+          <div className="glass-surface rounded-2xl p-6">
+            <div className="flex items-center gap-3 text-electric-cyan"><Sigma className="h-5 w-5" /><h2 className="font-bold">Index formulas</h2></div>
+            <ul className="mt-4 space-y-3 text-xs leading-relaxed text-muted-silver">
+              <li><strong className="text-white">Comparable fare:</strong> base fare + UDF + ASF + GST + mandatory YQ surcharge.</li>
+              <li><strong className="text-white">Route × horizon (Jevons):</strong> 100 × exp(mean[ln(current fare ÷ base fare)]).</li>
+              <li><strong className="text-white">National Young / Modified Laspeyres:</strong> sum(route index × route weight) ÷ sum(observed route weights).</li>
+              <li><strong className="text-white">Directional markets:</strong> A→B and B→A are separate route series.</li>
+              <li><strong className="text-white">Missing fares:</strong> remain missing; no index-value imputation is applied.</li>
             </ul>
           </div>
-
-          <div className="p-6 bg-card border border-border rounded-xl border-l-4 border-l-electric-cyan">
-            <h3 className="text-md font-bold text-white flex items-center gap-2 mb-2">
-              <Scale className="w-5 h-5 text-electric-cyan" />
-              B. VERIFIED INDEX-NUMBER PRINCIPLES
-            </h3>
-            <ul className="list-disc pl-5 text-xs text-muted-silver space-y-1.5">
-              <li>Jevons geometric mean selected for Tier 1 elementary indices to satisfy the Axiomatic Time Reversal Test and prevent Carli upward substitution bias.</li>
-              <li>Young / Modified Laspeyres used for Tier 2 national aggregation with fixed reference weights.</li>
-              <li>DGCA passenger traffic volume shares used as traffic-based reference weights.</li>
+          <div className="glass-surface rounded-2xl p-6">
+            <div className="flex items-center gap-3 text-electric-cyan"><ShieldCheck className="h-5 w-5" /><h2 className="font-bold">Comparability &amp; anomaly rules</h2></div>
+            <ul className="mt-4 space-y-3 text-xs leading-relaxed text-muted-silver">
+              <li><strong className="text-white">Excluded from fare:</strong> convenience fees, optional baggage, seat selection, meals, insurance and conditional promotions.</li>
+              <li><strong className="text-white">Component check:</strong> a full breakdown must reconcile to the displayed total (with or without convenience fee); mismatches are disqualified.</li>
+              <li><strong className="text-white">Deduplication:</strong> matches origin/destination, airline, flight, travel date, departure time, horizon, cabin and fare family; direct airline sources outrank OTAs, then the lowest fare wins within a tier.</li>
+              <li><strong className="text-white">Tukey screen:</strong> the prototype uses a 1.5 × IQR upper fence; elevated fares below 3.5 × the cell median remain possible market surges, not automatic exclusions.</li>
+              <li><strong className="text-white">Small cells:</strong> outlier screening is skipped when fewer than four positive fares are available.</li>
             </ul>
           </div>
-
-          <div className="p-6 bg-card border border-border rounded-xl border-l-4 border-l-accent">
-            <h3 className="text-md font-bold text-white flex items-center gap-2 mb-2">
-              <BookOpen className="w-5 h-5 text-accent" />
-              C. PROJECT ENGINEERING DECISIONS
-            </h3>
-            <ul className="list-disc pl-5 text-xs text-muted-silver space-y-1.5">
-              <li>Strict isolation between LIVE, HISTORICAL, and SYNTHETIC data modes.</li>
-              <li>Cryptographic SHA-256 payload hashing for full observation lineage.</li>
-              <li>Zero-imputation policy: Missing fares are tracked as missing rather than cosmetically filled.</li>
-              <li>Deterministic seed architecture for reproducible evaluation.</li>
-            </ul>
-          </div>
-
-          <div className="p-6 bg-card border border-border rounded-xl border-l-4 border-l-amber-500">
-            <h3 className="text-md font-bold text-white flex items-center gap-2 mb-2">
-              <AlertCircle className="w-5 h-5 text-amber-400" />
-              D. PROTOTYPE LIMITATIONS & DISCLOSURES
-            </h3>
-            <p className="text-xs text-muted-silver leading-relaxed mb-2">
-              This prototype demonstrates engineering feasibility and algorithmic correctness. It is an experimental indicator designed to demonstrate data ingestion, normalization, and index aggregation pipelines for SIH26056 evaluation.
+          <div className="glass-surface rounded-2xl p-6">
+            <div className="flex items-center gap-3 text-electric-cyan"><ShieldCheck className="h-5 w-5" /><h2 className="font-bold">Weights, validation &amp; auditability</h2></div>
+            <p className="mt-4 text-xs leading-relaxed text-muted-silver">
+              The framework specifies DGCA passenger-volume reference weights. Values bundled with this synthetic demo are not official
+              DGCA weights. Validation compares matched dates and reports MAPE, RMSE, bias, correlation and directional accuracy when
+              available; the prototype can emit descriptive metrics from three matched pairs, while the research validation guardrail
+              calls for at least 15 pairs before making a confidence claim. Provenance preserves LIVE, HISTORICAL or SYNTHETIC mode and
+              traces records back to their raw payload hash.
             </p>
-            <p className="text-[11px] font-mono text-muted-silver italic">
-              Official historical DGCA airfare micro-data was not available for prototype validation; validation baselines represent version-controlled synthetic and demo reference datasets.
+          </div>
+          <div className="glass-surface rounded-2xl p-6">
+            <div className="flex items-center gap-3 text-electric-cyan"><BookOpen className="h-5 w-5" /><h2 className="font-bold">Scope &amp; disclosure</h2></div>
+            <p className="mt-4 text-xs leading-relaxed text-muted-silver">
+              Synthetic composite-horizon weights, imputation and automated live scraping are not presented as active methodology here.
+              The reference baseline is synthetic demo data—not official DGCA or MoSPI airfare microdata—and prototype metrics do not
+              establish production accuracy.
             </p>
           </div>
         </div>
-
-      </div>
-    </div>
-  );
-}
-
-function MethodologyStep({ num, title, desc }: { num: string, title: string, desc: string }) {
-  return (
-    <div className="flex gap-3 items-start">
-      <div className="w-7 h-7 flex-shrink-0 bg-accent/20 text-accent text-xs font-bold rounded-full flex items-center justify-center border border-accent/30">
-        {num}
-      </div>
-      <div>
-        <h4 className="font-bold text-white text-xs">{title}</h4>
-        <p className="text-xs text-muted-silver mt-0.5 leading-normal">{desc}</p>
-      </div>
+      </section>
     </div>
   );
 }

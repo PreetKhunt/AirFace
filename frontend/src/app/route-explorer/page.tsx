@@ -192,14 +192,15 @@ export default function RouteExplorerPage() {
               <div className="flex-1 flex flex-col items-center justify-center border border-dashed border-border rounded-xl bg-card p-8 gap-4">
                 <AlertCircle className="w-12 h-12 text-warning opacity-50" />
                 <div className="text-center">
-                  <p className="text-lg text-white font-mono mb-1">NO INDEX DATA</p>
+                  <p className="text-lg text-white font-mono mb-1">NO INDEX DATA AVAILABLE</p>
                   <p className="text-sm text-muted">
-                    {selectedRoute} at horizon {selectedHorizon} has no computed index observations.
+                      Route: {selectedRoute || 'NO DATA'} · Horizon: {selectedHorizon || 'NO DATA'}
                   </p>
-                </div>
-                {availableHorizonsForRoute.length > 0 && (
-                  <div className="flex flex-col items-center gap-2">
-                    <span className="text-[10px] uppercase tracking-widest text-muted">Available Horizons</span>
+                  <p className="text-xs text-muted mt-1">Status: No observations currently available</p>
+                  </div>
+                  {availableHorizonsForRoute.length > 0 && (
+                    <div className="flex flex-col items-center gap-2">
+                      <span className="text-[10px] uppercase tracking-widest text-muted">Available Horizons</span>
                     <div className="flex gap-2">
                       {availableHorizonsForRoute.map(hz => (
                         <button

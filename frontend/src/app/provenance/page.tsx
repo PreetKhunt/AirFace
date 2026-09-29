@@ -6,7 +6,7 @@ import { api } from '@/lib/api';
 import { StateBoundary } from '@/components/StateBoundary';
 import { Network, FileText, Globe, Key, ShieldAlert, Database, Map, Search, Check, Copy } from 'lucide-react';
 import { clsx } from 'clsx';
-import { NationalAggregateIndex, NormalizedIndexObservation } from '@/types';
+import { NationalAggregateIndex, NormalizedIndexObservation, ProvenanceAuditTrail } from '@/types';
 
 function ProvenanceContent() {
   const searchParams = useSearchParams();
@@ -18,7 +18,7 @@ function ProvenanceContent() {
   const [nat, setNat] = useState<NationalAggregateIndex | null>(null);
   const [normList, setNormList] = useState<NormalizedIndexObservation[]>([]);
   const [selectedNorm, setSelectedNorm] = useState<NormalizedIndexObservation | null>(null);
-  const [provenance, setProvenance] = useState<any | null>(null);
+  const [provenance, setProvenance] = useState<ProvenanceAuditTrail | null>(null);
   const [copied, setCopied] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
 
@@ -240,6 +240,10 @@ function ProvenanceContent() {
 
                   <div className="grid grid-cols-1 gap-3 mt-2 text-xs font-mono">
                     <div className="border-b border-border/40 pb-2">
+                      <span className="text-[10px] uppercase tracking-widest text-muted-silver block">Route / Horizon</span>
+                      <span className="text-soft-white">{provenance.route_id || 'NO DATA'} · {provenance.booking_horizon || 'NO DATA'}</span>
+                    </div>
+                    <div className="border-b border-border/40 pb-2">
                       <span className="text-[10px] uppercase tracking-widest text-muted-silver block">Audit ID</span>
                       <span className="text-soft-white break-all">{provenance.audit_id}</span>
                     </div>
@@ -250,6 +254,10 @@ function ProvenanceContent() {
                     <div className="border-b border-border/40 pb-2">
                       <span className="text-[10px] uppercase tracking-widest text-muted-silver block">Source Portal</span>
                       <span className="text-emerald-400">{provenance.source_portal}</span>
+                    </div>
+                    <div className="border-b border-border/40 pb-2">
+                      <span className="text-[10px] uppercase tracking-widest text-muted-silver block">Fare / Data Mode</span>
+                      <span className="text-soft-white">₹{provenance.fare || 'NO DATA'} · {provenance.data_mode || 'NO DATA'}</span>
                     </div>
                     <div>
                       <span className="text-[10px] uppercase tracking-widest text-muted-silver block">Timestamp</span>

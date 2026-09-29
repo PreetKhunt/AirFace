@@ -8,6 +8,17 @@ import { Activity, Terminal, Play, CheckCircle2, AlertTriangle } from 'lucide-re
 import { clsx } from 'clsx';
 import { getAdapterOperationalStatus, operationalStatusTone } from '@/lib/adapterStatus';
 
+const pipelineStages = [
+  ['COLLECTION', 'Adapters collect publicly available airfare observations from supported airline and OTA sources.'],
+  ['RAW OBSERVATIONS', 'The original collected observation is preserved before statistical processing.'],
+  ['PARSING', 'Source responses become structured route, airline, fare and booking-horizon fields.'],
+  ['NORMALIZATION', 'Mandatory fare components are standardized into comparable fares.'],
+  ['DATA QUALITY', 'Invalid, duplicate and anomalous observations are evaluated by existing quality rules.'],
+  ['INDEX ENGINE', 'Eligible observations become route × booking-horizon indices using the documented methodology.'],
+  ['NATIONAL INDEX', 'Route indices are aggregated using the documented route weighting methodology.'],
+  ['DASHBOARD / API', 'Persisted statistical outputs are exposed to analysts and downstream systems.'],
+] as const;
+
 export default function CollectionMonitorPage() {
   const [sources, setSources] = useState<SourceHealth[]>([]);
   const [loading, setLoading] = useState(true);
@@ -93,6 +104,21 @@ export default function CollectionMonitorPage() {
 
       <StateBoundary loading={loading} error={error} onRetry={loadData} isEmpty={!loading && sources.length === 0}>
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+          <div className="lg:col-span-3 glass-surface rounded-2xl p-6">
+            <div className="section-label mb-5">AIRFARE OBSERVATION PIPELINE</div>
+            <div className="grid grid-cols-1 md:grid-cols-4 xl:grid-cols-8 gap-3">
+              {pipelineStages.map(([title, description], index) => (
+                <div key={title} className="relative">
+                  <div className="h-full rounded-xl border border-white/10 bg-white/[0.03] p-4">
+                    <div className="text-[10px] font-mono text-electric-cyan mb-2">{String(index + 1).padStart(2, '0')}</div>
+                    <h3 className="text-xs font-bold text-white tracking-wide">{title}</h3>
+                    <p className="mt-2 text-[11px] leading-relaxed text-muted-silver">{description}</p>
+                  </div>
+                  {index < pipelineStages.length - 1 && <span className="hidden xl:block absolute top-1/2 -right-2 text-electric-cyan/60">→</span>}
+                </div>
+              ))}
+            </div>
+          </div>
           
           {/* Main Monitor (Server Racks) */}
           <div className="lg:col-span-2 flex flex-col gap-6">

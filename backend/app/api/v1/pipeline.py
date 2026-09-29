@@ -1,6 +1,7 @@
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
 from sqlalchemy import func
+from datetime import date
 from app.database.session import get_db
 from app.models.observation import RawAirfareObservation
 from app.models.observation import ParsedAirfareObservation, NormalizedIndexObservation
@@ -13,6 +14,16 @@ from pydantic import BaseModel
 from typing import Dict, Any
 
 router = APIRouter(tags=["Pipeline"])
+
+
+def _historical_collection_dates(db: Session) -> list[date]:
+    timestamps = (
+        db.query(RawAirfareObservation.collection_timestamp)
+        .filter(RawAirfareObservation.collection_mode == DataMode.HISTORICAL)
+        .distinct()
+        .all()
+    )
+    return sorted({timestamp.date() for (timestamp,) in timestamps if timestamp is not None})
 
 
 @router.get("/pipeline/status")
@@ -76,8 +87,7 @@ def execute_pipeline(db: Session = Depends(get_db)):
         # Phase D: Indexing
         # We need to run indexing for all target dates that have valid observations
         # Let's find distinct collection dates
-        dates_query = db.query(func.date(RawAirfareObservation.collection_timestamp)).distinct().all()
-        target_dates = [d[0] for d in dates_query if d[0]]
+        target_dates = _historical_collection_dates(db)
 
         if not target_dates:
             return PipelineRunResponse(
@@ -104,14 +114,20 @@ def execute_pipeline(db: Session = Depends(get_db)):
             )
             elementary_count += len(elem_indices)
 
-            # Tier 2 Young/Modified Laspeyres
-            nat_indices = engine.calculate_national_aggregate_indices(
+            # Tier 2 national aggregates use the same route indices for each methodology.
+            national_jevons = engine.calculate_national_aggregate_indices(
+                calculation_date=calc_date,
+                base_date=base_date,
+                methodology="JEVONS",
+                data_mode=DataMode.HISTORICAL
+            )
+            national_young = engine.calculate_national_aggregate_indices(
                 calculation_date=calc_date,
                 base_date=base_date,
                 methodology="YOUNG_MODIFIED_LASPEYRES",
                 data_mode=DataMode.HISTORICAL
             )
-            national_count += len(nat_indices)
+            national_count += len(national_jevons) + len(national_young)
 
         results["index"] = {
             "status": "SUCCESS",
