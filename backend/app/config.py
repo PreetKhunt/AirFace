@@ -14,7 +14,7 @@ class Settings(BaseSettings):
     LOG_LEVEL: str = "INFO"
     
     # Database Settings
-    DATABASE_URL: str = "postgresql://mospi_admin:mospi_secure_password_2026@localhost:5432/sih_airfare"
+    DATABASE_URL: str = "postgresql+psycopg2://mospi_admin:mospi_secure_password_2026@localhost:5432/sih_airfare"
     
     # Redis & Celery Settings
     REDIS_URL: str = "redis://localhost:6379/0"
@@ -55,5 +55,16 @@ class Settings(BaseSettings):
         env_file_encoding="utf-8",
         extra="ignore"
     )
+
+    @field_validator("DATABASE_URL")
+    @classmethod
+    def force_psycopg2_dialect(cls, v: str) -> str:
+        """Coerce bare postgresql:// URLs to postgresql+psycopg2:// so SQLAlchemy
+        never auto-selects the psycopg v3 dialect when only psycopg2-binary is installed."""
+        if v.startswith("postgresql://") or v.startswith("postgres://"):
+            return v.replace("postgres://", "postgresql+psycopg2://", 1).replace(
+                "postgresql://", "postgresql+psycopg2://", 1
+            )
+        return v
 
 settings = Settings()
