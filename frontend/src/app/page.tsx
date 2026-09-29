@@ -26,12 +26,13 @@ export default function CinematicLandingPage() {
 
   const loadData = async () => {
     try {
-      const [sys, nat, quality, srcs, normData, pipeline, horizons, routeIndices] = await Promise.all([
+      const [sys, nat, quality, srcs, normData, sampleData, pipeline, horizons, routeIndices] = await Promise.all([
         api.getSystemStatus().catch(() => null),
         api.getNationalIndices().catch(() => []),
         api.getQualityScore().catch(() => null),
         api.getSources().catch(() => []),
         api.getNormalizedObservations(undefined, undefined, true, 500).catch(() => ({ items: [], total: 0 })),
+        api.getNormalizedObservations('DEL-BOM', 'T+7', true, 5).catch(() => ({ items: [], total: 0 })),
         api.getPipelineStatus().catch(() => null),
         api.getHorizonSummary().catch(() => null),
         api.getRouteIndices().catch(() => []),
@@ -45,13 +46,12 @@ export default function CinematicLandingPage() {
       setRouteIds(Array.from(new Set(routeIndices.map(route => route.route_id))));
       setTotalObservations(normData.total);
 
-      if (normData.items.length > 0) {
-        const item = normData.items[0];
-        setSampleNorm(item);
-        if (item.parsed?.observation_id) {
-          const prov = await api.getProvenance(item.parsed.observation_id).catch(() => null);
-          setSampleProv(prov);
-        }
+      const sample = sampleData.items[0] ?? null;
+      setSampleNorm(sample);
+      setSampleProv(null);
+      if (sample?.parsed?.observation_id) {
+        const prov = await api.getProvenance(sample.parsed.observation_id).catch(() => null);
+        setSampleProv(prov);
       }
     } catch (err) {
       console.error('Failed to load landing data:', err);

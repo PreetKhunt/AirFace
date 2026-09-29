@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
+import { Search } from 'lucide-react';
 import { clsx } from 'clsx';
 import { twMerge } from 'tailwind-merge';
 import { api } from '@/lib/api';
@@ -87,6 +88,16 @@ export function TopNavigation() {
             <div className="text-[10px] sm:text-xs text-muted-silver font-mono border-l border-white/10 pl-2 sm:pl-3 whitespace-nowrap">
               {dateStr || '...'}
             </div>
+            <button
+              type="button"
+              aria-label="Open search"
+              title="Search (Ctrl+K or Command+K)"
+              className="inline-flex items-center gap-2 rounded-lg border border-white/10 px-2 py-1.5 text-muted-silver transition-colors hover:bg-white/10 hover:text-soft-white"
+              onClick={() => window.dispatchEvent(new KeyboardEvent('keydown', { key: 'k', metaKey: true }))}
+            >
+              <Search className="h-4 w-4" aria-hidden="true" />
+              <span className="hidden sm:inline text-xs">Search</span>
+            </button>
           </div>
         </div>
 
