@@ -3,7 +3,7 @@
 import { ArrowDown, BookOpen, ShieldCheck, Sigma } from 'lucide-react';
 
 const steps = [
-  ['DATA COLLECTION', 'Source adapters retain the raw observation, source details, collection time and declared data mode. This demo uses deterministic synthetic fixtures; it does not perform live fare scraping or represent an official DGCA/MoSPI reference series.'],
+  ['DATA COLLECTION', 'Source adapters retain the raw observation, source details, collection time and declared data mode. This demo uses a historical-mode fixture; it does not perform live fare scraping or represent an official DGCA/MoSPI reference series.'],
   ['FARE NORMALIZATION', 'Comparable fare = Base Fare + UDF + ASF + GST + YQ. Convenience fees and optional extras are excluded; a total-minus-convenience-fee fallback is used when the component breakdown is incomplete.'],
   ['QUALITY CONTROL', 'The prototype checks component consistency, screens commercial duplicates and classifies price anomalies. Invalid component totals and technical outliers are excluded from index eligibility.'],
   ['JEVONS ROUTE INDEX', 'For each route and booking horizon, matched flight price relatives are combined as a geometric mean against the persisted base period. When flight numbers differ, matching falls back to the same route, airline, cabin and fare family.'],

@@ -8,10 +8,6 @@ def test_settings_initialization():
     assert isinstance(settings.CORS_ORIGINS, list)
 
 
-def test_synthetic_mode_is_the_default_without_env_file():
-    assert Settings(_env_file=None).DATA_MODE == DataMode.SYNTHETIC
-
-
 def test_postgres_url_uses_installed_driver():
     assert Settings(DATABASE_URL="postgresql://user:pass@db.example/app").DATABASE_URL == \
         "postgresql+psycopg2://user:pass@db.example/app"

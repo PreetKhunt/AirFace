@@ -75,7 +75,7 @@ export default function BookingHorizonPage() {
         <div>
           <h2 className="text-xs font-semibold text-muted-silver tracking-[0.2em] uppercase mb-1">Temporal Analysis</h2>
           <h1 className="text-3xl font-bold tracking-tight text-soft-white flex items-center gap-3">
-            <Clock className="w-8 h-8 text-purple-400" /> Booking Horizon Escalation
+            <Clock className="w-8 h-8 text-amber-400" /> Booking Horizon Escalation
           </h1>
         </div>
       </header>
@@ -100,12 +100,12 @@ export default function BookingHorizonPage() {
                     <div className={clsx(
                       'w-4 h-4 rounded-full border-2 transition-all duration-300',
                       selectedHorizon === item.horizon 
-                        ? 'bg-purple-400 border-purple-400 shadow-[0_0_12px_rgba(167,139,250,0.8)] scale-125'
-                        : 'bg-background border-border group-hover:border-purple-400/50'
+                        ? 'bg-warning border-warning shadow-[0_0_12px_rgba(245,158,11,0.8)] scale-125' 
+                        : 'bg-background border-border group-hover:border-warning/50'
                     )} />
                     <span className={clsx(
                       'text-xs font-mono transition-colors mt-2',
-                      selectedHorizon === item.horizon ? 'text-purple-300 font-bold' : 'text-muted group-hover:text-white'
+                      selectedHorizon === item.horizon ? 'text-warning font-bold' : 'text-muted group-hover:text-white'
                     )}>
                       {item.horizon}
                     </span>
@@ -175,14 +175,14 @@ export default function BookingHorizonPage() {
                   <Tooltip 
                     cursor={{fill: '#18181b', opacity: 0.5}}
                     contentStyle={{ backgroundColor: '#18181b', borderColor: '#27272a', borderRadius: '8px', color: '#f8fafc' }}
-                    itemStyle={{ color: '#c4b5fd', fontWeight: 600, fontFamily: 'monospace' }}
+                    itemStyle={{ color: '#f59e0b', fontWeight: 600, fontFamily: 'monospace' }}
                     labelStyle={{ color: '#94a3b8', fontSize: '12px' }}
                     formatter={(value: any, name: any) => [value.toFixed(2), name === 'value' ? 'Total Index' : name]}
                   />
                   <Bar dataKey="base" stackId="a" fill="transparent" />
                   <Bar dataKey="delta" stackId="a" radius={[4, 4, 4, 4]}>
                     {chartData.map((entry, index) => (
-                      <Cell key={`cell-${index}`} fill={entry.delta > 0 ? '#a78bfa' : '#38bdf8'} fillOpacity={entry.name === selectedHorizon ? 1 : 0.6} />
+                      <Cell key={`cell-${index}`} fill={entry.delta > 0 ? '#f59e0b' : '#3b82f6'} fillOpacity={entry.name === selectedHorizon ? 1 : 0.6} />
                     ))}
                     <LabelList dataKey="value" position="top" formatter={(val: any) => val.toFixed(1)} fill="#f8fafc" fontSize={11} fontFamily="monospace" />
                   </Bar>

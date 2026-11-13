@@ -1,4 +1,3 @@
-import csv
 import os
 import sys
 from datetime import date
@@ -10,32 +9,25 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 from app.services.demo_reference import load_demo_reference_baseline, REFERENCE_SOURCE
 
 API_BASE = os.environ.get("API_BASE_URL", "https://sih-backend-kvyb.onrender.com/api/v1")
-PROJECT_ROOT = Path(__file__).resolve().parents[2]
 EXPECTED_HORIZONS = {"T+1", "T+7", "T+15", "T+30", "T+45"}
-SYNTHETIC_BASE_DATE = date(2026, 1, 15)
 
-def synthetic_indexes_complete():
+def historical_indexes_complete():
     try:
         response = httpx.get(f"{API_BASE}/index/horizons", timeout=30.0)
         response.raise_for_status()
         data = response.json()
         horizons = {item["horizon"]: item for item in data.get("horizons", [])}
         return (
-            data.get("data_mode") == "SYNTHETIC"
+            data.get("data_mode") == "HISTORICAL"
             and EXPECTED_HORIZONS.issubset(horizons)
             and all(
                 horizons[horizon].get("availability_state") == "AVAILABLE"
-                and horizons[horizon].get("index_observation_count", 0) >= 9
+                and horizons[horizon].get("index_observation_count", 0) >= 18
                 for horizon in EXPECTED_HORIZONS
             )
         )
     except Exception:
         return False
-
-def synthetic_collection_dates():
-    fixture_path = PROJECT_ROOT / "data" / "fixtures" / "synthetic" / "airfare_synthetic.csv"
-    with fixture_path.open(newline="", encoding="utf-8") as fixture:
-        return sorted({date.fromisoformat(row["collection_date"]) for row in csv.DictReader(fixture)})
 
 def synthetic_validation_exists():
     try:
@@ -67,25 +59,14 @@ def run_step(name, url, params=None, payload=None):
 
 if __name__ == "__main__":
     print("========================================")
-    print("SIH26056 SYNTHETIC DEMO SEED")
+    print("SIH26056 HISTORICAL DEMO + SYNTHETIC VALIDATION SEED")
     print("========================================")
 
-    if not synthetic_indexes_complete():
-        print("\n[INFO] Ingesting synthetic demo fares and calculating all five horizons...\n")
-        run_step("Ingest synthetic demo fixture", "/ingestion/fixtures/synthetic")
-        run_step("Normalize synthetic demo fares", "/normalization/run")
-        for calculation_date in synthetic_collection_dates():
-            run_step(
-                f"Calculate synthetic demo index {calculation_date}",
-                "/index/calculate",
-                params={
-                    "calculation_date": calculation_date.isoformat(),
-                    "base_date": SYNTHETIC_BASE_DATE.isoformat(),
-                    "data_mode": "SYNTHETIC",
-                },
-            )
+    if not historical_indexes_complete():
+        print("\n[INFO] Completing historical indexes for all five horizons...\n")
+        run_step("Historical pipeline", "/pipeline/run")
     else:
-        print("\n[INFO] Synthetic demo indexes are complete for all five horizons.")
+        print("\n[INFO] Historical indexes are complete for all five horizons.")
 
     if not synthetic_validation_exists():
         print("\n[INFO] Preparing the separate 31-day synthetic validation benchmark...\n")
@@ -123,13 +104,13 @@ if __name__ == "__main__":
         print("\n[INFO] Synthetic benchmark validation is already available.")
 
     run_step(
-        "Refresh synthetic-only data quality score",
+        "Refresh historical-only data quality score",
         "/quality/recalculate",
-        params={"data_mode": "SYNTHETIC"},
+        params={"data_mode": "HISTORICAL"},
     )
 
-    if not synthetic_indexes_complete() or not synthetic_validation_exists():
-        print("\n[ERROR] Synthetic horizon coverage or benchmark validation is incomplete.")
+    if not historical_indexes_complete() or not synthetic_validation_exists():
+        print("\n[ERROR] Historical coverage or synthetic validation is still incomplete.")
         sys.exit(1)
 
-    print("\n[SUCCESS] Synthetic demo and benchmark validation are ready!")
+    print("\n[SUCCESS] Historical demo and separate synthetic validation are ready!")

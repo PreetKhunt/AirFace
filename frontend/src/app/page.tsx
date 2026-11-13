@@ -383,7 +383,7 @@ export default function CinematicLandingPage() {
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
             <GlassCard>
               <div className="text-center py-8">
-                <Clock className="w-12 h-12 text-purple-400 mx-auto mb-4" />
+                <Clock className="w-12 h-12 text-amber-400 mx-auto mb-4" />
                 <h4 className="text-lg font-semibold text-soft-white mb-2">5 Advance Horizons</h4>
                 <p className="text-muted-silver text-sm">
                   Airfares exhibit steep escalation as departure approaches.
@@ -401,7 +401,7 @@ export default function CinematicLandingPage() {
                 <div className="space-y-3">
                   {(horizonSummary?.horizons ?? []).map((item) => (
                     <div key={item.horizon} className="flex items-center justify-between gap-3">
-                      <span className="font-mono text-purple-300 font-bold text-sm">{item.horizon}</span>
+                      <span className="font-mono text-amber-400 font-bold text-sm">{item.horizon}</span>
                       <span className="text-xs text-muted-silver">{item.availability_state === 'AVAILABLE' ? `${item.observation_count} observations · ${item.route_count} routes` : 'DATA NOT AVAILABLE'}</span>
                     </div>
                   ))}
@@ -577,7 +577,7 @@ export default function CinematicLandingPage() {
             {[
               { label: 'OVERVIEW', icon: BarChart3, href: '/', color: 'from-accent to-accent/70' },
               { label: 'ROUTE INTEL', icon: Map, href: '/route-explorer', color: 'from-success to-success/70' },
-              { label: 'HORIZONS', icon: Clock, href: '/booking-horizon', color: 'from-purple-500 to-violet-700' },
+              { label: 'HORIZONS', icon: Clock, href: '/booking-horizon', color: 'from-amber-500 to-orange-500' },
               { label: 'INDEX ANALYTICS', icon: BarChart3, href: '/index-analytics', color: 'from-blue to-atmospheric-blue' },
               { label: 'DATA QUALITY', icon: Shield, href: '/data-quality', color: 'from-warning to-warning/70' },
               { label: 'CLEANING ENGINE', icon: Shield, href: '/data-cleaning', color: 'from-rose-500 to-pink-500' },

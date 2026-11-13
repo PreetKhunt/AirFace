@@ -70,7 +70,7 @@ export function TopNavigation() {
               isLive
                 ? 'bg-gradient-to-r from-emerald-500/10 to-emerald-600/10 border-emerald-500/30 text-emerald-400'
                 : isHistorical
-                ? 'bg-gradient-to-r from-purple-500/10 to-purple-600/10 border-purple-500/30 text-purple-300'
+                ? 'bg-gradient-to-r from-amber-500/10 to-amber-600/10 border-amber-500/30 text-amber-400'
                 : isSynthetic
                 ? 'bg-gradient-to-r from-purple-500/10 to-purple-600/10 border-purple-500/30 text-purple-400'
                 : 'bg-gradient-to-r from-danger/10 to-danger/20 border-danger/30 text-danger'
@@ -79,7 +79,7 @@ export function TopNavigation() {
                 <span className={clsx(
                   'w-1.5 h-1.5 rounded-full',
                   isLive ? 'bg-emerald-400 animate-pulse' :
-                  isHistorical ? 'bg-purple-400' :
+                  isHistorical ? 'bg-amber-400' :
                   isSynthetic ? 'bg-purple-400' : 'bg-danger'
                 )} />
                 {formatDataMode(dataMode)}
