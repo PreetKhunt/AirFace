@@ -39,7 +39,8 @@ class IndexEngine:
         calculation_date: date,
         base_date: date,
         methodology: str = "JEVONS",
-        data_mode: DataMode = DataMode.LIVE
+        data_mode: DataMode = DataMode.LIVE,
+        booking_horizon: Optional[str] = None,
     ) -> List[ElementaryRouteIndex]:
         """
         Tier 1: Elementary Route Index calculation.
@@ -47,11 +48,15 @@ class IndexEngine:
         """
         # Fetch target observations for the calculation date
         target_obs = self._fetch_eligible_observations(calculation_date, data_mode)
+        if booking_horizon:
+            target_obs = [row for row in target_obs if row[0].booking_horizon == booking_horizon]
         if not target_obs:
             return []
 
         # Fetch reference observations for the base date
         base_obs = self._fetch_eligible_observations(base_date, data_mode)
+        if booking_horizon:
+            base_obs = [row for row in base_obs if row[0].booking_horizon == booking_horizon]
         
         # Build reference dictionary: (route_id, booking_horizon, flight_number) -> avg_fare
         # A flight might have multiple observations if collected at different times, so we average them for the reference.
@@ -136,7 +141,8 @@ class IndexEngine:
         calculation_date: date,
         base_date: date,
         methodology: str = "YOUNG_MODIFIED_LASPEYRES",
-        data_mode: DataMode = DataMode.LIVE
+        data_mode: DataMode = DataMode.LIVE,
+        booking_horizon: Optional[str] = None,
     ) -> List[NationalAggregateIndex]:
         """
         Tier 2: National Aggregate Price Index.
@@ -161,6 +167,10 @@ class IndexEngine:
             ElementaryRouteIndex.methodology == "JEVONS",  # National always aggregates the Tier 1 Jevons
             ElementaryRouteIndex.data_mode == data_mode
         ).all()
+        if booking_horizon:
+            elementary_indices = [
+                index for index in elementary_indices if index.booking_horizon == booking_horizon
+            ]
         
         # Group by horizon
         horizons = {}

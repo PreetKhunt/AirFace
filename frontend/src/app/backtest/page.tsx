@@ -59,7 +59,7 @@ export default function BacktestPage() {
         </div>
       </header>
 
-      <StateBoundary loading={loading} error={error} onRetry={loadData} isEmpty={!loading && runs.length === 0} emptyMessage="No backtest runs found.">
+      <StateBoundary loading={loading} error={error} onRetry={loadData} isEmpty={!loading && runs.length === 0} emptyMessage="No validation run is available for the historical demo. A verified official reference series is not configured; synthetic benchmarks are kept separate.">
         
         {latestRun && (
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">

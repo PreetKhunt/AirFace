@@ -140,6 +140,43 @@ def test_separate_booking_horizons(db_session, setup_routes):
     assert r_t1.index_value == Decimal("110.0000")
     assert r_t7.index_value == Decimal("120.0000")
 
+def test_horizon_specific_base_date_uses_only_matching_horizon(db_session, setup_routes):
+    d_base_t1 = date(2026, 1, 1)
+    d_base_t7 = date(2025, 12, 1)
+    d_calc = date(2026, 1, 2)
+
+    _create_obs(db_session, "DEL-BOM", "6E-100", d_base_t1, Decimal("5000"), horizon="T+1")
+    _create_obs(db_session, "DEL-BOM", "6E-100", d_base_t7, Decimal("4000"), horizon="T+7")
+    _create_obs(db_session, "DEL-BOM", "6E-100", d_calc, Decimal("5500"), horizon="T+1")
+    _create_obs(db_session, "DEL-BOM", "6E-100", d_calc, Decimal("4800"), horizon="T+7")
+
+    engine = IndexEngine(db_session)
+    t1_results = engine.calculate_elementary_route_indices(
+        d_calc, d_base_t1, booking_horizon="T+1"
+    )
+    t7_results = engine.calculate_elementary_route_indices(
+        d_calc, d_base_t7, booking_horizon="T+7"
+    )
+    t1_national = engine.calculate_national_aggregate_indices(
+        d_calc, d_base_t1, methodology="JEVONS", booking_horizon="T+1"
+    )
+    t7_national = engine.calculate_national_aggregate_indices(
+        d_calc, d_base_t7, methodology="JEVONS", booking_horizon="T+7"
+    )
+
+    assert [(row.booking_horizon, row.index_value) for row in t1_results] == [
+        ("T+1", Decimal("110.0000"))
+    ]
+    assert [(row.booking_horizon, row.index_value) for row in t7_results] == [
+        ("T+7", Decimal("120.0000"))
+    ]
+    assert [(row.booking_horizon, row.base_date) for row in t1_national] == [
+        ("T+1", d_base_t1)
+    ]
+    assert [(row.booking_horizon, row.base_date) for row in t7_national] == [
+        ("T+7", d_base_t7)
+    ]
+
 def test_national_aggregation_young_and_jevons(db_session, setup_routes):
     d_base = date(2026, 1, 1)
     d_calc = date(2026, 1, 2)

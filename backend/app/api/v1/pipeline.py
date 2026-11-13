@@ -26,6 +26,34 @@ def _historical_collection_dates(db: Session) -> list[date]:
     return sorted({timestamp.date() for (timestamp,) in timestamps if timestamp is not None})
 
 
+def _historical_dates_by_horizon(db: Session) -> dict[str, list[date]]:
+    rows = (
+        db.query(
+            NormalizedIndexObservation.booking_horizon,
+            RawAirfareObservation.collection_timestamp,
+        )
+        .join(
+            ParsedAirfareObservation,
+            ParsedAirfareObservation.observation_id == NormalizedIndexObservation.observation_id,
+        )
+        .join(
+            RawAirfareObservation,
+            RawAirfareObservation.raw_id == ParsedAirfareObservation.raw_id,
+        )
+        .filter(
+            RawAirfareObservation.collection_mode == DataMode.HISTORICAL,
+            NormalizedIndexObservation.valid_for_index.is_(True),
+        )
+        .distinct()
+        .all()
+    )
+    dates_by_horizon: dict[str, set[date]] = {}
+    for horizon, timestamp in rows:
+        if timestamp is not None:
+            dates_by_horizon.setdefault(horizon, set()).add(timestamp.date())
+    return {horizon: sorted(dates) for horizon, dates in dates_by_horizon.items()}
+
+
 @router.get("/pipeline/status")
 def get_pipeline_status(db: Session = Depends(get_db)):
     mode = get_active_data_mode(db)
@@ -87,9 +115,9 @@ def execute_pipeline(db: Session = Depends(get_db)):
         # Phase D: Indexing
         # We need to run indexing for all target dates that have valid observations
         # Let's find distinct collection dates
-        target_dates = _historical_collection_dates(db)
+        dates_by_horizon = _historical_dates_by_horizon(db)
 
-        if not target_dates:
+        if not dates_by_horizon:
             return PipelineRunResponse(
                 status="SUCCESS",
                 ingestion=results["ingestion"],
@@ -97,42 +125,49 @@ def execute_pipeline(db: Session = Depends(get_db)):
                 index={"status": "NO_DATES_TO_INDEX"}
             )
         
-        target_dates.sort()
-        base_date = target_dates[0]  # Oldest date is base date
+        base_dates = {horizon: dates[0] for horizon, dates in dates_by_horizon.items() if dates}
+        horizons_by_date: dict[date, set[str]] = {}
+        for horizon, dates in dates_by_horizon.items():
+            for calculation_date in dates:
+                horizons_by_date.setdefault(calculation_date, set()).add(horizon)
+        target_dates = sorted(horizons_by_date)
 
         engine = IndexEngine(db)
         elementary_count = 0
         national_count = 0
 
         for calc_date in target_dates:
-            # Tier 1 Jevons
-            elem_indices = engine.calculate_elementary_route_indices(
-                calculation_date=calc_date,
-                base_date=base_date,
-                methodology="JEVONS",
-                data_mode=DataMode.HISTORICAL
-            )
-            elementary_count += len(elem_indices)
-
-            # Tier 2 national aggregates use the same route indices for each methodology.
-            national_jevons = engine.calculate_national_aggregate_indices(
-                calculation_date=calc_date,
-                base_date=base_date,
-                methodology="JEVONS",
-                data_mode=DataMode.HISTORICAL
-            )
-            national_young = engine.calculate_national_aggregate_indices(
-                calculation_date=calc_date,
-                base_date=base_date,
-                methodology="YOUNG_MODIFIED_LASPEYRES",
-                data_mode=DataMode.HISTORICAL
-            )
-            national_count += len(national_jevons) + len(national_young)
+            for horizon in sorted(horizons_by_date[calc_date]):
+                elem_indices = engine.calculate_elementary_route_indices(
+                    calculation_date=calc_date,
+                    base_date=base_dates[horizon],
+                    methodology="JEVONS",
+                    data_mode=DataMode.HISTORICAL,
+                    booking_horizon=horizon,
+                )
+                elementary_count += len(elem_indices)
+                # Aggregate only the horizon just calculated and preserve its base date.
+                national_jevons = engine.calculate_national_aggregate_indices(
+                    calculation_date=calc_date,
+                    base_date=base_dates[horizon],
+                    methodology="JEVONS",
+                    data_mode=DataMode.HISTORICAL,
+                    booking_horizon=horizon,
+                )
+                national_young = engine.calculate_national_aggregate_indices(
+                    calculation_date=calc_date,
+                    base_date=base_dates[horizon],
+                    methodology="YOUNG_MODIFIED_LASPEYRES",
+                    data_mode=DataMode.HISTORICAL,
+                    booking_horizon=horizon,
+                )
+                national_count += len(national_jevons) + len(national_young)
 
         results["index"] = {
             "status": "SUCCESS",
-            "base_date": str(base_date),
+            "base_dates": {horizon: str(base_date) for horizon, base_date in base_dates.items()},
             "dates_processed": len(target_dates),
+            "horizons_processed": len(base_dates),
             "elementary_indices_generated": elementary_count,
             "national_indices_generated": national_count
         }

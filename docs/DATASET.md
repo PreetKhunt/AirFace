@@ -66,7 +66,7 @@ The dataset contains deliberately engineered, controlled scenarios to test pipel
 
 ## 5. Summary of Files
 
-- `data/fixtures/historical/airfare_historical.csv`: Verified historical time-series fixture dataset.
+- `data/fixtures/historical/airfare_historical.csv`: Historical-mode time-series fixture for demo indexing; it is not a verified official DGCA/MoSPI reference series.
 - `data/fixtures/synthetic/airfare_synthetic.csv`: Multi-route, multi-horizon synthetic benchmark dataset.
 - `data/fixtures/synthetic/airfare_validation.csv`: 30-day continuous synthetic sequence for validation backtesting.
 - `data/fixtures/reference/demo_reference_baseline.csv`: 30-day baseline reference series for statistical benchmarking.
