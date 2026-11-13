@@ -1,192 +1,149 @@
-# AIRFACE (SIH26056) — Real-Time Airfare Price Index for India
+# AIRFACE
 
-> **SIH26056:** “Development of a Real-time Airfare Price Index for India through Automated Web Scraping of Airline and Online Travel Aggregator Portals for Augmentation of the Consumer Price Index (CPI)”
+**SIH26056 - Real-Time Airfare Price Index for India**
 
-**Brand / System Name:** AIRFACE  
-**Disclaimer:** This prototype is built for Smart India Hackathon 2026. It demonstrates the technical feasibility, data pipeline, and methodological framework for dynamic airfare price indexing. It is an experimental data intelligence prototype and does not replace the official Consumer Price Index published by the National Statistical Office (NSO / MoSPI).
+AIRFACE is a prototype for collecting, normalizing, and comparing Indian domestic airfare observations across advance-booking windows. It demonstrates a reproducible statistical pipeline and dashboard; it is not an official Consumer Price Index and does not replace publications from NSO/MoSPI.
 
----
+## Live Demo
 
-## 1. Problem & Solution Overview
+- Dashboard: [air-face-rho.vercel.app](https://air-face-rho.vercel.app)
+- API: [sih-backend-kvyb.onrender.com](https://sih-backend-kvyb.onrender.com)
+- API health: [/api/v1/health](https://sih-backend-kvyb.onrender.com/api/v1/health)
+- Interactive API docs: [/docs](https://sih-backend-kvyb.onrender.com/docs)
 
-Airline ticket pricing in India is characterized by algorithmic dynamic pricing and steep escalation based on advance purchase windows. Traditional monthly point-in-time surveys fail to capture this intra-month volatility and advance-purchase variance.
+The repository and Render Blueprint default to `HISTORICAL` mode. Check the dashboard's data-mode badge for the mode currently served by the API. `SYNTHETIC` mode is available for the deterministic demo; synthetic benchmark validation is kept separate from historical-mode dashboard data.
 
-**AIRFACE** provides an automated, auditable, and mathematically rigorous solution:
-1. **Automated Ingestion:** Scalable web scraping adapters for direct airline feeds and OTAs.
-2. **Component-Wise Normalization:** Strict isolation of comparable fares ($P_{\text{comp}} = \text{Base} + \text{UDF} + \text{ASF} + \text{GST} + \text{YQ}$) with double-counting prevention and convenience fee exclusion.
-3. **Commercial Deduplication:** Preserves commercial equivalence while giving priority to direct airline channels.
-4. **Outlier Treatment:** Tukey IQR anomaly detection with a $3.5\times$ median technical ceiling that preserves genuine market price surges.
-5. **8-Factor Empirical Data Quality:** Continuous mathematical scoring across completeness, validity, consistency, freshness, reliability, dedup integrity, outlier cleanliness, and availability coverage.
-6. **Tier 1 Elementary Jevons Indices:** Unweighted geometric mean of price relatives per Route × Horizon × Date cell, satisfying the Axiomatic Time Reversal Test.
-7. **Tier 2 DGCA Traffic-Weighted National Index:** National aggregation using DGCA passenger volume reference weights via Young/Modified Laspeyres & Jevons formulas.
-8. **Cryptographic Lineage:** End-to-end SHA-256 payload checksum audit trails from national index down to raw scraper payloads.
-9. **Statistical Backtesting:** Rigorous 30-day temporal validation evaluating MAPE, RMSE, Pearson $r$, Bias, and Directional Accuracy against reference baselines.
+## What It Does
 
----
+- Ingests deterministic historical and synthetic fixture datasets, with optional live scraper adapters.
+- Normalizes comparable fares as base fare + UDF + ASF + GST + mandatory YQ, excluding convenience fees and optional extras.
+- Screens commercial duplicates and fare anomalies while retaining valid market surges.
+- Calculates separate Jevons route indices for T+1, T+7, T+15, T+30, and T+45, then aggregates route indices using configured traffic reference weights.
+- Computes an empirical eight-factor data-quality score and maintains SHA-256 provenance trails.
+- Compares synthetic demo indices with a version-controlled synthetic reference series. These validation metrics are illustrative and are not official DGCA/MoSPI accuracy claims.
 
-## 2. System Architecture
+## Dashboard Sections
 
-```
-                      ┌──────────────────────────────────────────────┐
-                      │    AIRLINE & OTA PORTALS / FIXTURE SOURCES   │
-                      └──────────────────────┬───────────────────────┘
-                                             │
-                                             ▼
-                      ┌──────────────────────────────────────────────┐
-                      │ RAW OBSERVATIONS (raw_airfare_observations)  │
-                      │  - SHA-256 payload checksum                  │
-                      │  - Raw DOM/JSON text & collection timestamp  │
-                      │  - DataMode: LIVE | HISTORICAL | SYNTHETIC   │
-                      └──────────────────────┬───────────────────────┘
-                                             │
-                                             ▼
-                      ┌──────────────────────────────────────────────┐
-                      │ PARSED OBSERVATIONS (parsed_airfare_obs)     │
-                      │  - Structural attributes (origin, dest, etc) │
-                      │  - Base Fare, UDF, ASF, GST, YQ, Conv Fee    │
-                      │  - Strict positive fare & horizon validation │
-                      └──────────────────────┬───────────────────────┘
-                                             │
-                                             ▼
-                      ┌──────────────────────────────────────────────┐
-                      │ FARE NORMALIZATION (normalized_index_obs)    │
-                      │  - P_comp = Base + UDF + ASF + GST + YQ      │
-                      │  - Exclude convenience fee & optional extras │
-                      │  - Component sum consistency validation      │
-                      └──────────────────────┬───────────────────────┘
-                                             │
-                                             ▼
-                      ┌──────────────────────────────────────────────┐
-                      │ COMMERCIAL DEDUPLICATION & OUTLIER TREATMENT │
-                      │  - Channel priority & commercial equivalence │
-                      │  - Tukey IQR + 3.5x median technical ceiling │
-                      │  - Valid market surge vs technical anomaly   │
-                      └──────────────────────┬───────────────────────┘
-                                             │
-                                             ▼
-                      ┌──────────────────────────────────────────────┐
-                      │ 8-FACTOR DATA QUALITY SCORING (dq_logs)      │
-                      │  - Completeness, Validity, Consistency,      │
-                      │    Freshness, Reliability, Dedup, Outliers,  │
-                      │    Availability (empirical, 0-100 scale)     │
-                      └──────────────────────┬───────────────────────┘
-                                             │
-                                             ▼
-                      ┌──────────────────────────────────────────────┐
-                      │ TIER 1: JEVONS ELEMENTARY ROUTE INDICES      │
-                      │  - Unweighted geometric mean of relatives    │
-                      │  - Separate indices for T+1, 7, 15, 30, 45   │
-                      └──────────────────────┬───────────────────────┘
-                                             │
-                                             ▼
-                      ┌──────────────────────────────────────────────┐
-                      │ TIER 2: DGCA-WEIGHTED NATIONAL AGGREGATION   │
-                      │  - Passenger volume traffic reference weights│
-                      │  - Young / Modified Laspeyres & Jevons agg   │
-                      └──────────────────────┬───────────────────────┘
-                                             │
-                                             ▼
-                      ┌──────────────────────────────────────────────┐
-                      │ STATISTICAL VALIDATION & BACKTESTING         │
-                      │  - RMSE, MAPE, Pearson r, Directional Acc    │
-                      │  - Clear distinction of benchmark origin     │
-                      └──────────────────────┬───────────────────────┘
-                                             │
-                                             ▼
-                      ┌──────────────────────────────────────────────┐
-                      │ PROVENANCE & AIRFACE DASHBOARD INTERFACE     │
-                      │  - End-to-end cryptographic trace graph      │
-                      │  - Explicit DATA MODE badge on all pages     │
-                      │  - Real-time API query with zero fake data   │
-                      └──────────────────────────────────────────────┘
-```
+- **Market:** pipeline and index overview.
+- **Routes:** route-level index trajectories and horizon selection.
+- **Horizons:** national comparison across T+1 through T+45.
+- **Analytics:** Jevons and Young/Modified Laspeyres comparisons.
+- **Quality:** quality history and horizon-specific data-quality events.
+- **Cleaning:** normalized observation inspection by horizon.
+- **Validation:** benchmark metrics and matching coverage.
+- **Provenance:** observation lineage and payload hashes.
+- **System Status:** API, database, Redis, and data-mode health.
 
----
+## Technology
 
-## 3. Tech Stack
+- **Backend:** Python 3.11, FastAPI, SQLAlchemy, Pydantic, Alembic
+- **Frontend:** Next.js 14, React 18, TypeScript, Tailwind CSS, Recharts
+- **Data services:** PostgreSQL and Redis; Celery is available for background tasks
+- **Tests:** Pytest and Jest/React Testing Library
 
-- **Backend:** Python 3.12, FastAPI, SQLAlchemy 2.0, Pydantic v2, Alembic
-- **Task Queue & Cache:** Celery, Redis (optional for background scrapers)
-- **Database:** PostgreSQL / TimescaleDB (production) / SQLite (zero-config local demo)
-- **Frontend:** Next.js 14 (App Router), React 18, Tailwind CSS, Recharts, Lucide Icons
-- **Testing:** Pytest (92 unit/integration tests), Jest + React Testing Library (11 component tests)
+## Local Setup
 
----
+Prerequisites: Python 3.11+, Node.js 18+, npm, and Docker Compose for the local PostgreSQL/Redis services.
 
-## 4. Quick Start & Demo Setup
+1. Start PostgreSQL and Redis from the repository root:
 
-### Prerequisites
-- Python 3.10+ (tested on Python 3.12)
-- Node.js 18+ and npm
+   ```bash
+   docker compose up -d db redis
+   ```
 
-### 1. Backend Setup
+2. Install and start the backend:
+
+   ```powershell
+   cd backend
+   python -m venv .venv
+   .\.venv\Scripts\Activate.ps1
+   python -m pip install -r requirements.txt
+   alembic upgrade head
+   uvicorn app.main:app --reload --host 127.0.0.1 --port 8000
+   ```
+
+   The backend defaults to the local Compose database and `HISTORICAL` mode. To use synthetic mode, set `DATA_MODE=SYNTHETIC` in `backend/.env` before starting the API.
+
+3. In a second terminal, configure and start the frontend:
+
+   ```powershell
+   cd frontend
+   npm install
+   Set-Content .env.local 'NEXT_PUBLIC_API_URL=http://localhost:8000/api/v1'
+   npm run dev
+   ```
+
+   Open `http://localhost:3000`. The backend docs are at `http://localhost:8000/docs`.
+
+## Seed Data
+
+For a complete local demo, run this from the repository root against a **disposable local database**:
+
 ```bash
-# From repository root:
-python -m venv venv
-# Windows:
-.\venv\Scripts\activate
-# Linux/macOS:
-# source venv/bin/activate
-
-pip install -r backend/requirements.txt
+python backend/scripts/seed_demo.py
 ```
 
-### 2. Run Deterministic Demo Seed
+**Warning:** the seed script drops and recreates database tables by default. To preserve the current local schema and data, pass `--no-reset`:
+
 ```bash
-# Seeds 571 observations, runs normalization, computes Tier 1/2 indices, provenance, and backtests
-python -m backend.scripts.seed_demo
+python backend/scripts/seed_demo.py --no-reset
 ```
 
-### 3. Start Backend API Server
+The script loads historical, synthetic, and synthetic-validation fixtures and computes normalization, quality, indices, provenance, and benchmark validation. Set `DATA_MODE` before starting the API to choose which observation mode the dashboard reads.
+
+## Configuration
+
+Backend settings are read from environment variables and `.env` in the backend process's working directory. Useful settings:
+
+- `DATABASE_URL`: PostgreSQL connection string. The local Compose defaults are in [docker-compose.yml](docker-compose.yml).
+- `REDIS_URL`: Redis connection string.
+- `DATA_MODE`: `HISTORICAL`, `SYNTHETIC`, or `LIVE`; defaults to `HISTORICAL`.
+- `CORS_ORIGINS`: comma-separated allowed frontend origins.
+- `SCRAPER_ENABLED`: enable or disable live scraper adapters.
+
+For Vercel, set `NEXT_PUBLIC_API_URL` to the backend API root, for example `https://sih-backend-kvyb.onrender.com/api/v1`.
+
+## Tests
+
+Run the backend tests from the repository root:
+
 ```bash
-uvicorn backend.app.main:app --host 0.0.0.0 --port 8000 --reload
+python -m pytest backend/tests -q
 ```
-API Documentation will be available at: `http://localhost:8000/docs`
 
-### 4. Start Frontend Dashboard
+Run frontend tests and a production build:
+
 ```bash
 cd frontend
-npm install
-npm run dev
-```
-Dashboard will be available at: `http://localhost:3000`
-
----
-
-## 5. Running Tests
-
-### Backend Unit & Integration Tests (92 Tests)
-```bash
-pytest backend/tests -v
-```
-
-### Frontend Dashboard Tests (11 Tests)
-```bash
-cd frontend
-npm test
-```
-
-### Production Build Verification
-```bash
-cd frontend
+npm test -- --runInBand
 npm run build
 ```
 
----
+## Repository Layout
 
-## 6. Project Documentation Index
+```text
+backend/       FastAPI app, Alembic migrations, services, scripts, tests
+frontend/      Next.js dashboard and component tests
+data/          Historical, synthetic, and reference fixtures
+docs/          Architecture, methodology, deployment, and validation docs
+docker/        Backend and frontend Dockerfiles
+render.yaml    Render Blueprint
+```
 
-- [`docs/FINAL_INTEGRATION_AUDIT.md`](docs/FINAL_INTEGRATION_AUDIT.md): Comprehensive repository audit, architecture gaps, and completed fixes.
-- [`docs/DEMO_GUIDE.md`](docs/DEMO_GUIDE.md): Step-by-step 5-minute SIH judge presentation walkthrough.
-- [`docs/DATASET.md`](docs/DATASET.md): Route basket, horizon breakdown, fare decomposition, and controlled edge cases.
-- [`docs/VALIDATION.md`](docs/VALIDATION.md): Formulations for MAPE, RMSE, Pearson $r$, Bias, and Directional Accuracy.
-- [`docs/PROVENANCE.md`](docs/PROVENANCE.md): Cryptographic SHA-256 payload lineage architecture.
-- [`docs/UI_UX_REPORT.md`](docs/UI_UX_REPORT.md): Design system, state boundaries, and module catalog.
+## Further Reading
 
----
+- [API Reference](API.md)
+- [Setup Guide](SETUP.md)
+- [Developer Guide](DEVELOPMENT.md)
+- [Deployment Guide](DEPLOYMENT.md)
+- [Dataset Specification](docs/DATASET.md)
+- [Validation Methodology](docs/VALIDATION.md)
+- [Provenance](docs/PROVENANCE.md)
+- [Demo Guide](DEMO_GUIDE.md)
 
-## 7. Methodological Limitations & Future Scope
+## Limitations
 
-1. **Traffic vs Expenditure Weights:** DGCA passenger volume proportions serve as traffic-based reference weights rather than exact household consumer expenditure weights.
-2. **Benchmark Availability:** Official historical micro-data series are not publicly published by airlines; validation utilizes version-controlled reference datasets.
-3. **Anti-Bot & Rate Limits:** Production deployment respects `robots.txt`, ethical rate-limiting ($\ge 2.0\text{s}$ delays), and does not use unauthorized evasion techniques.
+- Fixture data is deterministic demo data, not a verified official airfare microdata series.
+- The bundled route weights are traffic-based engineering references, not household expenditure weights.
+- Synthetic benchmark scores demonstrate the validation pipeline only; they do not establish production accuracy.
+- Live scraping depends on source availability, rate limits, and adapter configuration.
