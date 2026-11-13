@@ -32,7 +32,7 @@ export default function BacktestPage() {
     try {
       setLoading(true);
       setError(null);
-      const data = await api.getBacktestResults();
+      const data = await api.getBacktestResults('SYNTHETIC');
       setRuns(data.sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime()));
     } catch (err: any) {
       setError(err.message || 'Failed to load backtest results');
@@ -59,7 +59,7 @@ export default function BacktestPage() {
         </div>
       </header>
 
-      <StateBoundary loading={loading} error={error} onRetry={loadData} isEmpty={!loading && runs.length === 0} emptyMessage="No validation run is available for the historical demo. A verified official reference series is not configured; synthetic benchmarks are kept separate.">
+      <StateBoundary loading={loading} error={error} onRetry={loadData} isEmpty={!loading && runs.length === 0} emptyMessage="No synthetic benchmark validation run is available yet. These results are kept separate from historical-mode dashboard data.">
         
         {latestRun && (
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">

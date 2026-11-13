@@ -82,6 +82,22 @@ def test_normalization_api_endpoints(client):
     assert calculated.json()["data_mode"] == "SYNTHETIC"
 
 
+def test_quality_recalculation_can_exclude_synthetic_records(client):
+    historical_ingest = client.post("/api/v1/ingestion/fixtures/historical")
+    synthetic_ingest = client.post("/api/v1/ingestion/fixtures/synthetic")
+    assert historical_ingest.status_code == 200
+    assert synthetic_ingest.status_code == 200
+
+    normalized = client.post("/api/v1/normalization/run")
+    assert normalized.status_code == 200
+
+    response = client.post("/api/v1/quality/recalculate?data_mode=HISTORICAL")
+
+    assert response.status_code == 200, response.text
+    assert response.json()["total_records"] == 450
+    assert response.json()["synthetic_share"] == "0.0000"
+
+
 @patch("app.tasks.normalization_tasks.run_phase_c_normalization")
 def test_normalization_celery_task(mock_run_norm):
     mock_run_norm.return_value = PhaseCNormalizationResponse(

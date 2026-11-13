@@ -1,11 +1,15 @@
 ﻿"""
 Data Quality API Endpoints -- SIH26056 Phase C
 """
-from fastapi import APIRouter, Depends, HTTPException, status
+from typing import Optional
+
+from fastapi import APIRouter, Depends, HTTPException, Query, status
 from sqlalchemy.orm import Session
 from app.database.session import get_db
 from app.models.log import DataQualityLog
+from app.models.observation import NormalizedIndexObservation, ParsedAirfareObservation, RawAirfareObservation
 from app.schemas.data_quality import DataQualityLogOut, DataQualityLogListResponse
+from app.core.enums import DataMode
 
 router = APIRouter(prefix="/quality", tags=["Data Quality"])
 
@@ -45,14 +49,25 @@ def get_dq_history(db: Session = Depends(get_db)):
     summary="Recalculate DQ Score Over Full Normalized Dataset",
     description="Recomputes the 8-factor DQ score across all existing normalized observations and persists a new log entry.",
 )
-def recalculate_dq_score(db: Session = Depends(get_db)):
-    from app.models.observation import NormalizedIndexObservation, ParsedAirfareObservation
+def recalculate_dq_score(
+    data_mode: Optional[DataMode] = Query(None),
+    db: Session = Depends(get_db),
+):
     from app.services.normalization import NormalizedRecord
     from app.services.data_quality import calculate_data_quality_score
     from app.core.enums import NormalizationStatus, AvailabilityStatus, OutlierStatus, CommercialDedupStatus
     from decimal import Decimal
 
-    norm_rows = db.query(NormalizedIndexObservation).all()
+    query = db.query(NormalizedIndexObservation)
+    if data_mode:
+        query = query.join(
+            ParsedAirfareObservation,
+            ParsedAirfareObservation.observation_id == NormalizedIndexObservation.observation_id,
+        ).join(
+            RawAirfareObservation,
+            RawAirfareObservation.raw_id == ParsedAirfareObservation.raw_id,
+        ).filter(RawAirfareObservation.collection_mode == data_mode)
+    norm_rows = query.all()
     if not norm_rows:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="No normalized observations found.")
 

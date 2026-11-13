@@ -120,6 +120,19 @@ def test_missing_reference_fare(db_session, setup_routes):
     # Empty result or observation skipped
     assert len(results) == 0
 
+def test_product_match_fallback_when_flight_number_changes(db_session, setup_routes):
+    d_base = date(2026, 1, 1)
+    d_calc = date(2026, 1, 2)
+
+    _create_obs(db_session, "DEL-BOM", "6E-100", d_base, Decimal("5000"))
+    _create_obs(db_session, "DEL-BOM", "6E-200", d_calc, Decimal("5500"))
+
+    results = IndexEngine(db_session).calculate_elementary_route_indices(d_calc, d_base)
+
+    assert len(results) == 1
+    assert results[0].index_value == Decimal("110.0000")
+    assert results[0].observation_count == 1
+
 def test_separate_booking_horizons(db_session, setup_routes):
     d_base = date(2026, 1, 1)
     d_calc = date(2026, 1, 2)

@@ -1,12 +1,14 @@
 'use client';
 
-import { useEffect, useState, useMemo } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { api } from '@/lib/api';
 import { NormalizedIndexObservation, PipelineStatus } from '@/types';
 import { StateBoundary } from '@/components/StateBoundary';
 import { ShieldAlert, CheckCircle2, AlertTriangle, ArrowRight, XCircle, Search } from 'lucide-react';
 import { clsx } from 'clsx';
 import Link from 'next/link';
+
+const BOOKING_HORIZONS = ['T+1', 'T+7', 'T+15', 'T+30', 'T+45'];
 
 export default function DataCleaningPage() {
   const [observations, setObservations] = useState<NormalizedIndexObservation[]>([]);
@@ -15,40 +17,55 @@ export default function DataCleaningPage() {
   const [error, setError] = useState<string | null>(null);
   const [selectedObs, setSelectedObs] = useState<NormalizedIndexObservation | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
+  const [selectedHorizon, setSelectedHorizon] = useState('T+1');
 
-  const loadObservations = async () => {
+  const loadObservations = useCallback(async () => {
     try {
       setLoading(true);
       setError(null);
       const [data, status] = await Promise.all([
-        api.getNormalizedObservations(undefined, undefined, true, 500),
+        api.getNormalizedObservations(undefined, undefined, true, 500, 'HISTORICAL'),
         api.getPipelineStatus(),
       ]);
       setObservations(data.items);
       setPipelineStatus(status);
       if (data.items.length > 0) {
-        setSelectedObs(data.items[0]);
+        setSelectedObs(current => current && data.items.some(obs => obs.index_obs_id === current.index_obs_id)
+          ? current
+          : data.items[0]);
       }
     } catch (err: any) {
       setError(err.message || 'Failed to load observation data');
     } finally {
       setLoading(false);
     }
-  };
+  }, []);
 
   useEffect(() => {
     loadObservations();
-  }, []);
+  }, [loadObservations]);
 
   const filteredObs = useMemo(() => {
-    if (!searchQuery) return observations;
-    return observations.filter(obs => {
+    const horizonRows = observations.filter(obs => obs.booking_horizon === selectedHorizon);
+    if (!searchQuery) return horizonRows;
+    return horizonRows.filter(obs => {
       const q = searchQuery.toLowerCase();
       return obs.route_id.toLowerCase().includes(q) || 
              obs.parsed?.airline_code.toLowerCase().includes(q) ||
              obs.index_obs_id.toLowerCase().includes(q);
     });
-  }, [observations, searchQuery]);
+  }, [observations, searchQuery, selectedHorizon]);
+
+  const horizonCounts = useMemo(() => BOOKING_HORIZONS.map(horizon => ({
+    horizon,
+    count: observations.filter(obs => obs.booking_horizon === horizon).length,
+  })), [observations]);
+
+  useEffect(() => {
+    if (!filteredObs.some(obs => obs.index_obs_id === selectedObs?.index_obs_id)) {
+      setSelectedObs(filteredObs[0] ?? null);
+    }
+  }, [filteredObs, selectedObs]);
 
   // Aggregate Pipeline Counts
   const stageCounts = pipelineStatus?.counts;
@@ -96,6 +113,29 @@ export default function DataCleaningPage() {
           <PipelineStage name="INDEX READY" count={indexReadyCount} active={indexReadyCount > 0} isFinal />
         </div>
       </header>
+
+      <section className="flex flex-col gap-3 border-b border-border pb-5">
+        <div className="flex items-center justify-between gap-4">
+          <h2 className="text-xs font-semibold text-muted-silver tracking-[0.2em] uppercase">Historical observations by booking horizon</h2>
+          <span className="text-xs font-mono text-muted-silver">{filteredObs.length} shown</span>
+        </div>
+        <div role="group" aria-label="Filter observations by booking horizon" className="flex flex-wrap gap-1 bg-card border border-border p-1 rounded-lg w-fit">
+          {horizonCounts.map(({ horizon, count }) => (
+            <button
+              key={horizon}
+              type="button"
+              aria-pressed={selectedHorizon === horizon}
+              onClick={() => setSelectedHorizon(horizon)}
+              className={clsx(
+                'px-3 py-1.5 rounded text-xs font-mono transition-colors',
+                selectedHorizon === horizon ? 'bg-accent/15 text-accent' : 'text-muted-silver hover:text-white'
+              )}
+            >
+              {horizon} <span className="ml-1 opacity-70">{count}</span>
+            </button>
+          ))}
+        </div>
+      </section>
 
       <StateBoundary loading={loading} error={error} onRetry={loadObservations} isEmpty={!loading && observations.length === 0}>
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 h-[700px]">

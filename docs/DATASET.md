@@ -70,3 +70,5 @@ The dataset contains deliberately engineered, controlled scenarios to test pipel
 - `data/fixtures/synthetic/airfare_synthetic.csv`: Multi-route, multi-horizon synthetic benchmark dataset.
 - `data/fixtures/synthetic/airfare_validation.csv`: 30-day continuous synthetic sequence for validation backtesting.
 - `data/fixtures/reference/demo_reference_baseline.csv`: 30-day baseline reference series for statistical benchmarking.
+
+Historical-mode fixture indexes prefer exact flight-number matches. If a flight number changes between collection dates, comparisons fall back to the same route, booking horizon, airline, cabin class, and fare family. Synthetic validation results remain separate from historical-mode dashboard data and are not official DGCA/MoSPI validation.

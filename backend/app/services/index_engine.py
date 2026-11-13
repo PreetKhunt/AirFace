@@ -6,6 +6,7 @@ from datetime import date
 from sqlalchemy.orm import Session
 from sqlalchemy import select, and_, func
 
+from app.config import settings
 from app.models.index import ElementaryRouteIndex, NationalAggregateIndex
 from app.models.observation import NormalizedIndexObservation, ParsedAirfareObservation, RawAirfareObservation
 from app.models.route import Route
@@ -13,7 +14,14 @@ from app.core.enums import DataMode
 
 
 def get_active_data_mode(db: Session) -> Optional[DataMode]:
-    """Return the mode of the most recently persisted airfare observation."""
+    """Prefer the configured mode when present; otherwise use the latest persisted mode."""
+    configured_mode = settings.DATA_MODE
+    configured_exists = db.query(RawAirfareObservation.raw_id).filter(
+        RawAirfareObservation.collection_mode == configured_mode
+    ).first()
+    if configured_exists:
+        return configured_mode
+
     latest_mode = (
         db.query(RawAirfareObservation.collection_mode)
         .order_by(
@@ -58,17 +66,30 @@ class IndexEngine:
         if booking_horizon:
             base_obs = [row for row in base_obs if row[0].booking_horizon == booking_horizon]
         
-        # Build reference dictionary: (route_id, booking_horizon, flight_number) -> avg_fare
-        # A flight might have multiple observations if collected at different times, so we average them for the reference.
+        # Exact flight matches are preferred; product buckets support schedules whose flight
+        # numbers differ between collection dates while preserving route and fare comparability.
         reference_fares: Dict[Tuple[str, str, str], List[Decimal]] = {}
+        product_reference_fares: Dict[Tuple[str, str, str, str, str], List[Decimal]] = {}
         for norm, parsed in base_obs:
             key = (norm.route_id, norm.booking_horizon, parsed.flight_number)
             if key not in reference_fares:
                 reference_fares[key] = []
             reference_fares[key].append(norm.comparable_index_fare)
+            product_key = (
+                norm.route_id,
+                norm.booking_horizon,
+                parsed.airline_code,
+                parsed.cabin_class or "",
+                parsed.fare_family or "",
+            )
+            product_reference_fares.setdefault(product_key, []).append(norm.comparable_index_fare)
             
         base_avg_fares: Dict[Tuple[str, str, str], Decimal] = {
             k: sum(v) / len(v) for k, v in reference_fares.items()
+        }
+        product_base_avg_fares = {
+            key: sum(values) / len(values)
+            for key, values in product_reference_fares.items()
         }
 
         # Group target observations by cell (route_id, booking_horizon)
@@ -87,6 +108,15 @@ class IndexEngine:
             for norm, parsed in obs_list:
                 ref_key = (route_id, horizon, parsed.flight_number)
                 ref_price = base_avg_fares.get(ref_key)
+                if ref_price is None:
+                    product_key = (
+                        route_id,
+                        horizon,
+                        parsed.airline_code,
+                        parsed.cabin_class or "",
+                        parsed.fare_family or "",
+                    )
+                    ref_price = product_base_avg_fares.get(product_key)
                 
                 if ref_price and ref_price > 0 and norm.comparable_index_fare > 0:
                     price_relative = float(norm.comparable_index_fare) / float(ref_price)

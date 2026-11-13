@@ -6,7 +6,7 @@ const steps = [
   ['DATA COLLECTION', 'Source adapters retain the raw observation, source details, collection time and declared data mode. This demo uses a historical-mode fixture; it does not perform live fare scraping or represent an official DGCA/MoSPI reference series.'],
   ['FARE NORMALIZATION', 'Comparable fare = Base Fare + UDF + ASF + GST + YQ. Convenience fees and optional extras are excluded; a total-minus-convenience-fee fallback is used when the component breakdown is incomplete.'],
   ['QUALITY CONTROL', 'The prototype checks component consistency, screens commercial duplicates and classifies price anomalies. Invalid component totals and technical outliers are excluded from index eligibility.'],
-  ['JEVONS ROUTE INDEX', 'For each route and booking horizon, matched flight price relatives are combined as a geometric mean against the persisted base period.'],
+  ['JEVONS ROUTE INDEX', 'For each route and booking horizon, matched flight price relatives are combined as a geometric mean against the persisted base period. When flight numbers differ, matching falls back to the same route, airline, cabin and fare family.'],
   ['NATIONAL AGGREGATION', 'Route indices are combined with passenger-volume reference weights using a weighted arithmetic (Young / Modified Laspeyres) or geometric (Jevons) mean.'],
   ['VALIDATION', 'Calculated values are date-aligned with a configured reference series. Metrics require matched observations; they are not evidence of official benchmark accuracy.'],
   ['PROVENANCE', 'Every parsed observation retains a trace to its raw payload and SHA-256 checksum.'],
