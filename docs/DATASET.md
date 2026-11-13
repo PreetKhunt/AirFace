@@ -2,7 +2,7 @@
 
 ## 1. Overview
 
-The AIRFACE platform incorporates deterministic, version-controlled fixture datasets alongside live scraping adapters. The dataset is specifically constructed to evaluate and exercise every phase of the statistical pipeline (Ingestion, Parsing, Normalization, Deduplication, Outlier Handling, Data Quality Scoring, Tier 1 Elementary Jevons Index, Tier 2 DGCA-Weighted National Index, and Statistical Backtesting).
+The AIRFACE demo runs deterministic, version-controlled synthetic fixtures alongside live scraping adapters. The fixtures exercise every phase of the statistical pipeline (Ingestion, Parsing, Normalization, Deduplication, Outlier Handling, Data Quality Scoring, Tier 1 Elementary Jevons Index, Tier 2 weighted National Index, and Statistical Backtesting).
 
 ---
 
@@ -66,9 +66,9 @@ The dataset contains deliberately engineered, controlled scenarios to test pipel
 
 ## 5. Summary of Files
 
-- `data/fixtures/historical/airfare_historical.csv`: Historical-mode time-series fixture for demo indexing; it is not a verified official DGCA/MoSPI reference series.
-- `data/fixtures/synthetic/airfare_synthetic.csv`: Multi-route, multi-horizon synthetic benchmark dataset.
+- `data/fixtures/historical/airfare_historical.csv`: Historical-mode time-series fixture retained for comparisons; it is not a verified official DGCA/MoSPI reference series.
+- `data/fixtures/synthetic/airfare_synthetic.csv`: Active multi-route, multi-horizon synthetic demo dataset.
 - `data/fixtures/synthetic/airfare_validation.csv`: 30-day continuous synthetic sequence for validation backtesting.
 - `data/fixtures/reference/demo_reference_baseline.csv`: 30-day baseline reference series for statistical benchmarking.
 
-Historical-mode fixture indexes prefer exact flight-number matches. If a flight number changes between collection dates, comparisons fall back to the same route, booking horizon, airline, cabin class, and fare family. Synthetic validation results remain separate from historical-mode dashboard data and are not official DGCA/MoSPI validation.
+Indexes prefer exact flight-number matches. If a flight number changes between collection dates, comparisons fall back to the same route, booking horizon, airline, cabin class, and fare family. Validation results use a separate synthetic reference series and are not official DGCA/MoSPI validation.

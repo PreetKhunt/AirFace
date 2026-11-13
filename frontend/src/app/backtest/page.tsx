@@ -59,7 +59,7 @@ export default function BacktestPage() {
         </div>
       </header>
 
-      <StateBoundary loading={loading} error={error} onRetry={loadData} isEmpty={!loading && runs.length === 0} emptyMessage="No synthetic benchmark validation run is available yet. These results are kept separate from historical-mode dashboard data.">
+      <StateBoundary loading={loading} error={error} onRetry={loadData} isEmpty={!loading && runs.length === 0} emptyMessage="No synthetic benchmark validation run is available yet. The multi-horizon synthetic demo and reference series are seeded separately.">
         
         {latestRun && (
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">

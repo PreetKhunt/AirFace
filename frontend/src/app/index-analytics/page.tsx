@@ -121,7 +121,7 @@ export default function IndexAnalyticsPage() {
 
           <div className="p-5 bg-card border border-border rounded-xl">
             <span className="text-[10px] uppercase tracking-widest text-muted-silver block mb-1">Tier 2 Young / Laspeyres</span>
-            <span className="text-3xl font-mono text-amber-400 font-bold">
+            <span className="text-3xl font-mono text-purple-300 font-bold">
               {latestYoung ? parseFloat(latestYoung.index_value.toString()).toFixed(2) : '--'}
             </span>
             <span className="text-xs text-muted-silver block mt-1">Arithmetic Weighted (T={selectedHorizon})</span>
@@ -159,8 +159,8 @@ export default function IndexAnalyticsPage() {
               <span className="flex items-center gap-1.5 text-electric-cyan">
                 <span className="w-3 h-0.5 bg-electric-cyan" /> Jevons Geometric Mean
               </span>
-              <span className="flex items-center gap-1.5 text-amber-400">
-                <span className="w-3 h-0.5 bg-amber-400" /> Young / Laspeyres Weighted
+              <span className="flex items-center gap-1.5 text-purple-300">
+                <span className="w-3 h-0.5 bg-purple-300" /> Young / Laspeyres Weighted
               </span>
             </div>
           </div>
@@ -176,7 +176,7 @@ export default function IndexAnalyticsPage() {
                   labelStyle={{ color: '#94a3b8', fontSize: '12px' }}
                 />
                 <Line type="monotone" dataKey="jevons" name="Jevons Index" stroke="#06b6d4" strokeWidth={2.5} dot={{ r: 4, fill: '#06b6d4' }} />
-                <Line type="monotone" dataKey="young" name="Young Index" stroke="#f59e0b" strokeWidth={2.5} strokeDasharray="4 4" dot={{ r: 4, fill: '#f59e0b' }} />
+                <Line type="monotone" dataKey="young" name="Young Index" stroke="#c4b5fd" strokeWidth={2.5} strokeDasharray="4 4" dot={{ r: 4, fill: '#c4b5fd' }} />
               </LineChart>
             </ResponsiveContainer>
           </div>

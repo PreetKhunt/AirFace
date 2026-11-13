@@ -142,13 +142,13 @@ export default function SystemStatusPage() {
           overallStatus === 'OPERATIONAL' 
             ? 'bg-emerald-500/10 border-emerald-500/30' 
             : overallStatus === 'DEGRADED'
-            ? 'bg-amber-500/10 border-amber-500/30'
+            ? 'bg-purple-500/10 border-purple-500/30'
             : 'bg-danger/10 border-danger/30'
         )}>
           <div className="flex items-center gap-4">
             <div className={clsx(
               'w-12 h-12 rounded-full flex items-center justify-center',
-              overallStatus === 'OPERATIONAL' ? 'bg-emerald-500/20 text-emerald-400' : 'bg-amber-500/20 text-amber-400'
+              overallStatus === 'OPERATIONAL' ? 'bg-emerald-500/20 text-emerald-400' : 'bg-purple-500/20 text-purple-300'
             )}>
               {overallStatus === 'OPERATIONAL' ? <CheckCircle2 className="w-6 h-6" /> : <AlertTriangle className="w-6 h-6" />}
             </div>

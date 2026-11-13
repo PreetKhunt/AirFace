@@ -24,7 +24,7 @@ export default function DataCleaningPage() {
       setLoading(true);
       setError(null);
       const [data, status] = await Promise.all([
-        api.getNormalizedObservations(undefined, undefined, true, 500, 'HISTORICAL'),
+        api.getNormalizedObservations(undefined, undefined, true, 500, 'SYNTHETIC'),
         api.getPipelineStatus(),
       ]);
       setObservations(data.items);
@@ -116,7 +116,7 @@ export default function DataCleaningPage() {
 
       <section className="flex flex-col gap-3 border-b border-border pb-5">
         <div className="flex items-center justify-between gap-4">
-          <h2 className="text-xs font-semibold text-muted-silver tracking-[0.2em] uppercase">Historical observations by booking horizon</h2>
+          <h2 className="text-xs font-semibold text-muted-silver tracking-[0.2em] uppercase">Synthetic demo observations by booking horizon</h2>
           <span className="text-xs font-mono text-muted-silver">{filteredObs.length} shown</span>
         </div>
         <div role="group" aria-label="Filter observations by booking horizon" className="flex flex-wrap gap-1 bg-card border border-border p-1 rounded-lg w-fit">

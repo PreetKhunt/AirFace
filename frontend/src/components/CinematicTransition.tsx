@@ -60,7 +60,7 @@ export function Scene({
     clouds: 'bg-gradient-to-b from-surface/70 via-obsidian to-midnight-navy',
     route: 'bg-gradient-to-b from-atmospheric-blue/5 via-transparent to-midnight-navy',
     pipeline: 'bg-gradient-to-b from-electric-cyan/10 via-transparent to-midnight-navy',
-    horizon: 'bg-gradient-to-b from-amber-900/5 via-transparent to-midnight-navy',
+    horizon: 'bg-gradient-to-b from-purple-900/10 via-transparent to-midnight-navy',
     map: 'bg-gradient-to-b from-atmospheric-blue/10 via-transparent to-midnight-navy',
     provenance: 'bg-gradient-to-b from-emerald-900/5 via-transparent to-midnight-navy',
     control: 'bg-gradient-to-b from-midnight-navy via-obsidian to-obsidian',
@@ -246,7 +246,7 @@ function HorizonPattern() {
       {[...Array(5)].map((_, i) => (
         <div
           key={i}
-          className="absolute h-px bg-gradient-to-r from-transparent via-amber-500/20 to-transparent"
+          className="absolute h-px bg-gradient-to-r from-transparent via-purple-400/20 to-transparent"
           style={{
             width: '100%',
             top: `${20 + i * 20}%`,

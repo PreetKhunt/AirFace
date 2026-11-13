@@ -7,7 +7,7 @@ export function DataModeBadge({ mode }: { mode: DataMode | null }) {
   const modeBadgeColor =
     mode === 'LIVE' ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20' :
     mode === 'HISTORICAL' ? 'bg-accent/10 text-accent border-accent/20' :
-    mode === 'SYNTHETIC' ? 'bg-amber-500/10 text-amber-400 border-amber-500/20' :
+    mode === 'SYNTHETIC' ? 'bg-purple-500/10 text-purple-300 border-purple-400/30' :
     'bg-white/5 text-muted-silver border-white/10';
 
   return (

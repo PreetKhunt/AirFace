@@ -85,7 +85,7 @@ export default function RouteExplorerPage() {
               className={clsx(
                 'px-4 py-1.5 text-xs font-mono rounded-md transition-all',
                 selectedHorizon === h 
-                  ? 'bg-accent text-background shadow-[0_0_12px_rgba(214,138,58,0.25)]'
+                  ? 'bg-accent text-background shadow-[0_0_12px_rgba(167,139,250,0.25)]'
                   : 'text-muted hover:text-white'
               )}
             >
@@ -129,7 +129,7 @@ export default function RouteExplorerPage() {
                     className={clsx(
                       'w-full flex items-center justify-between px-4 py-3 rounded-lg text-sm transition-all',
                       selectedRoute === route 
-                        ? 'bg-accent/10 border border-accent/30 text-white shadow-[inset_4px_0_0_rgba(214,138,58,1)]'
+                        ? 'bg-accent/10 border border-accent/30 text-white shadow-[inset_4px_0_0_rgba(167,139,250,1)]'
                         : 'text-muted border border-transparent hover:bg-white/5 hover:text-white'
                     )}
                   >
@@ -165,7 +165,7 @@ export default function RouteExplorerPage() {
 
                 <div className="flex-1 bg-card border border-border rounded-xl p-6 relative overflow-hidden">
                   <div className="text-xs font-semibold text-muted-silver tracking-[0.2em] uppercase mb-4">
-                    Historical index trajectory · {selectedRouteData[0]?.date ?? 'NO DATA'} to {latestPoint.date}
+                    Synthetic demo index trajectory · {selectedRouteData[0]?.date ?? 'NO DATA'} to {latestPoint.date}
                   </div>
                   <ResponsiveContainer width="100%" height="100%">
                     <AreaChart data={selectedRouteData} margin={{ top: 10, right: 0, left: -20, bottom: 0 }}>

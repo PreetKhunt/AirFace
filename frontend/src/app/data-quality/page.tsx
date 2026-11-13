@@ -23,10 +23,10 @@ export default function DataQualityPage() {
       setError(null);
       const [data, normalized] = await Promise.all([
         api.getQualityHistory(),
-        api.getNormalizedObservations(undefined, undefined, false, 500, 'HISTORICAL'),
+        api.getNormalizedObservations(undefined, undefined, false, 500, 'SYNTHETIC'),
       ]);
       setHistory(data
-        .filter(log => Number(log.synthetic_share ?? 0) === 0)
+        .filter(log => Number(log.synthetic_share ?? 0) > 0)
         .sort((a, b) => new Date(a.calculation_date).getTime() - new Date(b.calculation_date).getTime()));
       setObservations(normalized.items);
     } catch (err: any) {
@@ -127,7 +127,7 @@ export default function DataQualityPage() {
           <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-6">
             <div>
               <h3 className="text-xs font-semibold text-muted tracking-[0.2em] uppercase">Quality Events by Horizon</h3>
-              <p className="text-xs text-muted-silver mt-1">Historical records only · synthetic benchmark excluded</p>
+              <p className="text-xs text-muted-silver mt-1">Synthetic demo records · T+1 through T+45</p>
             </div>
             <div role="group" aria-label="Select booking horizon" className="flex flex-wrap gap-1 bg-surface border border-border p-1 rounded-lg">
               {BOOKING_HORIZONS.map(horizon => (
@@ -136,7 +136,7 @@ export default function DataQualityPage() {
                   type="button"
                   aria-pressed={selectedHorizon === horizon}
                   onClick={() => setSelectedHorizon(horizon)}
-                  className={`px-3 py-1.5 text-xs font-mono rounded transition-colors ${selectedHorizon === horizon ? 'bg-emerald-500/15 text-emerald-300' : 'text-muted-silver hover:text-white'}`}
+                  className={`px-3 py-1.5 text-xs font-mono rounded transition-colors ${selectedHorizon === horizon ? 'bg-purple-500/15 text-purple-300' : 'text-muted-silver hover:text-white'}`}
                 >
                   {horizon}
                 </button>
@@ -158,7 +158,7 @@ export default function DataQualityPage() {
                 <XAxis dataKey="horizon" stroke="#94a3b8" fontSize={10} tickLine={false} axisLine={false} />
                 <YAxis allowDecimals={false} stroke="#94a3b8" fontSize={10} tickLine={false} axisLine={false} />
                 <Tooltip contentStyle={{ backgroundColor: '#18181b', borderColor: '#27272a', borderRadius: '8px', color: '#f8fafc' }} />
-                <Bar dataKey="marketSurges" name="Market surges" fill="#f59e0b" radius={[3, 3, 0, 0]} />
+                <Bar dataKey="marketSurges" name="Market surges" fill="#a78bfa" radius={[3, 3, 0, 0]} />
                 <Bar dataKey="technicalOutliers" name="Technical outliers" fill="#ef4444" radius={[3, 3, 0, 0]} />
                 <Bar dataKey="duplicates" name="Commercial duplicates" fill="#38bdf8" radius={[3, 3, 0, 0]} />
                 <Bar dataKey="invalid" name="Index-ineligible" fill="#a78bfa" radius={[3, 3, 0, 0]} />
@@ -168,7 +168,7 @@ export default function DataQualityPage() {
         </section>
 
         <div className="p-6 bg-card border border-border rounded-xl mt-6">
-          <h3 className="text-xs font-semibold text-muted tracking-[0.2em] uppercase mb-6">Historical Trajectory</h3>
+          <h3 className="text-xs font-semibold text-muted tracking-[0.2em] uppercase mb-6">Synthetic DQ Trajectory</h3>
           <div className="h-80 w-full relative">
             <ResponsiveContainer width="100%" height="100%">
               <AreaChart data={chartData} margin={{ top: 10, right: 0, left: -20, bottom: 0 }}>

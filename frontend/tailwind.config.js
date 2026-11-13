@@ -11,14 +11,14 @@ module.exports = {
         // Deep aviation-inspired palette
         'midnight-navy': '#0D0F0E',
         'obsidian': '#151817',
-        'atmospheric-blue': '#D68A3A',
+        'atmospheric-blue': '#A78BFA',
         'electric-cyan': '#4FA89A',
         'soft-white': '#F3EFE5',
         'muted-silver': '#B7B5AC',
 
         // Semantic colors (use sparingly)
         'success': '#5FAF82',
-        'warning': '#D6A14A',
+        'warning': '#A78BFA',
         'danger': '#C96B5B',
         'info': '#9BA7A0',
 
@@ -27,8 +27,8 @@ module.exports = {
         'card': '#1C211F',
         'surface': '#242621',
         'border': '#3A3B35',
-        'accent': '#D68A3A',
-        'blue': '#D68A3A',
+        'accent': '#A78BFA',
+        'blue': '#A78BFA',
         'muted': '#7F817B',
       },
       fontFamily: {
@@ -68,12 +68,12 @@ module.exports = {
         },
         'glow-blue': {
           '0%, 100%': {
-            'box-shadow': '0 0 20px rgba(214, 138, 58, 0.2)',
-            'text-shadow': '0 0 10px rgba(214, 138, 58, 0.35)'
+            'box-shadow': '0 0 20px rgba(167, 139, 250, 0.2)',
+            'text-shadow': '0 0 10px rgba(167, 139, 250, 0.35)'
           },
           '50%': {
-            'box-shadow': '0 0 40px rgba(214, 138, 58, 0.35)',
-            'text-shadow': '0 0 20px rgba(214, 138, 58, 0.5)'
+            'box-shadow': '0 0 40px rgba(167, 139, 250, 0.35)',
+            'text-shadow': '0 0 20px rgba(167, 139, 250, 0.5)'
           },
         },
       },
