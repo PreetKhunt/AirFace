@@ -21,6 +21,8 @@ services:
         value: "https://air-face-rho.vercel.app"
       - key: ENVIRONMENT
         value: "production"
+      - key: DATA_MODE
+        value: "HISTORICAL"
         
   # Render Free Key Value (Redis-compatible)
   - type: redis
